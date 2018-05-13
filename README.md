@@ -8,9 +8,9 @@ It is the original implementation of paper A Multi-Scale Model for Simulating Li
 
  - A liquid simulator implementing the affine-particle-in-cell method.
  - A cloth simulator implementing the elastic thin shell model.
- - A yarn simulator implementing the elastic viscous thread model.
- - An MPM-based collision handler (for more details, see Anisotropic Elastoplasticity for Cloth, Knit and Hair Frictional Contact, http://www.seas.upenn.edu/~cffjiang/research/cloth/paper.pdf)
- - A mixture theory based two-way coupling method between the cloth, yarn and liquid, including dragging, buoyancy, capturing and dripping effect.
+ - A yarn simulator implementing the discrete viscous thread model.
+ - An MPM-based collision handler. For more details, please refer to [Anisotropic Elastoplasticity for Cloth, Knit and Hair Frictional Contact](http://www.seas.upenn.edu/~cffjiang/research/cloth/paper.pdf).
+ - A two-way coupling method based on mixture theory, between the cloth, yarn and liquid, handling dragging, buoyancy, capturing and dripping effect.
 
 Dependencies
 --------------------
