@@ -44,7 +44,9 @@
 #include "TimingUtilities.h"
 #include "MemUtilities.h"
 
+#ifdef RENDER_ENABLED
 #include <AntTweakBar.h>
+#endif
 
 const static char* g_timing_labels[] = {
     "Build Sparse MAC Grid",
@@ -128,6 +130,7 @@ void ParticleSimulation::stepSystem(const scalar &dt)
 }
 
 void ParticleSimulation::initializeOpenGLRenderer(){
+#ifdef RENDER_ENABLED
     TwBar* bar = TwNewBar("Control Panel");
     TwDefine(" GLOBAL help='A Multi-Scale Model for Simulating Liquid-Fabric Interactions' ");
     TwDefine(" 'Control Panel' size='400 600' color='83 37 0' position='5 70'");
@@ -228,6 +231,7 @@ void ParticleSimulation::initializeOpenGLRenderer(){
     TwAddVarRW(bar, "Implicit cloth/yarn for liquid drag", TW_TYPE_BOOLCPP, &info.drag_by_future_solid, " help='Use implicitly (turn off to use explicitly integrated cloth/yarn velocity) integrated cloth/yarn velocity to compute liquid drag force' group='features'");
     TwAddVarRW(bar, "Air drag", TW_TYPE_BOOLCPP, &info.drag_by_future_solid, " help='Turn on to apply air drag force to the cloth/yarn' group='features'");
     TwAddVarRO(bar, "Init with nonuniform volume fraction", TW_TYPE_BOOLCPP, &info.init_nonuniform_fraction, " help='Must be turned on when initializing the cloth/yarn with nonuniform volume fraction' group='features'");
+#endif
 }
 
 

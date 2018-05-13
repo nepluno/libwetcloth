@@ -52,7 +52,6 @@
 #include <sys/stat.h>
 
 #include <tclap/CmdLine.h>
-#include <AntTweakBar.h>
 
 #include "TwoDScene.h"
 #include "Force.h"
@@ -68,6 +67,8 @@
 #include "TwoDSceneRenderer.h"
 #include "RenderingUtilities.h"
 #include "YImage.h"
+
+#include <AntTweakBar.h>
 #endif
 
 

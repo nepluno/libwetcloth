@@ -33,6 +33,16 @@ if (PNG_FOUND)
   include_directories (${PNG_INCLUDE_DIR})
   set (LIBWETCLOTH_LIBRARIES ${LIBWETCLOTH_LIBRARIES} ${PNG_LIBRARIES})
 endif (PNG_FOUND)
+
+# Locate AntTweakBar
+find_package (ANTTWEAKBAR REQUIRED)
+if (ANTTWEAKBAR_FOUND)
+  include_directories( ${ANT_TWEAK_BAR_INCLUDE_DIR} )
+  set (LIBWETCLOTH_LIBRARIES ${LIBWETCLOTH_LIBRARIES} ${ANT_TWEAK_BAR_LIBRARY})  
+else (ANTTWEAKBAR_FOUND)
+  message (SEND_ERROR "Unable to locate ANTTWEAKBAR")
+endif (ANTTWEAKBAR_FOUND)  
+
 endif (USE_OPENGL)
 
 find_package (TBB REQUIRED)
@@ -50,15 +60,6 @@ if (LIBIGL_FOUND)
 else (LIBIGL_FOUND)
   message (SEND_ERROR "Unable to locate IGL")
 endif (LIBIGL_FOUND)
-
-# Locate AntTweakBar
-find_package (ANTTWEAKBAR REQUIRED)
-if (ANTTWEAKBAR_FOUND)
-  include_directories( ${ANT_TWEAK_BAR_INCLUDE_DIR} )
-  set (LIBWETCLOTH_LIBRARIES ${LIBWETCLOTH_LIBRARIES} ${ANT_TWEAK_BAR_LIBRARY})  
-else (ANTTWEAKBAR_FOUND)
-  message (SEND_ERROR "Unable to locate ANTTWEAKBAR")
-endif (ANTTWEAKBAR_FOUND)  
 
 # RapidXML library is required
 find_package (RapidXML REQUIRED)
