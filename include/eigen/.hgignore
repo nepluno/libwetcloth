@@ -1,0 +1,27 @@
+syntax: glob
+qrc_*cxx
+*.orig
+*.pyc
+*.diff
+diff
+*.save
+save
+*.old
+*.gmo
+*.qm
+core
+core.*
+*.bak
+*~
+build*
+*.moc.*
+*.moc
+ui_*
+CMakeCache.txt
+tags
+.*.swp
+activity.png
+*.out
+*.php*
+eigen_gen_credits.log
+

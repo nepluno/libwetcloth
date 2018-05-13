@@ -1,0 +1,245 @@
+<scene>
+  <duration time="16.0"/>
+  <integrator type="linearized-implicit-euler" dt="0.001" apic="1" criterion="1e-4" manifoldsubsteps="16"/>
+  <collision type="continuous-time"/>
+
+  <bucketinfo size="1.152" numcells="4" kernelorder="2"/>
+
+  <liquidinfo>
+    <viscosity value="8.9e-3"/>
+    <surfTensionCoeff value="72.0"/>
+    <halfThickness value="0.018"/>
+    <yarnDiameter value="0.01"/>
+    <restVolumeFraction value="0.4"/>
+    <flipCoeff value="0.996"/>
+    <elastoFlipCoeff value="0.0"/>
+    <elastoFlipAsymCoeff value="0.996"/>   
+    <elastoAdvectCoeff value="0.996"/> 
+    <multiLevel value="0"/>
+    <solveSolid value="0"/>
+  </liquidinfo>
+
+  <simplegravity fx="0.0" fy="-981.0"/>
+
+  <StrandParameters> 
+    <radius value="0.0165" /> 
+    <youngsModulus value="6.6e4" /> 
+    <poissonRatio value="0.35" /> 
+    <collisionMultiplier value="1.0" />
+    <attachMultiplier value="20.0" />     
+    <density value="1.32" /> 
+    <viscosity value="1e3" /> 
+    <baseRotation value="0.0"/>  
+    <accumulateWithViscous value="1" /> 
+    <accumulateViscousOnlyForBendingModes value="1" /> 
+    <frictionAngle value="30.0"/>
+  </StrandParameters> 
+
+  <particle x="0 0 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.144 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.288 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.432 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.576 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.72 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.864 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.008 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.152 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.296 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.44 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.584 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.728 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.872 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.016 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.16 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.304 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.448 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.592 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.736 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.88 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.024 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.168 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.312 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.456 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.6 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.744 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.888 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.032 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.176 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.32 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.464 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.608 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.752 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.896 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.04 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.184 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.328 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.472 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.616 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.76 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.904 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.048 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.192 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.336 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.48 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.624 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.768 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.912 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 7.056 0" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.144 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.288 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.432 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.576 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.72 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 0.864 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.008 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.152 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.296 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.44 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.584 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.728 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 1.872 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.016 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.16 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.304 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.448 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.592 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.736 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 2.88 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.024 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.168 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.312 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.456 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.6 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.744 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 3.888 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.032 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.176 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.32 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.464 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.608 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.752 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 4.896 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.04 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.184 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.328 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.472 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.616 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.76 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 5.904 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.048 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.192 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.336 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.48 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.624 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.768 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 6.912 0.144" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="0 7.056 0.144" v="0.0 0.0 0.0" fixed="1"/>
+
+  <cloth params="0">
+    <face i="0 1 50"/>
+    <face i="1 51 50"/>
+    <face i="1 2 51"/>
+    <face i="2 52 51"/>
+    <face i="2 3 52"/>
+    <face i="3 53 52"/>
+    <face i="3 4 53"/>
+    <face i="4 54 53"/>
+    <face i="4 5 54"/>
+    <face i="5 55 54"/>
+    <face i="5 6 55"/>
+    <face i="6 56 55"/>
+    <face i="6 7 56"/>
+    <face i="7 57 56"/>
+    <face i="7 8 57"/>
+    <face i="8 58 57"/>
+    <face i="8 9 58"/>
+    <face i="9 59 58"/>
+    <face i="9 10 59"/>
+    <face i="10 60 59"/>
+    <face i="10 11 60"/>
+    <face i="11 61 60"/>
+    <face i="11 12 61"/>
+    <face i="12 62 61"/>
+    <face i="12 13 62"/>
+    <face i="13 63 62"/>
+    <face i="13 14 63"/>
+    <face i="14 64 63"/>
+    <face i="14 15 64"/>
+    <face i="15 65 64"/>
+    <face i="15 16 65"/>
+    <face i="16 66 65"/>
+    <face i="16 17 66"/>
+    <face i="17 67 66"/>
+    <face i="17 18 67"/>
+    <face i="18 68 67"/>
+    <face i="18 19 68"/>
+    <face i="19 69 68"/>
+    <face i="19 20 69"/>
+    <face i="20 70 69"/>
+    <face i="20 21 70"/>
+    <face i="21 71 70"/>
+    <face i="21 22 71"/>
+    <face i="22 72 71"/>
+    <face i="22 23 72"/>
+    <face i="23 73 72"/>
+    <face i="23 24 73"/>
+    <face i="24 74 73"/>
+    <face i="24 25 74"/>
+    <face i="25 75 74"/>
+    <face i="25 26 75"/>
+    <face i="26 76 75"/>
+    <face i="26 27 76"/>
+    <face i="27 77 76"/>
+    <face i="27 28 77"/>
+    <face i="28 78 77"/>
+    <face i="28 29 78"/>
+    <face i="29 79 78"/>
+    <face i="29 30 79"/>
+    <face i="30 80 79"/>
+    <face i="30 31 80"/>
+    <face i="31 81 80"/>
+    <face i="31 32 81"/>
+    <face i="32 82 81"/>
+    <face i="32 33 82"/>
+    <face i="33 83 82"/>
+    <face i="33 34 83"/>
+    <face i="34 84 83"/>
+    <face i="34 35 84"/>
+    <face i="35 85 84"/>
+    <face i="35 36 85"/>
+    <face i="36 86 85"/>
+    <face i="36 37 86"/>
+    <face i="37 87 86"/>
+    <face i="37 38 87"/>
+    <face i="38 88 87"/>
+    <face i="38 39 88"/>
+    <face i="39 89 88"/>
+    <face i="39 40 89"/>
+    <face i="40 90 89"/>
+    <face i="40 41 90"/>
+    <face i="41 91 90"/>
+    <face i="41 42 91"/>
+    <face i="42 92 91"/>
+    <face i="42 43 92"/>
+    <face i="43 93 92"/>
+    <face i="43 44 93"/>
+    <face i="44 94 93"/>
+    <face i="44 45 94"/>
+    <face i="45 95 94"/>
+    <face i="45 46 95"/>
+    <face i="46 96 95"/>
+    <face i="46 47 96"/>
+    <face i="47 97 96"/>
+    <face i="47 48 97"/>
+    <face i="48 98 97"/>
+    <face i="48 49 98"/>
+    <face i="49 99 98"/>
+  </cloth>
+
+  <distancefield usage="source" type="sphere" cx="0.0" cy="0.0" cz="0.072" rx="0.0" ry="1.0" rz="0.0" rw="0.0" radius="0.576" group="2"/>
+  <distancefield usage="source" type="box" cx="0.0" cy="-0.576" cz="0.072" rx="0.0" ry="1.0" rz="0.0" rw="0.0" ex="0.576" ey="0.576" ez="0.576" radius="0.0" group="2"/>
+  <distancefield usage="source" type="intersect" i="0 1" group="2"/>
+
+  <distancefield usage="solid" type="box" cx="0.0" cy="3.528" cz="0.072" rx="0.0" ry="1.0" rz="0.0" rw="0.0" ex="0.0" ey="3.528" ez="0.0" radius="0.576" group="1" sampled="0" inside="1"/>
+</scene>
