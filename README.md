@@ -1,6 +1,6 @@
 libWetCloth
 ================
-libWetCloth is an open source project for the physical simulation of liquid and wet cloth or yarns. It is cross-platform (Mac OS X, Linux, and more), and licensed under Clear BSD License for academic and non-commercial use (other licenses may be obtained by contacting the faculty of the Columbia Computer Graphics Group or a Columbia University licensing officer). 
+libWetCloth is an open source project for the physical simulation of liquid and wet cloth or yarns. It is cross-platform (Mac OS X, Linux, Windows, and more), and licensed under Clear BSD License for academic and non-commercial use (other licenses may be obtained by contacting the faculty of the Columbia Computer Graphics Group or a Columbia University licensing officer). 
 
 We would like to hear from you if you appreciate this work.
 
@@ -9,7 +9,7 @@ It is the original implementation of paper A Multi-Scale Model for Simulating Li
  - A liquid simulator implementing the affine-particle-in-cell method.
  - A cloth simulator implementing the elastic thin shell model.
  - A yarn simulator implementing the discrete viscous thread model.
- - An MPM-based collision handler. For more details, please refer to [Anisotropic Elastoplasticity for Cloth, Knit and Hair Frictional Contact](http://www.seas.upenn.edu/~cffjiang/research/cloth/paper.pdf).
+ - A cloth/yarn collision handler based on anisotropic elastoplasticity and augmented material point method. 
  - A two-way coupling method based on mixture theory, between the cloth, yarn and liquid, handling dragging, buoyancy, capturing and dripping effect.
 
 Dependencies
@@ -27,9 +27,11 @@ libWetCloth depends on following libraries (some of them have been included in t
 
 On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For Intel TBB, you may download and install from the link provided above, or from Intel website (https://software.intel.com/en-us/parallel-studio-xe/choose-download).
 
+On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For more details refer to the compilation section below.
+
 Compilation
 -----------------
-libWetCloth has been tested with Clang (under Mac OS X), GCC 4.8+ (under Linux).
+libWetCloth has been tested with Clang (under Mac OS X), GCC 4.8+ (under Linux), and Microsoft Visual Studio (under Windows 10).
 
 To compile libWetCloth, you'll need CMake on Mac OS X or Linux, or CMake-GUI (https://cmake.org) on Windows.
 
@@ -37,6 +39,13 @@ On Mac OS X or Linux:
 1. make a directory, say, *build*, with *mkdir build*, enter the *build* directory, type *cmake ..*
 2. Optionally you can adjust the options with *ccmake .*
 3. type *make* to compile the code. For speeding up the compilation process you may use *make -j*.
+
+On Windows:
+1. open CMake-GUI, enter the correct directory for source code and build. Then click *Configure*, choose your installed version of the Microsoft Visual Studio.
+2. after configuration you may find several libraries not found (with notifications of errors), check the *Advanced* box and *specify those missing header path and libraries manually*. For example, if Eigen is missing, then please specify the EIGEN3_INCLUDE_DIR to the path of directory we provided. For the ones we have not provided, you need to download and compile them before compiling libWetCloth, and then specify the missing directories to the path containing your headers or compiled libraries. Please make sure you have picked the libraries corresponding to the architecture you have selected (say, 32-bit libraries for x86, and 64-bit libraries for x64).
+3. click generate after fixing all missing variables to generate your Visual Studio solution.
+4. open the Visual Studio solution and compile the code.
+5. before running the demo, all the compiled dynamic linking libraries (DLLs) for your dependencies should be accessible from your PATH environment variable that can be changed in system settings, or you may simply copy them into your System32 (x64) or SysWOW64 (x86) directories.
 
 Run the Demo
 --------------------
