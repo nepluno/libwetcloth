@@ -46,7 +46,6 @@
 #include "DependencyNode.h"
 #define PI_4 0.785398163397448309616
 
-
 /**
  * Unit: cm
  */
@@ -217,7 +216,7 @@ protected:
         const scalar& radius = m_physicalRadius.get();
         const scalar youngsModulus = m_youngsModulus.get();
 
-        m_value = M_PI * radius * radius * youngsModulus;
+        m_value = 3.1415926535897932384626 * radius * radius * youngsModulus;
 
         setDependentsDirty();
     }

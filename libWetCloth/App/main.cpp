@@ -46,12 +46,22 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <unistd.h>
-#include <time.h>
 #include <thread>
 #include <sys/stat.h>
 
 #include <tclap/CmdLine.h>
+
+#ifdef WIN32
+#include <direct.h>
+
+#ifndef GL_MULTISAMPLE_ARB
+#define GL_MULTISAMPLE_ARB 0x809D
+#endif
+
+#ifndef GL_MULTISAMPLE_FILTER_HINT_NV
+#define GL_MULTISAMPLE_FILTER_HINT_NV 0x8534
+#endif
+#endif
 
 #include "TwoDScene.h"
 #include "Force.h"

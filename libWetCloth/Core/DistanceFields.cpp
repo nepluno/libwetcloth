@@ -40,6 +40,10 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+#ifdef WIN32
+#define NOMINMAX
+#endif
+
 #include "DistanceFields.h"
 #include "MathUtilities.h"
 #include "TwoDScene.h"

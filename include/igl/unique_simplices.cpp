@@ -24,10 +24,10 @@ IGL_INLINE void igl::unique_simplices(
   using namespace Eigen;
   using namespace std;
   // Sort each face
-  MatrixXi sortF, unusedI;
+  Eigen::MatrixXi sortF, unusedI;
   igl::sort(F,2,true,sortF,unusedI);
   // Find unique faces
-  MatrixXi C;
+  Eigen::MatrixXi C;
   igl::unique_rows(sortF,C,IA,IC);
   FF.resize(IA.size(),F.cols());
   const size_t mff = FF.rows();

@@ -66,11 +66,15 @@ TwoDimensionalDisplayController::TwoDimensionalDisplayController( int width, int
 int TwoDimensionalDisplayController::setWindowWidth(int w)
 {
 	m_window_width = w;
+
+	return w;
 }
 
 int TwoDimensionalDisplayController::setWindowHeight(int h)
 {
 	m_window_height = h;
+	
+	return h;
 }
 
 double TwoDimensionalDisplayController::getRatio() const

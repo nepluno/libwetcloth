@@ -47,6 +47,8 @@
 #include "MathUtilities.h"
 #include "AlgebraicMultigrid.h"
 
+#include <numeric>
+
 const scalar theta_criterion = 0.01;
 
 //#define CHECK_AMGPCG_RESULT

@@ -41,11 +41,16 @@
 // DAMAGE.
 
 #ifdef RENDER_ENABLED
+#ifdef WIN32
+#define NOMINMAX
+#endif
+
 #include "YImage.h"
 
 #include <iostream>
 #include <cassert>
 #include <cstdlib>
+#include <algorithm>
 
 #include <png.h>
 

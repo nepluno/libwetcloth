@@ -43,6 +43,10 @@
 #ifndef __RENDERING_UTILITIES_H__
 #define __RENDERING_UTILITIES_H__
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
+
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>

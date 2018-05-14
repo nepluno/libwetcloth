@@ -46,6 +46,7 @@
 #include <igl/boundary_loop.h>
 #include <fstream>
 #include <iomanip>
+#include <numeric>
 
 const int num_cloth_edge_discretization = 6;
 

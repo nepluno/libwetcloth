@@ -52,6 +52,7 @@
 #include <igl/point_simplex_squared_distance.h>
 #include <igl/ray_mesh_intersect.h>
 #include <stack>
+#include <numeric>
 
 std::ostream& operator<<(std::ostream& os, const LiquidInfo& info)
 {
@@ -5345,15 +5346,15 @@ void TwoDScene::resampleNodes()
     }
     
     // change index to compressed index
-    compressParticleNodes(m_node_cpidx_x, m_particle_nodes_x);
-    compressParticleNodes(m_node_cpidx_y, m_particle_nodes_y);
-    compressParticleNodes(m_node_cpidx_z, m_particle_nodes_z);
-    compressParticleNodes(m_node_cpidx_solid_phi, m_particle_nodes_solid_phi);
-    compressParticleNodes(m_node_cpidx_p, m_particle_nodes_p);
+    compressParticleNodes<27>(m_node_cpidx_x, m_particle_nodes_x);
+    compressParticleNodes<27>(m_node_cpidx_y, m_particle_nodes_y);
+    compressParticleNodes<27>(m_node_cpidx_z, m_particle_nodes_z);
+    compressParticleNodes<27>(m_node_cpidx_solid_phi, m_particle_nodes_solid_phi);
+    compressParticleNodes<27>(m_node_cpidx_p, m_particle_nodes_p);
     
-    compressParticleNodes(m_node_cpidx_x, m_gauss_nodes_x);
-    compressParticleNodes(m_node_cpidx_y, m_gauss_nodes_y);
-    compressParticleNodes(m_node_cpidx_z, m_gauss_nodes_z);
+    compressParticleNodes<27>(m_node_cpidx_x, m_gauss_nodes_x);
+    compressParticleNodes<27>(m_node_cpidx_y, m_gauss_nodes_y);
+    compressParticleNodes<27>(m_node_cpidx_z, m_gauss_nodes_z);
     
     markInsideOut();
     

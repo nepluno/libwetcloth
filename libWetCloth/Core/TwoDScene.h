@@ -56,6 +56,10 @@
 class StrandForce;
 class AttachForce;
 
+#ifdef PC_NONE
+#undef PC_NONE
+#endif
+
 enum ParticleClassifier
 {
     PC_NONE,

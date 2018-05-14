@@ -42,6 +42,7 @@
 
 
 #include "SceneStepper.h"
+#include <numeric>
 
 SceneStepper::~SceneStepper()
 {}
