@@ -6889,7 +6889,7 @@ void TwoDScene::mapParticleNodesAPIC()
                 const Matrix3s& fB = m_fB.block<3, 3>(pidx * 3, 0);
                 
                 if(!isFluid(pidx)) {
-                    const scalar vel = v(0) + B.row(0).dot(np - pos);
+                    const scalar vel = v(0) + B.row(0).dot(np - pos) * iD;
                     p += vel * (m(0) + fm(0)) * weights(pair.second, 0);
                     mass += (m(0) + fm(0)) * weights(pair.second, 0);
                     
@@ -6901,7 +6901,7 @@ void TwoDScene::mapParticleNodesAPIC()
                         orientation += m_orientation.segment<3>(pidx * 3) * weights(pair.second, 0);
                     }
                 } else {
-                    const scalar vel = fluidv(0) + fB.row(0).dot(np - pos);
+                    const scalar vel = fluidv(0) + fB.row(0).dot(np - pos) * iD;
                     p_fluid += vel * fm(0) * weights(pair.second, 0);
                     mass_fluid += fm(0) * weights(pair.second, 0);
                     vol_fluid += fvol * weights(pair.second, 0);
@@ -6975,7 +6975,7 @@ void TwoDScene::mapParticleNodesAPIC()
                 const Matrix3s& fB = m_fB.block<3, 3>(pidx * 3, 0);
                 
                 if(!isFluid(pidx)) {
-                    const scalar vel = v(1) + B.row(1).dot(np - pos);
+                    const scalar vel = v(1) + B.row(1).dot(np - pos) * iD;
                     p += vel * (m(1) + fm(1)) * weights(pair.second, 1);
                     mass += (m(1) + fm(1)) * weights(pair.second, 1);
 
@@ -6987,7 +6987,7 @@ void TwoDScene::mapParticleNodesAPIC()
                         orientation += m_orientation.segment<3>(pidx * 3) * weights(pair.second, 1);
                     }
                 } else {
-                    const scalar vel = fluidv(1) + fB.row(1).dot(np - pos);
+                    const scalar vel = fluidv(1) + fB.row(1).dot(np - pos) * iD;
                     p_fluid += vel * fm(1) * weights(pair.second, 1);
                     mass_fluid += fm(1) * weights(pair.second, 1);
                     vol_fluid += fvol * weights(pair.second, 1);
@@ -7061,7 +7061,7 @@ void TwoDScene::mapParticleNodesAPIC()
                 const Matrix3s& fB = m_fB.block<3, 3>(pidx * 3, 0);
                 
                 if(!isFluid(pidx)) {
-                    const scalar vel = v(2) + B.row(2).dot(np - pos);
+                    const scalar vel = v(2) + B.row(2).dot(np - pos) * iD;
                     p += vel * (m(2) + fm(2)) * weights(pair.second, 2);
                     mass += (m(2) + fm(2)) * weights(pair.second, 2);
 
@@ -7073,7 +7073,7 @@ void TwoDScene::mapParticleNodesAPIC()
                         orientation += m_orientation.segment<3>(pidx * 3) * weights(pair.second, 2);
                     }
                 } else {
-                    const scalar vel = fluidv(2) + fB.row(2).dot(np - pos);
+                    const scalar vel = fluidv(2) + fB.row(2).dot(np - pos) * iD;
                     p_fluid += vel * fm(2) * weights(pair.second, 2);
                     mass_fluid += fm(2) * weights(pair.second, 2);
                     vol_fluid += fvol * weights(pair.second, 2);
@@ -7251,20 +7251,15 @@ void TwoDScene::mapNodeParticlesAPIC()
                 const int node_bucket_idx = indices_x(i, 0);
                 const int node_idx = indices_x(i, 1);
                 
-                Vector3s np;
-                scalar fnv = 0.0;
-                
-                if(indices_x(i, 2))
-                {
-                    np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
-                    fnv = m_node_vel_fluid_x[node_bucket_idx](node_idx);
-                } else {
-                    np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0., 0.5, 0.5));
-                }
-                
+				if(!indices_x(i, 2)) continue;
+				
+				scalar fnv = m_node_vel_fluid_x[node_bucket_idx](node_idx);
+				
+				Vector3s np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+				
                 fv(0) += fnv * weights(i, 0);
                 
-                m_fB.block<1, 3>(pidx * 3 + 0, 0) += fnv * m_particle_grads_x[pidx].row(i);
+                m_fB.block<1, 3>(pidx * 3 + 0, 0) += fnv * weights(i, 0) * (np - pos).transpose();
 
             }
             
@@ -7274,21 +7269,16 @@ void TwoDScene::mapNodeParticlesAPIC()
             {
                 const int node_bucket_idx = indices_y(i, 0);
                 const int node_idx = indices_y(i, 1);
-                
-                Vector3s np;
-                scalar fnv = 0.0;
-                
-                if(indices_y(i, 2))
-                {
-                    np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
-                    fnv = m_node_vel_fluid_y[node_bucket_idx](node_idx);
-                } else {
-                    np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0., 0.5));
-                }
-                
+				
+				if(!indices_y(i, 2)) continue;
+				
+				scalar fnv = m_node_vel_fluid_y[node_bucket_idx](node_idx);
+				
+				Vector3s np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+			
                 fv(1) += fnv * weights(i, 1);
                 
-                m_fB.block<1, 3>(pidx * 3 + 1, 0) += fnv * m_particle_grads_y[pidx].row(i);
+                m_fB.block<1, 3>(pidx * 3 + 1, 0) += fnv * weights(i, 1) * (np - pos).transpose();
 
             }
             
@@ -7300,20 +7290,15 @@ void TwoDScene::mapNodeParticlesAPIC()
                 const int node_bucket_idx = indices_z(i, 0);
                 const int node_idx = indices_z(i, 1);
                 
-                Vector3s np;
-                scalar fnv = 0.0;
-                
-                if(indices_z(i, 2))
-                {
-                    np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
-                    fnv = m_node_vel_fluid_z[node_bucket_idx](node_idx);
-                } else {
-                    np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.));
-                }
+				if(!indices_z(i, 2)) continue;
+				
+				scalar fnv = m_node_vel_fluid_z[node_bucket_idx](node_idx);
+				
+				Vector3s np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
                 
                 fv(2) += fnv * weights(i, 2);
                 
-                m_fB.block<1, 3>(pidx * 3 + 2, 0) += fnv * m_particle_grads_z[pidx].row(i);
+                m_fB.block<1, 3>(pidx * 3 + 2, 0) += fnv * weights(i, 2) * (np - pos).transpose();
 
             }
             
@@ -7343,7 +7328,7 @@ void TwoDScene::mapNodeParticlesAPIC()
                     m_v(pidx * 4 + 3) += invD * twist_dir.dot( mathutils::cross_x(np - pos, nv) ) * weights(i, 0);
                 }
                 
-                m_B.block<1, 3>(pidx * 3 + 0, 0) += nv * m_particle_grads_x[pidx].row(i);
+                m_B.block<1, 3>(pidx * 3 + 0, 0) += nv * weights(i, 0) * (np - pos).transpose();
             }
             
             assert(!std::isnan(m_v.segment<3>(pidx * 4).sum()));
@@ -7367,7 +7352,7 @@ void TwoDScene::mapNodeParticlesAPIC()
                 }
                 
                 
-                m_B.block<1, 3>(pidx * 3 + 1, 0) += nv * m_particle_grads_y[pidx].row(i);
+                m_B.block<1, 3>(pidx * 3 + 1, 0) += nv * weights(i, 1) * (np - pos).transpose();
             }
             
             assert(!std::isnan(m_v.segment<3>(pidx * 4).sum()));
@@ -7391,7 +7376,7 @@ void TwoDScene::mapNodeParticlesAPIC()
 
                 }
                 
-                m_B.block<1, 3>(pidx * 3 + 2, 0) += nv * m_particle_grads_z[pidx].row(i);
+                m_B.block<1, 3>(pidx * 3 + 2, 0) += nv * weights(i, 2) * (np - pos).transpose();
             }
             
             m_v.segment<4>(pidx * 4) *= m_liquid_info.elasto_advect_coeff;
