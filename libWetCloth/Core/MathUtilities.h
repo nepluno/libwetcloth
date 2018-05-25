@@ -917,22 +917,29 @@ namespace mathutils
     }
 
     inline void dhdr_yarn(double mu, double la, double r22, double r23, double r33, double *dhdr22, double *dhdr23, double *dhdr33){
-        
-        //    std::cout << "r: \n" << r << std::endl;
-        Eigen::Vector2d sigm = Eigen::Vector2d(r22, r33);
-        Eigen::Vector2d sigm_inv = Eigen::Vector2d(1.0 / sigm(0), 1.0 / sigm(1));
-        Eigen::Vector2d lnsigm = Eigen::Vector2d(log(sigm(0)), log(sigm(1)));
-
-        if(lnsigm(0) + lnsigm(1) > 0.0) {
-            *dhdr22 = 0.0;
-            *dhdr33 = 0.0;
-        } else {
-            Eigen::Matrix2d tmp = Eigen::Matrix2d(sigm_inv.asDiagonal()) * Eigen::Matrix2d(lnsigm.asDiagonal());
-            Eigen::Matrix2d ret = (2.0 * mu * tmp + la * lnsigm.sum() * Eigen::Matrix2d(sigm_inv.asDiagonal()));
-            
-            *dhdr22 = ret(0,0);
-            *dhdr33 = ret(1,1);
-        }
+		Eigen::Matrix2d r(2,2);
+	    r(0,0) = r22;
+	    r(0,1) = r23;
+	    r(1,0) = 0.0;
+	    r(1,1) = r33;
+		
+	    Eigen::JacobiSVD<Eigen::MatrixXd> svd(r, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	    Eigen::Vector2d sigm = svd.singularValues();
+	    Eigen::Vector2d sigm_inv = Eigen::Vector2d(1.0 / sigm(0), 1.0 / sigm(1));
+	    Eigen::Vector2d lnsigm = Eigen::Vector2d(log(sigm(0)), log(sigm(1)));
+		
+		if(lnsigm(0) + lnsigm(1) > 0.0) {
+			*dhdr22 = 0.0;
+			*dhdr23 = 0.0;
+			*dhdr33 = 0.0;
+		} else {
+			Eigen::Matrix2d tmp = Eigen::Matrix2d(sigm_inv.asDiagonal()) * Eigen::Matrix2d(lnsigm.asDiagonal());
+			Eigen::Matrix2d ret = svd.matrixU() * (2.0 * mu * tmp + la * lnsigm.sum() * Eigen::Matrix2d(sigm_inv.asDiagonal())) * svd.matrixV().transpose();
+			
+			*dhdr22 = ret(0,0);
+			*dhdr23 = ret(0,1);
+			*dhdr33 = ret(1,1);
+		}
     }
     
     inline void dgdr_cloth(double mu, double r13, double r23, double *dhdr13, double *dhdr23){

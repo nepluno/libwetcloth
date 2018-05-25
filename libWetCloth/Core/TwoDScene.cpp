@@ -1791,11 +1791,6 @@ void TwoDScene::computedEdFe(MatrixXs &dFe){
 
         mathutils::dhdr_yarn(mu, la, R(1,1), R(1,2), R(2,2), &dhdr22, &dhdr23, &dhdr33);
 
-        if(std::isnan(dhdr22)){
-            std::cout<<R<<std::endl;
-            exit(-1);
-        }
-
         //dphidr = [f' g'rt]
         //         [0  P_hat]
         
@@ -1805,11 +1800,11 @@ void TwoDScene::computedEdFe(MatrixXs &dFe){
         if(dhdr22 != 0.0 || dhdr33 != 0.0) {
             dphidr(0,1) = mu * R(0,1);
             dphidr(0,2) = mu * R(0,2);
-            dphidr(1,2) = mu * R(1,2);
         }
         
-        dphidr(1,1)=dhdr22;
-        dphidr(2,2)=dhdr33;
+        dphidr(1,1) = dhdr22;
+        dphidr(2,2) = dhdr33;
+        dphidr(1,2) = dhdr23;
         
         const Matrix3s& dphidrRt = dphidr * R.transpose();
         
@@ -5445,22 +5440,20 @@ void TwoDScene::updatePlasticity(scalar dt){
         Matrix3s Q,R;
         mathutils::QRDecompose<scalar, 3>(d_hat, Q, R);
         const Matrix3s& F = m_Fe_gauss.block<3, 3>(pidx*3, 0);
-        const Matrix3s& D = m_D_gauss.block<3,3>(pidx*3, 0);
+        const Matrix3s& D = m_D_gauss.block<3, 3>(pidx*3, 0);
         
         const scalar alpha = getFrictionAlpha(pidx);
         const scalar beta = getFrictionBeta(pidx);
         
-        Eigen::JacobiSVD<Eigen::MatrixXd> svd(R.block<2,2>(1,1), Eigen::ComputeThinU | Eigen::ComputeThinV);
+        Eigen::JacobiSVD<Eigen::Matrix2d> svd(R.block<2, 2>(1, 1), Eigen::ComputeThinU | Eigen::ComputeThinV);
         Eigen::Vector2d s = svd.singularValues();
         const Matrix2s U = svd.matrixU();
         const Matrix2s V = svd.matrixV();
-        //        std::cout<<"svd: "<<s<<std::endl;
-        
+
         scalar ep1_hat = std::log(s(0));
         scalar ep2_hat = std::log(s(1));
         assert(ep1_hat >= ep2_hat);
         
-        //first check if ep1_hat+ep2_hat > 0
         const scalar la = getLa(pidx) * getCollisionMultiplier(pidx);
         const scalar mu = getMu(pidx) * getCollisionMultiplier(pidx);
         
@@ -5487,8 +5480,6 @@ void TwoDScene::updatePlasticity(scalar dt){
             ep1_hat = 0.0;
             ep2_hat = 0.0;
         }
-        
-        //        std::cout << "ep: " << ep1 << ", " << ep2 << std::endl;
         
         s(0) = std::exp(ep1_hat);
         s(1) = std::exp(ep2_hat);

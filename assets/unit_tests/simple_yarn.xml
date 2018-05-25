@@ -20,7 +20,7 @@
     <baseRotation value="0.0"/>
     <accumulateWithViscous value="1"/>
     <accumulateViscousOnlyForBendingModes value="0"/>
-    <friction_angle value="30.0"/>
+    <frictionAngle value="30.0"/>
   </StrandParameters>
   <liquidinfo>
     <viscosity value="8.9e-3"/>
@@ -36,14 +36,14 @@
     <particleCellMultiplier value="0.25"/>
   </liquidinfo>
   
-  <particle x="3.5 -2.0 -1.75" v="0.0 0.0 0.0" fixed="1"/>
-  <particle x="3.5 -2.0 -1.25" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 -0.75" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 -0.25" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 0.25" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 0.75" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 1.25" v="0.0 0.0 0.0" fixed="0"/>
-  <particle x="3.5 -2.0 1.75" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="2.5 -2.0 -1.75" v="0.0 0.0 0.0" fixed="1"/>
+  <particle x="2.5 -2.0 -1.25" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 -0.75" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 -0.25" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 0.25" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 0.75" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 1.25" v="0.0 0.0 0.0" fixed="0"/>
+  <particle x="2.5 -2.0 1.75" v="0.0 0.0 0.0" fixed="1"/>
 
 
   <particle x="-2.0 1.79 0.0" v="0.0 0.0 0.0" fixed="0"/>
