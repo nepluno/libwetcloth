@@ -37,7 +37,7 @@ To compile libWetCloth, you'll need CMake on Mac OS X or Linux, or CMake-GUI (ht
 
 On Mac OS X or Linux:
 1. make a directory, say, *build*, with *mkdir build*, enter the *build* directory, type *cmake ..*
-2. Optionally you can adjust the options with *ccmake .*
+2. Optionally you can adjust the options with *ccmake ..* In some cases there can be some packages that cmake cannot find. You need to manually specify their paths through ccmake then.
 3. type *make* to compile the code. For speeding up the compilation process you may use *make -j*.
 
 On Windows:
