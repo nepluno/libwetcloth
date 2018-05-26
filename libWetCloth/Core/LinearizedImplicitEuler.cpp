@@ -1158,9 +1158,7 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
 
    		performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_v_plus_buffer, m_angular_z);
 
-   		threadutils::for_each(0, num_elasto, [&] (int i) {
-   			m_angular_z[i] = m_angular_moment_buffer[i] - m_angular_z[i];
-   		});
+		m_angular_z = m_angular_moment_buffer - m_angular_z;
         
         scalar res_norm = m_angular_z.norm() / res_norm_1;
         
@@ -1201,10 +1199,10 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
             m_angular_r -= m_angular_z * alpha;
             m_angular_t -= m_angular_q * alpha;
 
-            res_norm = m_angular_t.norm() / res_norm_0;
+            res_norm = m_angular_t.norm() / res_norm_1;
             
             scalar rho_old, beta;
-            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_0; ++iter)
+            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_1; ++iter)
             {
                 rho_old = rho;
                 
@@ -1234,7 +1232,7 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
             	m_angular_r -= m_angular_z * alpha;
             	m_angular_t -= m_angular_q * alpha;
 
-                res_norm = m_angular_t.norm() / res_norm_0;
+                res_norm = m_angular_t.norm() / res_norm_1;
 #ifdef PCG_VERBOSE
                 std::cout << "[angular pcr iter: " << iter << ", res: " << res_norm << "]" << std::endl;
 #endif
@@ -1256,16 +1254,18 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCG( TwoDScene& scene, s
     if(ndof_elasto == 0) return true;
     
     scalar res_norm_0 = lengthNodeVectors(m_node_rhs_x, m_node_rhs_y, m_node_rhs_z);
+	scalar res_norm_1 = m_angular_moment_buffer.norm();
     
     if(res_norm_0 > m_pcg_criterion) {
+		// build Hessian
+		constructHessianPreProcess(scene, dt);
+		constructHessianPostProcess(scene, dt);
+		
         allocateNodeVectors(scene, m_node_r_x, m_node_r_y, m_node_r_z);
         allocateNodeVectors(scene, m_node_z_x, m_node_z_y, m_node_z_z);
         allocateNodeVectors(scene, m_node_p_x, m_node_p_y, m_node_p_z);
         allocateNodeVectors(scene, m_node_q_x, m_node_q_y, m_node_q_z);
-        // build Hessian
-        constructHessianPreProcess(scene, dt);
-        constructHessianPostProcess(scene, dt);
-        
+
         performGlobalMultiply(scene, dt,
                               m_node_Cs_x, m_node_Cs_y, m_node_Cs_z,
                               m_node_v_plus_x, m_node_v_plus_y, m_node_v_plus_z,
@@ -1359,6 +1359,80 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCG( TwoDScene& scene, s
         }
     }
 
+	if(res_norm_1 > m_pcg_criterion)
+	{
+		const int num_elasto = scene.getNumSoftElastoParticles();
+		
+		constructAngularHessianPreProcess(scene, dt);
+		constructAngularHessianPostProcess(scene, dt);
+
+		m_angular_r.resize(num_elasto);
+		m_angular_z.resize(num_elasto);
+		m_angular_p.resize(num_elasto);
+		m_angular_q.resize(num_elasto);
+		
+		m_angular_r.setZero();
+		m_angular_z.setZero();
+		m_angular_p.setZero();
+		m_angular_q.setZero();
+		
+		performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_v_plus_buffer, m_angular_r);
+		
+		m_angular_r = m_angular_moment_buffer - m_angular_r;
+
+		scalar res_norm = m_angular_r.norm() / res_norm_1;
+		
+        int iter = 0;
+		
+		if(res_norm < m_pcg_criterion) {
+			std::cout << "[angular pcg total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+		} else {
+			performLocalSolveTwist(scene, m_angular_r, scene.getM(), m_angular_z);
+			
+			m_angular_p = m_angular_z;
+			
+			performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_p, m_angular_q);
+			
+			scalar rho = m_angular_r.dot(m_angular_z);
+			
+			scalar alpha = rho / m_angular_p.dot(m_angular_q);
+			
+			m_angular_v_plus_buffer += m_angular_p * alpha;
+			m_angular_r -= m_angular_q * alpha;
+			
+			res_norm = m_angular_r.norm() / res_norm_1;
+			
+			scalar rho_old, beta;
+			for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_1; ++iter)
+			{
+				rho_old = rho;
+				
+				performLocalSolveTwist(scene, m_angular_r, scene.getM(), m_angular_z);
+				
+				rho = m_angular_r.dot(m_angular_z);
+				
+				beta = rho / rho_old;
+				
+				m_angular_p = m_angular_z + m_angular_p * beta;
+				
+				performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_p, m_angular_q);
+				
+				alpha = rho / m_angular_p.dot(m_angular_q);
+				
+				m_angular_v_plus_buffer += m_angular_p * alpha;
+				m_angular_r -= m_angular_q * alpha;
+				
+				res_norm = m_angular_r.norm() / res_norm_1;
+				
+#ifdef PCG_VERBOSE
+				std::cout << "[angular pcg iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+#endif
+			}
+			
+			std::cout << "[angular pcg total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+		}
+	}
+	
     return true;
 }
 
