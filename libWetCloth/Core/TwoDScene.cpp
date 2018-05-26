@@ -995,6 +995,10 @@ scalar TwoDScene::getYoungModulus(int pidx) const{
     return m_strandParameters[ m_gauss_to_parameters[pidx] ]->m_youngsModulus.get();
 }
 
+scalar TwoDScene::getShearModulus(int pidx) const{
+    return m_strandParameters[ m_gauss_to_parameters[pidx] ]->m_shearModulus.get();
+}
+
 scalar TwoDScene::getCollisionMultiplier(int pidx) const {
     return m_strandParameters[ m_gauss_to_parameters[pidx] ]->m_collisionMultiplier;
 }
@@ -1009,22 +1013,26 @@ void TwoDScene::loadAttachForces()
         if(m_particle_to_surfel[i] >= 0) continue;
 
         scalar K = 0.0;
+        scalar mu = 0.0;
         scalar w = 0.0;
         
         for(int e : m_particle_to_edge[i])
         {
             K += getYoungModulus(e) * getAttachMultiplier(e) * 0.5 * m_vol_gauss(e);
+            mu += getShearModulus(e) * getAttachMultiplier(e) * 0.5 * m_vol_gauss(e);
             w += 0.5 * m_vol_gauss(e);
         }
         
         for(auto& p : m_particle_to_face[i]) {
             K += getYoungModulus(p.first + num_edges) * getAttachMultiplier(p.first + num_edges) * p.second * m_vol_gauss(p.first + num_edges);
+            mu += getShearModulus(p.first + num_edges) * getAttachMultiplier(p.first + num_edges) * p.second * m_vol_gauss(p.first + num_edges);
             w += p.second * m_vol_gauss(p.first + num_edges);
         }
         
         if(w < 1e-16) continue;
         
         K /= w;
+        mu /= w;
         
         scalar ks = 0.0;
         scalar kt = 0.0;
@@ -1035,7 +1043,7 @@ void TwoDScene::loadAttachForces()
         }
         
         if(m_twist[i] && (isFixed(i) & 2)) {
-            kt = K * M_PI_4 * pow(m_radius(i), 6.0);
+            kt = mu * M_PI_2 * pow(m_radius(i), 4.0);
         }
         
         if(ks > 0.0 || kt > 0.0) {
@@ -7224,10 +7232,8 @@ void TwoDScene::mapNodeParticlesAPIC()
         const Vector3s& pos = m_x.segment<3>(pidx * 4);
         
         m_v.segment<3>(pidx * 4).setZero();
-        m_v(pidx * 4 + 3) = 0.0;
         
-        m_fluid_v.segment<3>(pidx * 4).setZero();
-        m_fluid_v(pidx * 4 + 3) = 0.0;
+        m_fluid_v.segment<4>(pidx * 4).setZero();
         
         m_B.block<3, 3>(pidx * 3, 0).setZero();
         m_fB.block<3, 3>(pidx * 3, 0).setZero();
@@ -7312,13 +7318,7 @@ void TwoDScene::mapNodeParticlesAPIC()
                 const scalar& nv = m_node_vel_x[node_bucket_idx](node_idx);
                 
                 m_v(pidx * 4 + 0) += nv * weights(i, 0);
-                
-                if(m_twist[pidx]) {
-                    const Vector3s& twist_dir = getTwistDir(pidx);
 
-                    m_v(pidx * 4 + 3) += invD * twist_dir.dot( mathutils::cross_x(np - pos, nv) ) * weights(i, 0);
-                }
-                
                 m_B.block<1, 3>(pidx * 3 + 0, 0) += nv * weights(i, 0) * (np - pos).transpose();
             }
             
@@ -7336,13 +7336,6 @@ void TwoDScene::mapNodeParticlesAPIC()
                 
                 m_v(pidx * 4 + 1) += nv * weights(i, 1);
                 
-                if(m_twist[pidx]) {
-                    const Vector3s& twist_dir = getTwistDir(pidx);
-
-                    m_v(pidx * 4 + 3) += invD * twist_dir.dot( mathutils::cross_y(np - pos, nv) ) * weights(i, 1);
-                }
-                
-                
                 m_B.block<1, 3>(pidx * 3 + 1, 0) += nv * weights(i, 1) * (np - pos).transpose();
             }
             
@@ -7359,14 +7352,7 @@ void TwoDScene::mapNodeParticlesAPIC()
                 const scalar& nv = m_node_vel_z[node_bucket_idx](node_idx);
                 
                 m_v(pidx * 4 + 2) += nv * weights(i, 2);
-                
-                if(m_twist[pidx]) {
-                    const Vector3s& twist_dir = getTwistDir(pidx);
 
-                    m_v(pidx * 4 + 3) += invD * twist_dir.dot( mathutils::cross_z(np - pos, nv) ) * weights(i, 2);
-
-                }
-                
                 m_B.block<1, 3>(pidx * 3 + 2, 0) += nv * weights(i, 2) * (np - pos).transpose();
             }
             
@@ -8193,6 +8179,38 @@ void TwoDScene::accumulateddUdxdx( TripletXs& A, const scalar& dt, int base_idx,
         }
     }
 }
+
+void TwoDScene::accumulateAngularddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx, const VectorXs& dv )
+{
+    
+    assert( dx.size() == dv.size() );
+    
+    int num_hess = base_idx;
+    const int num_force = m_forces.size();
+    
+    std::vector<int> offsets(num_force);
+    
+    for( int i = 0; i < num_force; ++i ) {
+        offsets[i] = num_hess;
+        num_hess += m_forces[i]->numAngularHessX();
+    }
+    
+    if((int) A.size() != num_hess) A.resize(num_hess);
+    
+    if( dx.size() == 0 )
+        for( int i = 0; i < num_force; ++i ) {
+            m_forces[i]->addAngularHessXToTotal( m_x, m_v, m_m, m_volume_fraction, m_liquid_info.lambda, A, offsets[i], dt );
+        }
+    else {
+        VectorXs idx = m_x + dx;
+        VectorXs idv = m_v + dv;
+        
+        for( int i = 0; i < num_force; ++i ) {
+            m_forces[i]->addAngularHessXToTotal( idx, idv, m_m, m_volume_fraction, m_liquid_info.lambda, A, offsets[i], dt );
+        }
+    }
+}
+
 
 void TwoDScene::dump_geometry(std::string filename){
     int s = getNumParticles();

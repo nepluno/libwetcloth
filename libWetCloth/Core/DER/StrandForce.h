@@ -123,8 +123,12 @@ public:
 	
 	virtual void addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
 	
+	virtual void addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
+
 	virtual int numHessX();
 	
+	virtual int numAngularHessX();
+
 	virtual int flag() const;
 	
 	virtual const char* name();
@@ -159,6 +163,8 @@ public:
 	
 	template<typename AccumulatedT>
 	void accumulateQuantity( AccumulatedT& accumulated );
+
+	void accumulateHessian( TripletXs& accumulated, TripletXs& accumulated_twist );	
 	
 	//// FOSSSim related //////////////////////////////////////////////////
 	std::vector< int > m_verts; // in order root to tip
@@ -172,6 +178,7 @@ public:
 	scalar m_strandEnergyUpdate;
 	VecX m_strandForceUpdate;
 	TripletXs m_strandHessianUpdate;
+	TripletXs m_strandAngularHessianUpdate;	
 	
 	//// Strand State (implicitly the end of timestep state, evolved from rest config) ////////////////////////
 	StrandState* m_strandState; // future state

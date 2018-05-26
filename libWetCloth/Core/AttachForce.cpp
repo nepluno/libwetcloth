@@ -111,7 +111,25 @@ void AttachForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const V
 	hessE[hessE_index + 0] = Triplets(4 * m_pidx + 0, 4 * m_pidx + 0, (m_k+m_b));
 	hessE[hessE_index + 1] = Triplets(4 * m_pidx + 1, 4 * m_pidx + 1, (m_k+m_b));
 	hessE[hessE_index + 2] = Triplets(4 * m_pidx + 2, 4 * m_pidx + 2, (m_k+m_b));
-	hessE[hessE_index + 3] = Triplets(4 * m_pidx + 3, 4 * m_pidx + 3, (m_k_twist+m_b_twist));
+}
+
+void AttachForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
+{
+	assert( x.size() == v.size() );
+	assert( x.size() == m.size() );
+	assert( x.size()%4 == 0 );
+	
+	hessE[hessE_index] = Triplets(m_pidx, m_pidx, (m_k_twist+m_b_twist));
+}
+
+scalar AttachForce::getKs() const
+{
+	return m_k;
+}
+
+scalar AttachForce::getKt() const
+{
+	return m_k_twist;
 }
 
 void AttachForce::preCompute()
@@ -125,7 +143,12 @@ void AttachForce::updateStartState()
 
 int AttachForce::numHessX()
 {
-	return 4;
+	return 3;
+}
+
+int AttachForce::numAngularHessX()
+{
+	return 1;
 }
 
 Force* AttachForce::createNewCopy()

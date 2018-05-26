@@ -115,6 +115,15 @@ void LinearizedImplicitEuler::performInvLocalSolve( const TwoDScene& scene,
 	});
 }
 
+void LinearizedImplicitEuler::performLocalSolveTwist( const TwoDScene& scene, const VectorXs& rhs, const VectorXs& m, VectorXs& out)
+{
+	const int num_elasto = scene.getNumSoftElastoParticles();
+
+	threadutils::for_each(0, num_elasto, [&](int pidx) {
+		out(pidx) = rhs(pidx) / std::max(1e-63, m(pidx * 4 + 3));
+	});
+}
+
 void LinearizedImplicitEuler::performLocalSolve( const TwoDScene& scene,
 										  const std::vector< VectorXs >& node_rhs_x,
 										  const std::vector< VectorXs >& node_rhs_y,
@@ -241,6 +250,9 @@ bool LinearizedImplicitEuler::stepVelocity( TwoDScene& scene, scalar dt )
         performLocalSolve(scene, m_node_rhs_x, m_node_rhs_y, m_node_rhs_z,
                              node_mass_x, node_mass_y, node_mass_z,
                              m_node_v_plus_x, m_node_v_plus_y, m_node_v_plus_z);
+
+        m_angular_v_plus_buffer.resize(scene.getNumSoftElastoParticles());
+        performLocalSolveTwist(scene, m_angular_moment_buffer, scene.getM(), m_angular_v_plus_buffer);
     }
 	
 	// record as u_s^* and u_f^*
@@ -253,6 +265,36 @@ bool LinearizedImplicitEuler::stepVelocity( TwoDScene& scene, scalar dt )
     
     return true;
 }
+
+
+void LinearizedImplicitEuler::performAngularGlobalMultiply( const TwoDScene& scene, const scalar& dt,
+                const VectorXs& m,
+                const VectorXs& v,
+                VectorXs& out)
+{
+	const int num_elasto = scene.getNumSoftElastoParticles();
+    struct Triplets_override
+    {
+        int m_row, m_col;
+        scalar m_value;
+    };
+    
+	// Ax
+    threadutils::for_each(0, num_elasto, [&] (int i) {
+        const int idata_start = m_angular_triA_sup[i].first;
+        const int idata_end = m_angular_triA_sup[i].second;
+
+        scalar val = 0.0;
+        for(int j = idata_start; j < idata_end; ++j)
+        {
+            const Triplets_override& tri = *((const Triplets_override*) &m_angular_triA[j]);
+
+            val += tri.m_value * v[tri.m_col];
+        }
+        out[i] = val * dt * dt + m[i * 4 + 3] * v[i];
+    });
+}
+
 
 void LinearizedImplicitEuler::performGlobalMultiply( const TwoDScene& scene, const scalar& dt,
 													const std::vector< VectorXs >& node_m_x,
@@ -316,16 +358,24 @@ void LinearizedImplicitEuler::performGlobalMultiply( const TwoDScene& scene, con
 
 void LinearizedImplicitEuler::constructNodeForce( TwoDScene& scene, const scalar& dt, std::vector< VectorXs >& node_rhs_x, std::vector< VectorXs >& node_rhs_y, std::vector< VectorXs >& node_rhs_z, std::vector< VectorXs >& node_rhs_fluid_x, std::vector< VectorXs >& node_rhs_fluid_y, std::vector< VectorXs >& node_rhs_fluid_z )
 {
-	const VectorXs& x = scene.getX();
-	int ndof = x.size();
+	const int num_elasto = scene.getNumSoftElastoParticles();
+	const VectorXs& m = scene.getM();
+	const VectorXs& v = scene.getV();
+
+	int ndof = num_elasto * 4;
 	
 	VectorXs rhs = VectorXs::Zero(ndof);
 	scene.accumulateGradU(rhs);
 	rhs *= -dt;
     
     assert(!std::isnan(rhs.sum()));
-	
-	const int num_elasto = scene.getNumElastoParticles();
+
+    m_angular_moment_buffer.resize(num_elasto);
+
+    threadutils::for_each(0, num_elasto, [&] (int pidx) {
+    	m_angular_moment_buffer[pidx] = rhs[pidx * 4 + 3] + m[pidx * 4 + 3] * v[pidx * 4 + 3];
+    });
+
 	
     mapSoftParticlesToNode(scene, node_rhs_x, node_rhs_y, node_rhs_z, rhs);
 	
@@ -511,9 +561,7 @@ void LinearizedImplicitEuler::addFluidDragRHS( TwoDScene& scene,
 void LinearizedImplicitEuler::constructHessianPreProcess( TwoDScene& scene, const scalar& dt )
 {
 	scene.accumulateddUdxdx(m_triA, dt, 0);
-	
-    const int num_soft_elasto = scene.getNumSoftElastoParticles();
-    
+
     m_triA.erase(std::remove_if(m_triA.begin(), m_triA.end(), [] (const auto& info) {return info.value() == 0.0;}), m_triA.end());
 }
 
@@ -546,6 +594,46 @@ void LinearizedImplicitEuler::constructHessianPostProcess( TwoDScene& scene, con
         
         if(cell != cell_next) {
             m_triA_sup[cell].second = G_ID_NEXT;
+        }
+    });
+}
+
+void LinearizedImplicitEuler::constructAngularHessianPreProcess( TwoDScene& scene, const scalar& dt )
+{
+	scene.accumulateAngularddUdxdx(m_angular_triA, dt, 0);
+
+    m_angular_triA.erase(std::remove_if(m_angular_triA.begin(), m_angular_triA.end(), [] (const auto& info) {return info.value() == 0.0;}), m_angular_triA.end());	
+}
+    
+void LinearizedImplicitEuler::constructAngularHessianPostProcess( TwoDScene& scene, const scalar& )
+{
+    const int num_soft_elasto = scene.getNumSoftElastoParticles();
+    
+    tbb::parallel_sort(m_angular_triA.begin(), m_angular_triA.end(), [] (const Triplets& x, const Triplets& y) {
+        return x.row() < y.row();
+    });
+    
+    if((int) m_angular_triA_sup.size() != num_soft_elasto) m_angular_triA_sup.resize(num_soft_elasto);
+    
+    memset(&m_angular_triA_sup[0], 0, num_soft_elasto * sizeof(std::pair<int, int>));
+    
+	const int num_tris = m_angular_triA.size();
+
+    threadutils::for_each(0, num_tris, [&] (int pidx) {
+        int G_ID = pidx;
+        int G_ID_PREV = G_ID - 1;
+        int G_ID_NEXT = G_ID + 1;
+        
+        unsigned int cell = m_angular_triA[G_ID].row();
+        unsigned int cell_prev = G_ID_PREV < 0 ? -1U : m_angular_triA[G_ID_PREV].row();
+        unsigned int cell_next = G_ID_NEXT >= num_tris ? -1U : m_angular_triA[G_ID_NEXT].row();
+        
+        if(cell != cell_prev) {
+            m_angular_triA_sup[cell].first = G_ID;
+        }
+        
+        if(cell != cell_next) {
+            m_angular_triA_sup[cell].second = G_ID_NEXT;
         }
     });
 }
@@ -897,18 +985,19 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
     if(ndof_elasto == 0) return true;
     
     scalar res_norm_0 = lengthNodeVectors(m_node_rhs_x, m_node_rhs_y, m_node_rhs_z);
-    
+    scalar res_norm_1 = m_angular_moment_buffer.norm();
+
     if(res_norm_0 > m_pcg_criterion) {
+        constructHessianPreProcess(scene, dt);
+        constructHessianPostProcess(scene, dt);
+
         allocateNodeVectors(scene, m_node_r_x, m_node_r_y, m_node_r_z);
         allocateNodeVectors(scene, m_node_z_x, m_node_z_y, m_node_z_z);
         allocateNodeVectors(scene, m_node_p_x, m_node_p_y, m_node_p_z);
         allocateNodeVectors(scene, m_node_q_x, m_node_q_y, m_node_q_z);
         allocateNodeVectors(scene, m_node_w_x, m_node_w_y, m_node_w_z);
         allocateNodeVectors(scene, m_node_t_x, m_node_t_y, m_node_t_z);
-        
-        constructHessianPreProcess(scene, dt);
-        constructHessianPostProcess(scene, dt);
-        
+
         // initial residual = b - Ax
         performGlobalMultiply(scene, dt,
                               m_node_Cs_x, m_node_Cs_y, m_node_Cs_z,
@@ -1046,6 +1135,115 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
             std::cout << "[pcr total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
         }
     }
+
+   	if(res_norm_1 > m_pcg_criterion) {
+   		const int num_elasto = scene.getNumSoftElastoParticles();
+
+   		constructAngularHessianPreProcess(scene, dt);
+   		constructAngularHessianPostProcess(scene, dt);
+
+   		m_angular_r.resize(num_elasto);
+   		m_angular_z.resize(num_elasto);
+   		m_angular_p.resize(num_elasto);
+   		m_angular_q.resize(num_elasto);
+   		m_angular_w.resize(num_elasto);
+   		m_angular_t.resize(num_elasto);
+
+   		m_angular_r.setZero();
+   		m_angular_z.setZero();
+   		m_angular_p.setZero();
+   		m_angular_q.setZero();
+   		m_angular_w.setZero();
+   		m_angular_t.setZero();
+
+   		performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_v_plus_buffer, m_angular_z);
+
+   		threadutils::for_each(0, num_elasto, [&] (int i) {
+   			m_angular_z[i] = m_angular_moment_buffer[i] - m_angular_z[i];
+   		});
+        
+        scalar res_norm = m_angular_z.norm() / res_norm_1;
+        
+        int iter = 0;
+        
+        if(res_norm < m_pcg_criterion) {
+            std::cout << "[angular pcr total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+        } else {
+
+            // Solve Mr=z
+        	performLocalSolveTwist(scene, m_angular_z, scene.getM(), m_angular_r);
+
+            // p = r
+            m_angular_p = m_angular_r;
+
+            // t = z
+            m_angular_t = m_angular_z;
+            
+            // w = Ar
+            performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_r, m_angular_w);
+
+            // rho = (r, w)
+            scalar rho = m_angular_r.dot(m_angular_w);
+            
+            // q = Ap
+            performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_p, m_angular_q);
+            
+            // Mz=q
+            performLocalSolveTwist(scene, m_angular_q, scene.getM(), m_angular_z);
+            
+            // alpha = rho / (q, z)
+            scalar alpha = rho / m_angular_q.dot(m_angular_z);
+            
+            // x = x + alpha * p
+            // r = r - alpha * z
+            // t = t - alpha * q
+            m_angular_v_plus_buffer += m_angular_p * alpha;
+            m_angular_r -= m_angular_z * alpha;
+            m_angular_t -= m_angular_q * alpha;
+
+            res_norm = m_angular_t.norm() / res_norm_0;
+            
+            scalar rho_old, beta;
+            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_0; ++iter)
+            {
+                rho_old = rho;
+                
+                // w = Ar
+                performAngularGlobalMultiply(scene, dt, scene.getM(), m_angular_r, m_angular_w);
+
+                // rho = (r, w)
+                rho = m_angular_r.dot(m_angular_w);
+                
+                beta = rho / rho_old;
+                
+                // p = beta * p + r
+                // q = beta * q + w
+                m_angular_p = m_angular_r + m_angular_p * beta;
+                m_angular_q = m_angular_w + m_angular_q * beta;
+
+                // Mz = q
+                performLocalSolveTwist(scene, m_angular_q, scene.getM(), m_angular_z);
+
+                // alpha = rho / (q, z)
+                alpha = rho / m_angular_q.dot(m_angular_z);
+                
+                // x = x + alpha * p
+                // r = r - alpha * z
+                // t = t - alpha * q
+            	m_angular_v_plus_buffer += m_angular_p * alpha;
+            	m_angular_r -= m_angular_z * alpha;
+            	m_angular_t -= m_angular_q * alpha;
+
+                res_norm = m_angular_t.norm() / res_norm_0;
+#ifdef PCG_VERBOSE
+                std::cout << "[angular pcr iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+#endif
+            }
+            
+            std::cout << "[angular pcr total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
+        }
+   	}
+    
     
     return true;
 }
@@ -1173,6 +1371,11 @@ bool LinearizedImplicitEuler::acceptVelocity( TwoDScene& scene )
 			scene.getNodeVelocityX()[bucket_idx] = m_node_v_plus_x[bucket_idx];
 			scene.getNodeVelocityY()[bucket_idx] = m_node_v_plus_y[bucket_idx];
 			scene.getNodeVelocityZ()[bucket_idx] = m_node_v_plus_z[bucket_idx];
+		});
+
+		const int num_elasto = scene.getNumSoftElastoParticles();
+		threadutils::for_each(0, num_elasto, [&] (int pidx) {
+			scene.getV()[pidx * 4 + 3] = m_angular_v_plus_buffer[pidx];
 		});
 	}
 	
@@ -1600,7 +1803,7 @@ bool LinearizedImplicitEuler::manifoldPropagate( TwoDScene& scene, scalar dt )
 		
 		const int num_elasto_gauss = num_edges + num_faces;
 		const int num_part = scene.getNumParticles();
-		const int num_elasto = scene.getNumElastoParticles();
+		const int num_elasto = scene.getNumSoftElastoParticles();
 		
 		VectorXs fv0 = fluid_vol;
 		

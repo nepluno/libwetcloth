@@ -49,26 +49,6 @@
 template<typename ForceT> class ForceAccumulator
 {
 public:
-    
-    template<typename AccumulatedT>
-    static void accumulateCurrent( AccumulatedT& accumulated, StrandForce& strand )
-    {
-        // Yes, this statement does nothing... It is there to guarantee that accumulateCurrent
-        // will never be called on dissipative forces, as they require evolution to be estimated.
-        // So if you get a compilation error here, that's why. If thas is a problem just comment out
-        // the line below, but make sure that dissipative forces still make sense when called on
-        // the current state (most likely they should return zero).
-        ForceT::NonDissipativeForce;
-
-        accumulate( accumulated, strand );
-    }
-
-    template<typename AccumulatedT>
-    static void accumulateFuture( AccumulatedT& accumulated, StrandForce& strand )
-    {
-        accumulate( accumulated, strand );
-    }
-
     static void accumulate( scalar& energy, const StrandForce& strand )
     {
         for( IndexType vtx = ForceT::s_first; vtx < strand.getNumVertices() - ForceT::s_last; ++vtx )
@@ -88,7 +68,7 @@ public:
     }
 
     // Jacobian of the Force <==>  - Hessian of the Energy
-    static void accumulate( TripletXs& hessianOfEnergy, const StrandForce& strand )
+    static void accumulate( TripletXs& hessianOfEnergy, TripletXs& angularhessianOfEnergy, const StrandForce& strand )
     {
         typename ForceT::LocalJacobianType localJ;
         for( IndexType vtx = ForceT::s_first; vtx < strand.getNumVertices() - ForceT::s_last; ++vtx )
@@ -98,10 +78,18 @@ public:
             if( localJ.rows() > 6 ){ // (Bending & Twisting)
                 for( IndexType r = 0; r < localJ.rows(); ++r )
                 {
-                    for( IndexType c = 0; c < localJ.cols(); ++c )
-                    {
-                        if( isSmall( localJ(r,c) )  ) continue;
-                        hessianOfEnergy.push_back( Triplets( (vtx - 1) * 4 + r, (vtx - 1) * 4 + c, localJ(r,c) ) );
+                    if(r % 4 == 3) {
+                        for( IndexType c = 0; c < localJ.cols(); ++c )
+                        {
+                            if( c % 4 != 3 || isSmall( localJ(r,c) )  ) continue;
+                            angularhessianOfEnergy.push_back( Triplets( (vtx - 1) * 4 + r, (vtx - 1) * 4 + c, localJ(r,c) ) );
+                        }
+                    } else {
+                        for( IndexType c = 0; c < localJ.cols(); ++c )
+                        {
+                            if( c % 4 == 3 || isSmall( localJ(r,c) )  ) continue;
+                            hessianOfEnergy.push_back( Triplets( (vtx - 1) * 4 + r, (vtx - 1) * 4 + c, localJ(r,c) ) );
+                        }
                     }
                 }
             }
@@ -123,7 +111,6 @@ public:
             }
         }
     }
-
 };
 
 #endif

@@ -243,6 +243,7 @@ void StrandForce::clearStored()
     m_strandEnergyUpdate = 0.;
     m_strandForceUpdate.setZero();
     m_strandHessianUpdate.clear();
+    m_strandAngularHessianUpdate.clear();
 }
 
 void StrandForce::recomputeGlobal()
@@ -250,7 +251,7 @@ void StrandForce::recomputeGlobal()
     clearStored();
     accumulateQuantity( m_strandEnergyUpdate );
     accumulateQuantity( m_strandForceUpdate );
-    accumulateQuantity( m_strandHessianUpdate );
+    accumulateHessian( m_strandHessianUpdate, m_strandAngularHessianUpdate );
 
     // Free some memory
     m_strandState->m_hessTwists.free();
@@ -272,6 +273,22 @@ void StrandForce::accumulateQuantity( AccumulatedT& accumulated )
         ForceAccumulator< TwistingForce<Viscous> >::accumulate( accumulated, *this );
         ForceAccumulator< BendingForce<Viscous> >::accumulate( accumulated, *this );
     }
+}
+
+void StrandForce::accumulateHessian( TripletXs& accumulated, TripletXs& accumulated_twist )
+{
+    ForceAccumulator< StretchingForce< NonViscous > >::accumulate( accumulated, accumulated_twist, *this );
+    ForceAccumulator< TwistingForce< NonViscous > >::accumulate( accumulated, accumulated_twist, *this );
+    ForceAccumulator< BendingForce< NonViscous > >::accumulate( accumulated, accumulated_twist, *this );
+
+    if( m_strandParams->m_accumulateWithViscous ){
+        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
+        {
+            ForceAccumulator< StretchingForce< Viscous > >::accumulate( accumulated, accumulated_twist, *this );
+        }
+        ForceAccumulator< TwistingForce<Viscous> >::accumulate( accumulated, accumulated_twist, *this );
+        ForceAccumulator< BendingForce<Viscous> >::accumulate( accumulated, accumulated_twist, *this );
+    }    
 }
 
 Force* StrandForce::createNewCopy()
@@ -356,9 +373,26 @@ void StrandForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const V
 	});
 }
 
+void StrandForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
+{
+    const int num_hess = numAngularHessX();
+    
+    threadutils::for_each(0, num_hess, [&] (int i) {
+        const Triplets& data = m_strandAngularHessianUpdate[i];
+        int col_vert = data.col() / 4;
+        int row_vert = data.row() / 4;
+        hessE[hessE_index + i] = Triplets( m_verts[row_vert], m_verts[col_vert], -data.value() );
+    });
+}
+
 int StrandForce::numHessX( )
 {
 	return m_strandHessianUpdate.size();
+}
+
+int StrandForce::numAngularHessX( )
+{
+    return m_strandAngularHessianUpdate.size();
 }
 
 int StrandForce::flag() const

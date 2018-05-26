@@ -94,13 +94,11 @@ void SimpleGravityForce::addEnergyToTotal( const VectorXs& x, const VectorXs& v,
 }
 
 void SimpleGravityForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE )
-{
-	assert( x.size() == v.size() );
-	assert( x.size() == m.size() );
-	assert( x.size() == gradE.size() );
-	assert( x.size()%4 == 0 );
-	
-	for( int i = 0; i < x.size()/4; ++i ) gradE.segment<3>(4*i) -= m(4*i)*m_gravity;
+{	
+	const int num_elasto = gradE.size()/4;
+	threadutils::for_each(0, num_elasto, [&] (int i) {
+		gradE.segment<3>(4*i) -= m(4*i)*m_gravity;
+	});
 }
 
 void SimpleGravityForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )

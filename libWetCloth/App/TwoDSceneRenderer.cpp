@@ -217,6 +217,8 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         glBegin(GL_LINES);
         for( const std::shared_ptr<AttachForce>& force : attaches )
         {
+            if(force->getKs() == 0.0) continue;
+
             glVertex3dv(x.segment<3>( force->getParticleIndex() * 4 ).data());
             glVertex3dv(rest_x.segment<3>( force->getParticleIndex() * 4 ).data());
         }

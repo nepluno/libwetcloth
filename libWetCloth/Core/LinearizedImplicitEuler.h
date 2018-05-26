@@ -108,6 +108,8 @@ private:
 						   std::vector< VectorXs >& out_node_vec_x,
 						   std::vector< VectorXs >& out_node_vec_y,
 						   std::vector< VectorXs >& out_node_vec_z );
+
+  void performLocalSolveTwist( const TwoDScene& scene, const VectorXs& rhs, const VectorXs& m, VectorXs& out);
 	
 	void performInvLocalSolve( const TwoDScene& scene,
 						   const std::vector< VectorXs >& node_rhs_x,
@@ -130,6 +132,11 @@ private:
 							   std::vector< VectorXs >& out_node_vec_x,
 							   std::vector< VectorXs >& out_node_vec_y,
 							   std::vector< VectorXs >& out_node_vec_z );
+
+  void performAngularGlobalMultiply( const TwoDScene& scene, const scalar& dt,
+                const VectorXs& m,
+                const VectorXs& v,
+                VectorXs& out);
     
     void performGlobalMultiplyBiCGSTAB( const TwoDScene& scene, const scalar& dt,
                                        const std::vector< VectorXs >& node_v_s_x,
@@ -254,15 +261,24 @@ private:
 	
 	void constructHessianPreProcess( TwoDScene& scene, const scalar& dt );
     
-    void constructHessianPostProcess( TwoDScene& scene, const scalar& dt );
+  void constructHessianPostProcess( TwoDScene& scene, const scalar& dt );
+
+  void constructAngularHessianPreProcess( TwoDScene& scene, const scalar& dt );
+    
+  void constructAngularHessianPostProcess( TwoDScene& scene, const scalar& dt );
 	
 //    std::vector< Eigen::SimplicialLDLT< SparseXs >* > m_local_solvers;
 	
 //    SparseXs m_A;
     std::vector< std::pair<int, int> > m_triA_sup;
+    std::vector< std::pair<int, int> > m_angular_triA_sup;
     TripletXs m_triA;
+    TripletXs m_angular_triA;
     VectorXs m_multiply_buffer;
     VectorXs m_pre_mult_buffer;
+
+    VectorXs m_angular_moment_buffer;
+    VectorXs m_angular_v_plus_buffer;
 	
 	std::vector< std::vector< std::vector< Matrix3s > > > m_gauss_ddphidfdf;
 	
@@ -305,6 +321,13 @@ private:
     std::vector< VectorXs > m_node_t_x; // t
     std::vector< VectorXs > m_node_t_y;
     std::vector< VectorXs > m_node_t_z;
+
+    VectorXs m_angular_r;
+    VectorXs m_angular_z;
+    VectorXs m_angular_p;
+    VectorXs m_angular_q;
+    VectorXs m_angular_w;
+    VectorXs m_angular_t;
 	
 	std::vector< VectorXs > m_node_rhs_p;
 	std::vector< VectorXs > m_node_r_p;

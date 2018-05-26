@@ -127,33 +127,6 @@ void SceneStepper::mapNodeToSoftParticles( const TwoDScene& scene, const std::ve
 			sum_z += node_vec_z[ indices_z(i, 0) ]( indices_z(i, 1) ) * weights(i, 2);
 		}
         part_vec(pidx * 4 + 2) = sum_z;
-		
-		if( scene.isTwist(pidx) ) {
-            scalar sum_w(0.);
-			const Vector3s& part_twist_dir = scene.getTwistDir(pidx);
-			for(int i = 0; i < 27; ++i) {
-				if(!indices_x(i, 2) || weights(i, 0) == 0.0) continue;
-				const Vector3s& node_pos = scene.getNodePosX(indices_x(i, 0)).segment<3>( indices_x(i, 1) * 3 );
-				
-                sum_w += invD * part_twist_dir.dot( mathutils::cross_x(node_pos - part_pos, node_vec_x[ indices_x(i, 0) ]( indices_x(i, 1) )) ) * weights(i, 0);
-			}
-			
-			for(int i = 0; i < 27; ++i) {
-				if(!indices_y(i, 2) || weights(i, 1) == 0.0) continue;
-				const Vector3s& node_pos = scene.getNodePosY(indices_y(i, 0)).segment<3>( indices_y(i, 1) * 3 );
-				
-				sum_w += invD * part_twist_dir.dot( mathutils::cross_y(node_pos - part_pos, node_vec_y[ indices_y(i, 0) ]( indices_y(i, 1) )) ) * weights(i, 1);
-			}
-			
-			for(int i = 0; i < 27; ++i) {
-				if(!indices_z(i, 2) || weights(i, 2) == 0.0) continue;
-				const Vector3s& node_pos = scene.getNodePosZ(indices_z(i, 0)).segment<3>( indices_z(i, 1) * 3 );
-				
-				sum_w += invD * part_twist_dir.dot( mathutils::cross_z(node_pos - part_pos, node_vec_z[ indices_z(i, 0) ]( indices_z(i, 1) )) ) * weights(i, 2);
-			}
-            
-            part_vec(pidx * 4 + 3) = sum_w;
-		}
 	});
 }
 
@@ -314,7 +287,7 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
     
     W.resize(num_dof_elasto, system_size);
     
-    tri_W.resize(num_soft_elasto * 6 * 27);
+    tri_W.resize(num_soft_elasto * 3 * 27);
     
     const std::vector< VectorXi >& node_indices_x = scene.getNodeIndicesX();
     const std::vector< VectorXi >& node_indices_y = scene.getNodeIndicesY();
@@ -335,91 +308,39 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
         
         for(int i = 0; i < 27; ++i) {
             if(!indices_x(i, 2) || weights(i, 0) == 0.0) {
-                tri_W[(pidx * 6 + 0) * 27 + i] = Triplets(0, 0, 0.0);
+                tri_W[(pidx * 3 + 0) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_x[indices_x(i, 0)][indices_x(i, 1)];
                 
                 if(global_idx == -1) {
-                    tri_W[(pidx * 6 + 0) * 27 + i] = Triplets(0, 0, 0.0);
+                    tri_W[(pidx * 3 + 0) * 27 + i] = Triplets(0, 0, 0.0);
                 } else {
-                    tri_W[(pidx * 6 + 0) * 27 + i] = Triplets(pidx * 4 + 0, global_idx, weights(i, 0));
+                    tri_W[(pidx * 3 + 0) * 27 + i] = Triplets(pidx * 4 + 0, global_idx, weights(i, 0));
                 }
             }
             
             if(!indices_y(i, 2) || weights(i, 1) == 0.0) {
-                tri_W[(pidx * 6 + 1) * 27 + i] = Triplets(0, 0, 0.0);
+                tri_W[(pidx * 3 + 1) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_y[indices_y(i, 0)][indices_y(i, 1)];
                 
                 if(global_idx == -1) {
-                    tri_W[(pidx * 6 + 1) * 27 + i] = Triplets(0, 0, 0.0);
+                    tri_W[(pidx * 3 + 1) * 27 + i] = Triplets(0, 0, 0.0);
                 } else {
-                    tri_W[(pidx * 6 + 1) * 27 + i] = Triplets(pidx * 4 + 1, global_idx, weights(i, 1));
+                    tri_W[(pidx * 3 + 1) * 27 + i] = Triplets(pidx * 4 + 1, global_idx, weights(i, 1));
                 }
             }
             
             if(!indices_z(i, 2) || weights(i, 2) == 0.0) {
-                tri_W[(pidx * 6 + 2) * 27 + i] = Triplets(0, 0, 0.0);
+                tri_W[(pidx * 3 + 2) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_z[indices_z(i, 0)][indices_z(i, 1)];
                 
                 if(global_idx == -1) {
-                    tri_W[(pidx * 6 + 2) * 27 + i] = Triplets(0, 0, 0.0);
+                    tri_W[(pidx * 3 + 2) * 27 + i] = Triplets(0, 0, 0.0);
                 } else {
-                    tri_W[(pidx * 6 + 2) * 27 + i] = Triplets(pidx * 4 + 2, global_idx, weights(i, 2));
+                    tri_W[(pidx * 3 + 2) * 27 + i] = Triplets(pidx * 4 + 2, global_idx, weights(i, 2));
                 }
-            }
-        }
-        
-        if(scene.isTwist(pidx)) {
-            const Vector3s& part_twist_dir = scene.getTwistDir(pidx);
-            
-            for(int i = 0; i < 27; ++i) {
-                if(!indices_x(i, 2) || weights(i, 0) == 0.0) {
-                    tri_W[(pidx * 6 + 3) * 27 + i] = Triplets(0, 0, 0.0);
-                } else {
-                    const int global_idx = node_global_indices_x[indices_x(i, 0)][indices_x(i, 1)];
-                    
-                    if(global_idx == -1) {
-                        tri_W[(pidx * 6 + 3) * 27 + i] = Triplets(0, 0, 0.0);
-                    } else {
-                        const Vector3s& node_pos = scene.getNodePosX(indices_x(i, 0)).segment<3>( indices_x(i, 1) * 3 );
-                        const scalar coeff = part_twist_dir.dot( mathutils::cross_x(grads_x.row(i).transpose(), 1.0 ) );
-                        tri_W[(pidx * 6 + 3) * 27 + i] = Triplets(pidx * 4 + 3, global_idx, coeff);
-                    }
-                }
-                
-                if(!indices_y(i, 2) || weights(i, 1) == 0.0) {
-                    tri_W[(pidx * 6 + 4) * 27 + i] = Triplets(0, 0, 0.0);
-                } else {
-                    const int global_idx = node_global_indices_y[indices_y(i, 0)][indices_y(i, 1)];
-                    
-                    if(global_idx == -1) {
-                        tri_W[(pidx * 6 + 4) * 27 + i] = Triplets(0, 0, 0.0);
-                    } else {
-                        const Vector3s& node_pos = scene.getNodePosY(indices_y(i, 0)).segment<3>( indices_y(i, 1) * 3 );
-                        const scalar coeff = part_twist_dir.dot( mathutils::cross_y(grads_y.row(i).transpose(), 1.0 ) );
-                        tri_W[(pidx * 6 + 4) * 27 + i] = Triplets(pidx * 4 + 3, global_idx, coeff);
-                    }
-                }
-                
-                if(!indices_z(i, 2) || weights(i, 2) == 0.0) {
-                    tri_W[(pidx * 6 + 5) * 27 + i] = Triplets(0, 0, 0.0);
-                } else {
-                    const int global_idx = node_global_indices_z[indices_z(i, 0)][indices_z(i, 1)];
-                    
-                    if(global_idx == -1) {
-                        tri_W[(pidx * 6 + 5) * 27 + i] = Triplets(0, 0, 0.0);
-                    } else {
-                        const Vector3s& node_pos = scene.getNodePosZ(indices_z(i, 0)).segment<3>( indices_z(i, 1) * 3 );
-                        const scalar coeff = part_twist_dir.dot( mathutils::cross_z(grads_z.row(i).transpose(), 1.0 ) );
-                        tri_W[(pidx * 6 + 5) * 27 + i] = Triplets(pidx * 4 + 3, global_idx, coeff);
-                    }
-                }
-            }
-        } else {
-            for(int i = 0; i < 27; ++i) {
-                tri_W[(pidx * 6 + 3) * 27 + i] = tri_W[(pidx * 6 + 4) * 27 + i] = tri_W[(pidx * 6 + 5) * 27 + i] = Triplets(0, 0, 0.0);
             }
         }
     });
@@ -448,7 +369,6 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
     const std::vector<int>& particle_to_surfels = scene.getParticleToSurfels();
     const int num_elasto = scene.getNumElastoParticles();
     const std::vector< Matrix27x4s >& particle_weights = scene.getParticleWeights();
-    const std::vector< bool >& twisted = scene.getTwist();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
 		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
@@ -480,15 +400,6 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
 				const auto& weights = particle_weights[pp.first];
 
 				ret += part_vec( pp.first * 4 + 0 ) * weights(pp.second, 0);
-				
-				if(twisted[pp.first]) {
-					const scalar part_radius = radius(pp.first);
-					const Vector3s& part_twist_dir = scene.getTwistDir(pp.first);
-					const Vector3s& part_pos = x.segment<3>( pp.first * 4 );
-					
-					const Matrix27x3s& grads = scene.getParticleGradsX(pp.first);
-					ret += mathutils::cross_x_row( part_twist_dir, grads.row(pp.second).transpose() ) * part_vec( pp.first * 4 + 3 );
-				}
 			}
             
             bucket_node_vec_x(i) = ret;
@@ -506,15 +417,6 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
 				const auto& weights = particle_weights[pp.first];
 
 				ret += part_vec( pp.first * 4 + 1 ) * weights(pp.second, 1);
-				
-				if(twisted[pp.first]) {
-					const scalar part_radius = radius(pp.first);
-					const Vector3s& part_twist_dir = scene.getTwistDir(pp.first);
-					const Vector3s& part_pos = x.segment<3>( pp.first * 4 );
-					
-					const Matrix27x3s& grads = scene.getParticleGradsY(pp.first);
-					ret += mathutils::cross_y_row( part_twist_dir, grads.row(pp.second).transpose() ) * part_vec( pp.first * 4 + 3 );
-				}
 			}
             bucket_node_vec_y(i) = ret;
 		}
@@ -531,15 +433,6 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
 				const auto& weights = particle_weights[pp.first];
 
 				ret += part_vec( pp.first * 4 + 2 ) * weights(pp.second, 2);
-				
-				if(twisted[pp.first]) {
-					const scalar part_radius = radius(pp.first);
-					const Vector3s& part_twist_dir = scene.getTwistDir(pp.first);
-					const Vector3s& part_pos = x.segment<3>( pp.first * 4 );
-					
-					const Matrix27x3s& grads = scene.getParticleGradsZ(pp.first);
-					ret += mathutils::cross_z_row( part_twist_dir, grads.row(pp.second).transpose() ) * part_vec( pp.first * 4 + 3 );
-				}
 			}
             bucket_node_vec_z(i) = ret;
 		}

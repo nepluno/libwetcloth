@@ -681,6 +681,8 @@ public:
     scalar getLa(int pidx) const;
 	
 	scalar getYoungModulus(int pidx) const;
+
+	scalar getShearModulus(int pidx) const;
     
     scalar getAttachMultiplier(int pidx) const;
 
@@ -764,6 +766,8 @@ public:
     
     void accumulateddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx = VectorXs(), const VectorXs& dv = VectorXs() );
 	
+    void accumulateAngularddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx = VectorXs(), const VectorXs& dv = VectorXs() );
+
     void computedEdFe(MatrixXs& dFe);
 	
     scalar computeKineticEnergy() const;

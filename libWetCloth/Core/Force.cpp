@@ -47,3 +47,11 @@ Force::~Force()
 
 void Force::addLiquidGradEToNode( const TwoDScene& scene, std::vector< VectorXs >& node_rhs_x, std::vector< VectorXs >& node_rhs_y, std::vector< VectorXs >& node_rhs_z, const scalar& coeff )
 {}
+
+void Force::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
+{}
+
+int Force::numAngularHessX()
+{
+	return 0;
+}

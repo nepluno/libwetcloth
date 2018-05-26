@@ -64,6 +64,8 @@ public:
 	
 	virtual void addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
 	
+	virtual void addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
+
 	virtual void preCompute();
 	
 	virtual void updateStartState();
@@ -71,10 +73,15 @@ public:
 	virtual Force* createNewCopy();
 	
 	virtual int numHessX();
+
+	virtual int numAngularHessX();
 	
 	virtual int flag() const;
     
     int getParticleIndex() const;
+
+    scalar getKs() const;
+    scalar getKt() const;
 	
 private:
 	int m_pidx;
