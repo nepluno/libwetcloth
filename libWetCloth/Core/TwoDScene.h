@@ -691,6 +691,8 @@ public:
 	void loadAttachForces();
 	
 	Vector3s getTwistDir( int particle ) const;
+
+	Vector3s getRestTwistDir( int particle ) const;
     
     void setEdgeRestLength( int idx, const scalar& l0 );
     

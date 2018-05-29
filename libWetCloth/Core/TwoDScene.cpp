@@ -7660,18 +7660,26 @@ Vector3s TwoDScene::getTwistDir( int particle ) const
 {
     auto& edges = m_particle_to_edge[particle];
     
-    int next_edge = -1;
+    Vector3s dir = Vector3s::Zero();
     
     for(int eidx : edges) {
-        if(m_edges(eidx, 0) == particle) {
-            next_edge = eidx;
-            break;
-        }
+        dir += m_x.segment<3>(m_edges(eidx, 1) * 4) - m_x.segment<3>(m_edges(eidx, 0) * 4);
     }
+
+    return dir.normalized();
+}
+
+Vector3s TwoDScene::getRestTwistDir( int particle ) const
+{
+    auto& edges = m_particle_to_edge[particle];
     
-    if(next_edge == -1) return Vector3s::Zero();
+    Vector3s dir = Vector3s::Zero();
     
-    return m_d_gauss.block<3, 1>(next_edge * 3, 0).normalized();
+    for(int eidx : edges) {
+        dir += m_rest_x.segment<3>(m_edges(eidx, 1) * 4) - m_rest_x.segment<3>(m_edges(eidx, 0) * 4);
+    }
+
+    return dir.normalized();
 }
 
 scalar TwoDScene::getParticleRestArea( int idx ) const
@@ -8288,7 +8296,7 @@ void TwoDScene::applyScript(const scalar& dt)
 {
     const int np = getNumParticles();
     threadutils::for_each(0, np, [&] (int i) {
-        if(!(isFixed(i) & 1)) return;
+        if(!(isFixed(i))) return;
         
         const int sg_idx = m_particle_group[i];
         if(sg_idx < 0 || sg_idx >= (int) m_group_pos.size()) return;
@@ -8301,20 +8309,29 @@ void TwoDScene::applyScript(const scalar& dt)
         
         const Eigen::Quaternion<scalar> q_diff = q * q_prev.inverse();
         
-        Eigen::Quaternion<scalar> p;
-        const Vector3s x0 = m_rest_x.segment<3>( i * 4 ) - t_prev;
-        
-        Vector3s trans_x0 = q_diff * x0 + t;
-        
-        m_rest_x.segment<3>( i * 4 ) = trans_x0;
-        
-        if(m_particle_to_surfel[i] >= 0) {
-            m_v.segment<3>( i * 4 ) = (trans_x0 - m_x.segment<3>( i * 4 )) / dt;
+        if(isFixed(i) & 1) {
+            Eigen::Quaternion<scalar> p;
+            const Vector3s x0 = m_rest_x.segment<3>( i * 4 ) - t_prev;
+            
+            Vector3s trans_x0 = q_diff * x0 + t;
+            
+            m_rest_x.segment<3>( i * 4 ) = trans_x0;
+
+            if(m_particle_to_surfel[i] >= 0) {
+                m_v.segment<3>( i * 4 ) = (trans_x0 - m_x.segment<3>( i * 4 )) / dt;
+            }
+        }
+
+        if(m_twist[i] && isFixed(i) & 2)
+        {
+            Vector3s dir = getRestTwistDir(i);
+            m_rest_x(i * 4 + 3) += mathutils::twist_component(q_diff, dir);
         }
     });
+
     
     const int num_surfels = getNumSurfels();
-    
+
     threadutils::for_each(0, num_surfels, [&] (int i) {
         const int pidx = m_surfels[i];
         const int sg_idx = m_particle_group[pidx];

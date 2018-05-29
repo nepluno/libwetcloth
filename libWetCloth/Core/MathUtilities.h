@@ -951,6 +951,15 @@ namespace mathutils
         if(r33 <= 1.0) *dhdr33 = -(2.0 * mu + la) * (1.0 - r33) * (1.0 - r33);
         else *dhdr33 = 0.0;
     }
+
+    inline scalar twist_component( const Eigen::Quaternion<scalar>& rot, const Vector3s& dir )
+    {
+    	Vector3s ra = rot.vec();
+    	Vector3s p = dir * (ra.dot(dir));
+    	Eigen::Quaternion<scalar> twist(rot.w(), p(0), p(1), p(2));
+    	twist.normalize();
+    	return Eigen::AngleAxis<scalar>(twist).angle();
+    }
 }
 
 #endif
