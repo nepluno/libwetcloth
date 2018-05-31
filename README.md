@@ -100,7 +100,7 @@ You may run the demo with the "-o" option, *under the folder containing Houdini 
 
 under the folder containing Houdini projects to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
 
-After some data generated, you may open the correspoding Houdini project to watch and operate on them. We use the nodes with suffix "bake" to indicate the usage of baking. For example in the "fluids_bake" node, the fluid particles will be read and used to reconstruct a polygonal liquid surface, which will then be stored as Houdini geometry files.
+After some data generated, you may open the corresponding Houdini project to watch and operate on them. We use the nodes with suffix "bake" to indicate the usage of baking. For example in the "fluids_bake" node, the fluid particles will be read and used to reconstruct a polygonal liquid surface, which will then be stored as Houdini geometry files.
 
 The baked geometries are then read back by the nodes with prefix "geo", which can be used for rendering. 
 
