@@ -90,6 +90,22 @@ Where:
    -h,  --help
      Displays usage information and exits.
 
+Surface Reconstruction and Rendering with Houdini
+--------------------------------------------------------
+The Houdini projects are also provided in the "houdini" folder, which are used for surface reconstruction and rendering purpose. Our simulator can generate data that can be read back by the Python script in our Houdini projects.
+
+You may run the demo with the "-o" option, *under the folder containing Houdini projects* (by default, <project source>/houdini). For example, you may type
+
+../build/libWetCloth/libWetCloth -s ../assets/general_examples/pore_test_mid.xml -o 20
+
+under the folder containing Houdini projects to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The demo will create a folder with the name of scene file under this folder, which can be read back by the Houdini project with the same file.
+
+After some data generated, you may open the correspoding Houdini project to watch them. We use the nodes with suffix "bake" to indicate the usage of baking. For example in the "fluids_bake" node, the fluid particles will be read and used to reconstruct a polygonal surface. The surface will then stored as Houdini geometry files.
+
+The baked geometry is then read back by the nodes with prefix "geo", which can be used for rendering. 
+
+You may check the Mantra nodes in the output classifier for the rendering settings. You can then connect these nodes to HQueue nodes for distributed rendering on a render farm.
+
 Contact
 -----------
 Please contact the author (yf2320@columbia.edu) for questions and bug report, or consulting for the usage of this code base.

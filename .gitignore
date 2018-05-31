@@ -8,7 +8,6 @@ unit_tests/*
 *.png
 *.jpg
 *.exr
-*.hipnc
 *.geo*
 geo/*
 render/*
