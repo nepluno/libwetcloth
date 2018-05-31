@@ -106,6 +106,8 @@ The baked geometries are then read back by the nodes with prefix "geo", which ca
 
 You may check the Mantra nodes in the output classifier for the rendering settings. You can also connect these nodes to HQueue nodes for distributed rendering on a render farm.
 
+Houdini 16.5 is used for our case. You may need an equivalent or higher version to open the project files. For more information and tutorials of Houdini, please visit the SideFX website (https://www.sidefx.com/).
+
 Contact
 -----------
 Please contact the author (yf2320@columbia.edu) for questions and bug report, or consulting for the usage of this code base.
