@@ -96,7 +96,7 @@ The Houdini projects are also provided in the "houdini" folder, which are used f
 
 You may run the demo with the "-o" option, *under the folder containing Houdini projects* (by default, [project source]/houdini/). For example, you may type
 
-../build/libWetCloth/libWetCloth -s ../assets/general_examples/pore_test_mid.xml -o 20
+../build/libWetCloth/libWetCloth -s ../assets/parameter_tests/pore_test_mid.xml -o 20
 
 under the folder containing Houdini projects to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
 
