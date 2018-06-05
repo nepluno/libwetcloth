@@ -17,7 +17,7 @@ endif (NOT CMAKE_BUILD_TYPE)
 add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 # Add warnings to the compiler flags
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -DEIGEN_DONT_ALIGN -DEIGEN_DONT_ALIGN_STATICALLY")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions (-DDEBUG)
