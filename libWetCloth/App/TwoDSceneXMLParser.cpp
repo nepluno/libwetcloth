@@ -1348,7 +1348,7 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
     info.compute_viscosity = false;
     info.apply_viscosity_solid = false;
     info.drag_by_future_solid = false;
-    info.drag_by_air = true;
+    info.drag_by_air = false;
     info.init_nonuniform_fraction = false;
 	
 	rapidxml::xml_node<>* nd = node->first_node("liquidinfo");
