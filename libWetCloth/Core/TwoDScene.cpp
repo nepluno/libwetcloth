@@ -5453,7 +5453,7 @@ void TwoDScene::updatePlasticity(scalar dt){
         const scalar alpha = getFrictionAlpha(pidx);
         const scalar beta = getFrictionBeta(pidx);
         
-        Eigen::JacobiSVD<Eigen::Matrix2d> svd(R.block<2, 2>(1, 1), Eigen::ComputeThinU | Eigen::ComputeThinV);
+        Eigen::JacobiSVD<Eigen::Matrix2d> svd(R.block<2, 2>(1, 1), Eigen::ComputeFullU | Eigen::ComputeFullV);
         Eigen::Vector2d s = svd.singularValues();
         const Matrix2s U = svd.matrixU();
         const Matrix2s V = svd.matrixV();

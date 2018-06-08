@@ -923,7 +923,7 @@ namespace mathutils
 	    r(1,0) = 0.0;
 	    r(1,1) = r33;
 		
-	    Eigen::JacobiSVD<Eigen::MatrixXd> svd(r, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	    Eigen::JacobiSVD<Eigen::Matrix2d> svd(r, Eigen::ComputeFullU | Eigen::ComputeFullV);
 	    Eigen::Vector2d sigm = svd.singularValues();
 	    Eigen::Vector2d sigm_inv = Eigen::Vector2d(1.0 / sigm(0), 1.0 / sigm(1));
 	    Eigen::Vector2d lnsigm = Eigen::Vector2d(log(sigm(0)), log(sigm(1)));
