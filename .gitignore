@@ -5,8 +5,6 @@ xmlgen/build*/*
 *.mat
 pngs/*
 unit_tests/*
-*.png
-*.jpg
 *.exr
 *.geo*
 geo/*
