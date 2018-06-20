@@ -150,7 +150,7 @@ void ShellMembraneForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, 
 			const Vector3s sV = sx0*m_membrane_rv(f,0) + sx1*m_membrane_rv(f,1) + sx2*m_membrane_rv(f,2);
 			
 			const Vector3s viscous_strain = Vector3s(0.5*(U.dot(U) - sU.dot(sU)), 0.5*(V.dot(V) - sV.dot(sV)), U.dot(V) - sU.dot(sV));
-			const Vector3s viscous_stress = m_membrane_material_viscous_tensor*strain;
+			const Vector3s viscous_stress = m_membrane_material_viscous_tensor*viscous_strain;
 			
 			for(int i = 0; i < 3; ++i) {
 				gradE.segment<3>(m_F(f, i) * 4) += psi_coeff *
@@ -186,7 +186,7 @@ void ShellMembraneForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, 
 		const Vector3s sV = sx0*m_membrane_rv(f,0) + sx1*m_membrane_rv(f,1) + sx2*m_membrane_rv(f,2);
 		
 		const Vector3s viscous_strain = Vector3s(0.5*(U.dot(U) - sU.dot(sU)), 0.5*(V.dot(V) - sV.dot(sV)), U.dot(V) - sU.dot(sV));
-		const Vector3s viscous_stress = m_membrane_material_viscous_tensor*strain;
+		const Vector3s viscous_stress = m_membrane_material_viscous_tensor*viscous_strain;
 		
 		for (unsigned int i = 0; i < 3; i++)
 		{

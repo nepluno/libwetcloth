@@ -481,7 +481,7 @@ void ShellBendingForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, c
 		
 		for(int j = 0; j < 3; ++j) for(int i = 0; i < 3; ++i) for(int s = 0; s < 3; ++s) for(int r = 0; r < 3; ++r)
 		{
-			int hess_idx = base_idx + f * 9 * 9 + (j * 3 + i) * 9 + s * 3 * r;
+			int hess_idx = base_idx + f * 9 * 9 + (j * 3 + i) * 9 + s * 3 + r;
 			hessE[hess_idx] = Triplets( idx[i] * 4 + r, idx[j] * 4 + s, psi_coeff * dfdx_bending_hesspart(i * 3 + r, j * 3 + s) );
 			assert(!std::isnan(hessE[hess_idx].value()));
 		}
