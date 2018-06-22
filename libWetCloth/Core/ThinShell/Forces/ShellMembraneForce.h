@@ -78,7 +78,8 @@ public:
 					   const VectorXs & triangle_rest_area,
 					   const scalar& young_modulus,
 					   const scalar& viscous_modulus,
-					   const scalar& poisson_ratio);
+					   const scalar& poisson_ratio,
+					   const scalar& thickness);
 	
 	virtual ~ShellMembraneForce();
 	

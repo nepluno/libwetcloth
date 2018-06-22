@@ -73,7 +73,8 @@ ShellMembraneForce::ShellMembraneForce(const VectorXs & rest_pos,
 									   const VectorXs & triangle_rest_area,
 									   const scalar& young_modulus,
 									   const scalar& viscous_modulus,
-									   const scalar& poisson_ratio)
+									   const scalar& poisson_ratio,
+									   const scalar& thickness)
 : m_rest_pos(rest_pos),
 m_pos(pos),
 m_F(F),
@@ -108,8 +109,8 @@ m_poisson_ratio(poisson_ratio)
 	});
 	
 	m_membrane_material_tensor << 1, m_poisson_ratio, 0, m_poisson_ratio, 1, 0, 0, 0, 0.5 * (1 - m_poisson_ratio);
-	m_membrane_material_viscous_tensor = m_membrane_material_tensor * (m_viscous_modulus / (1 - m_poisson_ratio * m_poisson_ratio));
-	m_membrane_material_tensor = m_membrane_material_tensor * (m_young_modulus / (1 - m_poisson_ratio * m_poisson_ratio));
+	m_membrane_material_viscous_tensor = m_membrane_material_tensor * (m_viscous_modulus * thickness / (1 - m_poisson_ratio * m_poisson_ratio));
+	m_membrane_material_tensor = m_membrane_material_tensor * (m_young_modulus * thickness / (1 - m_poisson_ratio * m_poisson_ratio));
 }
 
 void ShellMembraneForce::addEnergyToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, scalar& E )
