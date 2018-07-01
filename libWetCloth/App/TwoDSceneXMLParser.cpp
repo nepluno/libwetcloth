@@ -2336,7 +2336,7 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
         }
         
         
-		scalar criterion = 1e-6;
+		scalar criterion = 1e-8;
 		subnd = nd->first_attribute("criterion");
 		if( subnd ){
 			if( !stringutils::extractFromString(std::string(subnd->value()), criterion)) {
@@ -2354,7 +2354,16 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
             }
         }
 		
-		int maxiters = 100;
+		scalar quasicriterion = 1e-6;
+		subnd = nd->first_attribute("quasicriterion");
+		if( subnd ){
+			if( !stringutils::extractFromString(std::string(subnd->value()), quasicriterion)) {
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse 'criterion' attribute for integrator. Value must be numeric. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		
+		int maxiters = 1000;
 		subnd = nd->first_attribute("maxiters");
 		if( subnd ){
 			if( !stringutils::extractFromString(std::string(subnd->value()), maxiters)) {
@@ -2372,7 +2381,7 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
 			}
 		}
 		
-		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, maxiters, manifoldsubsteps, viscositysubsteps);
+		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, quasicriterion, maxiters, manifoldsubsteps, viscositysubsteps);
 	}
     else
     {

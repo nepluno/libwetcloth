@@ -1,6 +1,6 @@
 <scene>
   <duration time="4.0"/>
-  <integrator type="linearized-implicit-euler" dt="0.0002" apic="1" criterion="1e-6" surftensionsubsteps="1" manifoldsubsteps="36" maxiters="300" viscositysubsteps="40"/>
+  <integrator type="linearized-implicit-euler" dt="0.0002" apic="1" criterion="1e-8" surftensionsubsteps="1" manifoldsubsteps="36" maxiters="300" viscositysubsteps="40"/>
   <collision type="continuous-time"/>
 
   <bucketinfo size="1.152" numcells="4" kernelorder="2"/>
@@ -35,12 +35,12 @@
   <distancefield usage="terminator" type="box" cx="0.0" cy="0.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" rw="0.0" ex="86.4" ey="86.4" ez="86.4" radius="0.0" group="1" sampled="0" inside="1"/>
 
   <StrandParameters> 
-    <youngsModulus value="6.6e5" /> 
-    <poissonRatio value="0.35" /> 
-    <collisionMultiplier value="1.0" />
-    <attachMultiplier value="2.0" />     
+    <youngsModulus value="1.83e7" /> 
+    <poissonRatio value="0.202" /> 
+    <collisionMultiplier value="0.04" />
+    <attachMultiplier value="0.08" />   
     <density value="1.32" /> 
-    <viscosity value="1e3" /> 
+    <viscosity value="2.78e4" /> 
     <baseRotation value="0.0"/>  
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="0" /> 

@@ -53,8 +53,8 @@
 //#define OPTIMIZE_SAT
 //#define CHECK_EQU_24
 
-LinearizedImplicitEuler::LinearizedImplicitEuler(const scalar& criterion, const scalar& pressure_criterion, int maxiters, int manifold_substeps, int viscosity_substeps)
-: SceneStepper(), m_pcg_criterion(criterion), m_pressure_criterion(pressure_criterion), m_maxiters(maxiters), m_manifold_substeps(manifold_substeps), m_viscosity_substeps(viscosity_substeps)
+LinearizedImplicitEuler::LinearizedImplicitEuler(const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_criterion, int maxiters, int manifold_substeps, int viscosity_substeps)
+: SceneStepper(), m_pcg_criterion(criterion), m_pressure_criterion(pressure_criterion), m_quasi_criterion(quasi_criterion), m_maxiters(maxiters), m_manifold_substeps(manifold_substeps), m_viscosity_substeps(viscosity_substeps)
 {}
 
 LinearizedImplicitEuler::~LinearizedImplicitEuler()
@@ -1077,7 +1077,8 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
             res_norm = lengthNodeVectors(m_node_t_x, m_node_t_y, m_node_t_z) / res_norm_0;
             
             scalar rho_old, beta;
-            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_0; ++iter)
+			const scalar rho_crit = (m_pcg_criterion * res_norm_0) * (m_pcg_criterion * res_norm_0);
+            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > rho_crit; ++iter)
             {
                 rho_old = rho;
                 
@@ -1202,7 +1203,8 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCR( TwoDScene& scene, s
             res_norm = m_angular_t.norm() / res_norm_1;
             
             scalar rho_old, beta;
-            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_1; ++iter)
+			const scalar rho_crit = (m_pcg_criterion * res_norm_1) * (m_pcg_criterion * res_norm_1);
+            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > rho_crit; ++iter)
             {
                 rho_old = rho;
                 
@@ -1315,7 +1317,8 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCG( TwoDScene& scene, s
             res_norm = lengthNodeVectors(m_node_r_x, m_node_r_y, m_node_r_z) / res_norm_0;
             
             scalar rho_old, beta;
-            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_0; ++iter)
+			const scalar rho_crit = (m_pcg_criterion * res_norm_0) * (m_pcg_criterion * res_norm_0);
+            for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > rho_crit; ++iter)
             {
                 rho_old = rho;
                 
@@ -1403,7 +1406,8 @@ bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCG( TwoDScene& scene, s
 			res_norm = m_angular_r.norm() / res_norm_1;
 			
 			scalar rho_old, beta;
-			for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > m_pcg_criterion * res_norm_1; ++iter)
+			const scalar rho_crit = m_pcg_criterion * res_norm_1 * m_pcg_criterion * res_norm_1;
+			for(; iter < m_maxiters && res_norm > m_pcg_criterion && rho > rho_crit; ++iter)
 			{
 				rho_old = rho;
 				
@@ -1889,7 +1893,7 @@ bool LinearizedImplicitEuler::manifoldPropagate( TwoDScene& scene, scalar dt )
 		
 		
 		int iter = 0;
-		for(; iter < m_maxiters && res_norm > m_pcg_criterion; ++iter)
+		for(; iter < m_maxiters && res_norm > m_quasi_criterion; ++iter)
 		{
 			VectorXs old_fv = fluid_vol;
 			

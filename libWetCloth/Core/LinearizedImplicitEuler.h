@@ -55,7 +55,7 @@
 class LinearizedImplicitEuler : public SceneStepper
 {
 public:
-	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, int maxiters, int manifold_substeps, int viscosity_substeps );
+	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_criterion, int maxiters, int manifold_substeps, int viscosity_substeps );
 	
 	virtual ~LinearizedImplicitEuler();
 	
@@ -284,6 +284,7 @@ private:
 	
 	const scalar m_pcg_criterion;
     const scalar m_pressure_criterion;
+	const scalar m_quasi_criterion;
 	const int m_maxiters;
 	const int m_manifold_substeps;
 	const int m_viscosity_substeps;
