@@ -7,12 +7,12 @@
   <simplegravity fx="0.0" fy="-981.0" fz="0.0" />
 
   <StrandParameters> 
-    <youngsModulus value="6.6e5" /> 
-    <poissonRatio value="0.35" /> 
-    <collisionMultiplier value="1.0" />
-    <attachMultiplier value="2.0" />     
+    <youngsModulus value="1.83e7" /> 
+    <poissonRatio value="0.202" /> 
+    <collisionMultiplier value="0.04" />
+    <attachMultiplier value="0.08" />   
     <density value="1.32" /> 
-    <viscosity value="1e3" /> 
+    <viscosity value="2.78e4" /> 
     <baseRotation value="0.0"/>  
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="0" /> 
