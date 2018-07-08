@@ -1441,9 +1441,7 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
         } else if(volume_fraction_provided && pore_radius_provided) {
             info.yarn_diameter = 2.0 * info.pore_radius * sqrt(std::max(0.0, info.rest_volume_fraction / (1.0 - info.rest_volume_fraction)));
             info.fabric_thread_count = 2.0 * info.half_thickness / (M_PI * info.pore_radius * info.pore_radius) * (1.0 - info.rest_volume_fraction);
-        } else {
-            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to process fabric parameters. " << std::endl;
-        }
+        } 
         
         if( ( subnd = nd->first_node("applyViscositySolid") ) )
         {
