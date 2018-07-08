@@ -234,6 +234,13 @@ bool LinearizedImplicitEuler::stepVelocity( TwoDScene& scene, scalar dt )
             if(scene.getLiquidInfo().apply_viscosity_solid) {
                 viscosity::applyNodeViscositySolidRHS(scene, m_node_v_0_x, m_node_v_0_y, m_node_v_0_z, m_node_v_fluid_plus_x, m_node_v_fluid_plus_y, m_node_v_fluid_plus_z, m_node_rhs_x, m_node_rhs_y, m_node_rhs_z);
             }
+			
+			// update fluid RHS since later may need use it
+			buckets.for_each_bucket([&] (int bucket_idx) {
+				m_node_rhs_fluid_x[bucket_idx] = VectorXs(m_node_v_fluid_plus_x[bucket_idx].array() * node_mass_fluid_x[bucket_idx].array());
+				m_node_rhs_fluid_y[bucket_idx] = VectorXs(m_node_v_fluid_plus_y[bucket_idx].array() * node_mass_fluid_y[bucket_idx].array());
+				m_node_rhs_fluid_z[bucket_idx] = VectorXs(m_node_v_fluid_plus_z[bucket_idx].array() * node_mass_fluid_z[bucket_idx].array());
+			});
         }
     }
     
@@ -365,24 +372,26 @@ void LinearizedImplicitEuler::constructNodeForce( TwoDScene& scene, const scalar
 	int ndof = num_elasto * 4;
 	
 	VectorXs rhs = VectorXs::Zero(ndof);
-	scene.accumulateGradU(rhs);
-	rhs *= -dt;
-    
-    assert(!std::isnan(rhs.sum()));
-
-    m_angular_moment_buffer.resize(num_elasto);
-
-    threadutils::for_each(0, num_elasto, [&] (int pidx) {
-    	m_angular_moment_buffer[pidx] = rhs[pidx * 4 + 3] + m[pidx * 4 + 3] * v[pidx * 4 + 3];
-    });
-
 	
-    mapSoftParticlesToNode(scene, node_rhs_x, node_rhs_y, node_rhs_z, rhs);
-	
-//    mapParticlesToNode(scene, node_rhs_fluid_x, node_rhs_fluid_y, node_rhs_fluid_z, rhs_fluid, [&] (int pidx) -> bool {
-//        return (pidx < num_elasto && scene.isSoft(pidx)) || pidx >= num_elasto;
-//    });
-    
+	if(scene.getLiquidInfo().solve_solid) {
+		scene.accumulateGradU(rhs);
+		rhs *= -dt;
+		
+		assert(!std::isnan(rhs.sum()));
+		
+		m_angular_moment_buffer.resize(num_elasto);
+		
+		threadutils::for_each(0, num_elasto, [&] (int pidx) {
+			m_angular_moment_buffer[pidx] = rhs[pidx * 4 + 3] + m[pidx * 4 + 3] * v[pidx * 4 + 3];
+		});
+		
+		
+		mapSoftParticlesToNode(scene, node_rhs_x, node_rhs_y, node_rhs_z, rhs);
+		
+		//    mapParticlesToNode(scene, node_rhs_fluid_x, node_rhs_fluid_y, node_rhs_fluid_z, rhs_fluid, [&] (int pidx) -> bool {
+		//        return (pidx < num_elasto && scene.isSoft(pidx)) || pidx >= num_elasto;
+		//    });
+	}
     scene.accumulateFluidNodeGradU(node_rhs_fluid_x, node_rhs_fluid_y, node_rhs_fluid_z, -dt);
     
     ////////    // add grad pp to rhs
@@ -407,50 +416,73 @@ void LinearizedImplicitEuler::constructNodeForce( TwoDScene& scene, const scalar
     //                                       -dt);
     
     //    std::cout << rhs_gauss_fluid << std::endl;
-    MatrixXs rhs_gauss(scene.getNumGausses()*3, 3);
-    rhs_gauss.setZero();
-    scene.accumulateGaussGradU(rhs_gauss); //force for type 3.
-    rhs_gauss *= -dt;
-    
-    assert(!std::isnan(rhs_gauss.sum()));
-    
-    mapGaussToNode(scene, node_rhs_x, node_rhs_y, node_rhs_z, rhs_gauss);
-    
+	
+	if(scene.getLiquidInfo().solve_solid) {
+		MatrixXs rhs_gauss(scene.getNumGausses()*3, 3);
+		rhs_gauss.setZero();
+		scene.accumulateGaussGradU(rhs_gauss); //force for type 3.
+		rhs_gauss *= -dt;
+		
+		assert(!std::isnan(rhs_gauss.sum()));
+		
+		mapGaussToNode(scene, node_rhs_x, node_rhs_y, node_rhs_z, rhs_gauss);
+	}
+	
     const Sorter& buckets = scene.getParticleBuckets();
-    
-    buckets.for_each_bucket([&] (int bucket_idx) {
-        const VectorXs& node_masses_x = scene.getNodeMassX()[bucket_idx];
-        const VectorXs& node_masses_y = scene.getNodeMassY()[bucket_idx];
-        const VectorXs& node_masses_z = scene.getNodeMassZ()[bucket_idx];
-        
-        const VectorXs& node_vel_x = scene.getNodeVelocityX()[bucket_idx];
-        const VectorXs& node_vel_y = scene.getNodeVelocityY()[bucket_idx];
-        const VectorXs& node_vel_z = scene.getNodeVelocityZ()[bucket_idx];
-        
-        node_rhs_x[bucket_idx] += VectorXs(node_masses_x.array() * node_vel_x.array());
-        node_rhs_y[bucket_idx] += VectorXs(node_masses_y.array() * node_vel_y.array());
-        node_rhs_z[bucket_idx] += VectorXs(node_masses_z.array() * node_vel_z.array());
-        
-        assert(!std::isnan(node_rhs_x[bucket_idx].sum()));
-        assert(!std::isnan(node_rhs_y[bucket_idx].sum()));
-        assert(!std::isnan(node_rhs_z[bucket_idx].sum()));
-        
-        const VectorXs& node_masses_fluid_x = scene.getNodeFluidMassX()[bucket_idx];
-        const VectorXs& node_masses_fluid_y = scene.getNodeFluidMassY()[bucket_idx];
-        const VectorXs& node_masses_fluid_z = scene.getNodeFluidMassZ()[bucket_idx];
-        
-        const VectorXs& node_vel_fluid_x = scene.getNodeFluidVelocityX()[bucket_idx];
-        const VectorXs& node_vel_fluid_y = scene.getNodeFluidVelocityY()[bucket_idx];
-        const VectorXs& node_vel_fluid_z = scene.getNodeFluidVelocityZ()[bucket_idx];
-        
-        node_rhs_fluid_x[bucket_idx] += VectorXs(node_masses_fluid_x.array() * node_vel_fluid_x.array());
-        node_rhs_fluid_y[bucket_idx] += VectorXs(node_masses_fluid_y.array() * node_vel_fluid_y.array());
-        node_rhs_fluid_z[bucket_idx] += VectorXs(node_masses_fluid_z.array() * node_vel_fluid_z.array());
-        
-        assert(!std::isnan(node_rhs_fluid_x[bucket_idx].sum()));
-        assert(!std::isnan(node_rhs_fluid_y[bucket_idx].sum()));
-        assert(!std::isnan(node_rhs_fluid_z[bucket_idx].sum()));
-    });
+	
+	if(scene.getLiquidInfo().solve_solid) {
+		buckets.for_each_bucket([&] (int bucket_idx) {
+			const VectorXs& node_masses_x = scene.getNodeMassX()[bucket_idx];
+			const VectorXs& node_masses_y = scene.getNodeMassY()[bucket_idx];
+			const VectorXs& node_masses_z = scene.getNodeMassZ()[bucket_idx];
+			
+			const VectorXs& node_vel_x = scene.getNodeVelocityX()[bucket_idx];
+			const VectorXs& node_vel_y = scene.getNodeVelocityY()[bucket_idx];
+			const VectorXs& node_vel_z = scene.getNodeVelocityZ()[bucket_idx];
+			
+			node_rhs_x[bucket_idx] += VectorXs(node_masses_x.array() * node_vel_x.array());
+			node_rhs_y[bucket_idx] += VectorXs(node_masses_y.array() * node_vel_y.array());
+			node_rhs_z[bucket_idx] += VectorXs(node_masses_z.array() * node_vel_z.array());
+			
+			assert(!std::isnan(node_rhs_x[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_y[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_z[bucket_idx].sum()));
+			
+			const VectorXs& node_masses_fluid_x = scene.getNodeFluidMassX()[bucket_idx];
+			const VectorXs& node_masses_fluid_y = scene.getNodeFluidMassY()[bucket_idx];
+			const VectorXs& node_masses_fluid_z = scene.getNodeFluidMassZ()[bucket_idx];
+			
+			const VectorXs& node_vel_fluid_x = scene.getNodeFluidVelocityX()[bucket_idx];
+			const VectorXs& node_vel_fluid_y = scene.getNodeFluidVelocityY()[bucket_idx];
+			const VectorXs& node_vel_fluid_z = scene.getNodeFluidVelocityZ()[bucket_idx];
+			
+			node_rhs_fluid_x[bucket_idx] += VectorXs(node_masses_fluid_x.array() * node_vel_fluid_x.array());
+			node_rhs_fluid_y[bucket_idx] += VectorXs(node_masses_fluid_y.array() * node_vel_fluid_y.array());
+			node_rhs_fluid_z[bucket_idx] += VectorXs(node_masses_fluid_z.array() * node_vel_fluid_z.array());
+			
+			assert(!std::isnan(node_rhs_fluid_x[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_fluid_y[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_fluid_z[bucket_idx].sum()));
+		});
+	} else {
+		buckets.for_each_bucket([&] (int bucket_idx) {
+			const VectorXs& node_masses_fluid_x = scene.getNodeFluidMassX()[bucket_idx];
+			const VectorXs& node_masses_fluid_y = scene.getNodeFluidMassY()[bucket_idx];
+			const VectorXs& node_masses_fluid_z = scene.getNodeFluidMassZ()[bucket_idx];
+			
+			const VectorXs& node_vel_fluid_x = scene.getNodeFluidVelocityX()[bucket_idx];
+			const VectorXs& node_vel_fluid_y = scene.getNodeFluidVelocityY()[bucket_idx];
+			const VectorXs& node_vel_fluid_z = scene.getNodeFluidVelocityZ()[bucket_idx];
+			
+			node_rhs_fluid_x[bucket_idx] += VectorXs(node_masses_fluid_x.array() * node_vel_fluid_x.array());
+			node_rhs_fluid_y[bucket_idx] += VectorXs(node_masses_fluid_y.array() * node_vel_fluid_y.array());
+			node_rhs_fluid_z[bucket_idx] += VectorXs(node_masses_fluid_z.array() * node_vel_fluid_z.array());
+			
+			assert(!std::isnan(node_rhs_fluid_x[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_fluid_y[bucket_idx].sum()));
+			assert(!std::isnan(node_rhs_fluid_z[bucket_idx].sum()));
+		});
+	}
 }
 
 void LinearizedImplicitEuler::addSolidDrag( TwoDScene& scene,
@@ -1444,7 +1476,7 @@ bool LinearizedImplicitEuler::acceptVelocity( TwoDScene& scene )
 {
     const Sorter& buckets = scene.getParticleBuckets();
 	
-	if(scene.getNumSoftElastoParticles() > 0) {
+	if(scene.getLiquidInfo().solve_solid && scene.getNumSoftElastoParticles() > 0) {
 		buckets.for_each_bucket([&] (int bucket_idx) {
 			scene.getNodeVelocityX()[bucket_idx] = m_node_v_plus_x[bucket_idx];
 			scene.getNodeVelocityY()[bucket_idx] = m_node_v_plus_y[bucket_idx];
@@ -1476,7 +1508,7 @@ bool LinearizedImplicitEuler::stepImplicitElastoAMGPCG( TwoDScene& scene, scalar
     if(ndof_elasto == 0) return true;
     
     scalar res_norm_0 = lengthNodeVectors(m_node_rhs_x, m_node_rhs_y, m_node_rhs_z);
-    
+	
     if(res_norm_0 > m_pcg_criterion) {
         // construct Particle Hessian
         constructHessianPreProcess(scene, dt);
