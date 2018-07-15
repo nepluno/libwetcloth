@@ -67,6 +67,22 @@ struct int_scalar {
   }
 };
 
+struct int5_scalar {
+	int row_node;
+	int row_dir;
+	int col_bucket;
+	int col_node;
+	int col_dir;
+	scalar v;
+	
+	int5_scalar(int rn, int rd, int cb, int cn, int cd, scalar value)
+	: row_node(rn), row_dir(rd), col_bucket(cb), col_node(cn), col_dir(cd), v(value)
+	{}
+	
+	int5_scalar()
+	: row_node(0), row_dir(0), col_bucket(0), col_node(0), col_dir(0), v(0.0)
+	{}
+};
 
 typedef Eigen::Matrix<scalar, 2, 1> Vector2s;
 typedef Eigen::Matrix<float, 2, 1> Vector2f;
@@ -109,6 +125,9 @@ typedef Eigen::Matrix<float, Eigen::Dynamic, 1> VectorXf;
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> VectorXi;
 typedef Eigen::Matrix<char, Eigen::Dynamic, 1> VectorXc;
 typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> VectorXuc;
+
+typedef Eigen::Quaternion<scalar> Quat4s;
+typedef Eigen::Quaternion<float> Quat4f;
 
 typedef Eigen::Matrix<scalar, 1, 2> Vector2sT;
 typedef Eigen::Matrix<float, 1, 2> Vector2fT;

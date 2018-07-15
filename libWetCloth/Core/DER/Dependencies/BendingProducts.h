@@ -86,12 +86,12 @@ protected:
     virtual void compute()
     {
         m_value.resize( m_size );
-        const Mat2& bendingMatrix = m_bendingMatrixBase.get();
+        const MatX& bendingMatrix = m_bendingMatrixBase.get();
         const GradKArrayType& gradKappas = m_gradKappas.get();
 
         for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
         {
-            symBProduct<11>( m_value[vtx], bendingMatrix, gradKappas[vtx] );
+            symBProduct<11>( m_value[vtx], bendingMatrix.block<2, 2>(vtx * 2, 0), gradKappas[vtx] );
         }
 
         setDependentsDirty();

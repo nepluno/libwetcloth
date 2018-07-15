@@ -534,7 +534,7 @@ void DistanceFieldObject::apply_translation(const Vector3s& t)
 	future_center += t;
 }
 
-scalar DistanceFieldObject::compute_phi_vel(const Vector3s& pos, Vector3s& vel) const
+scalar DistanceFieldObject::compute_phi(const Vector3s& pos) const
 {
 	scalar phi = 0.0;
 	
@@ -567,6 +567,15 @@ scalar DistanceFieldObject::compute_phi_vel(const Vector3s& pos, Vector3s& vel) 
 		default:
 			break;
 	}
+	
+	return phi;
+}
+
+scalar DistanceFieldObject::compute_phi_vel(const Vector3s& pos, Vector3s& vel) const
+{
+	scalar phi = compute_phi(pos);
+	
+	Vector3s dx = pos - center;
 	
 	vel = V + omega.cross(dx);
 	
@@ -684,6 +693,45 @@ void DistanceFieldOperator::render(const std::function<void(const std::vector<Ve
 	int nb = children.size();
 	for(int i = 0; i < nb; ++i) {
 		children[i]->render(func);
+	}
+}
+
+
+scalar DistanceFieldOperator::compute_phi(const Vector3s& pos) const
+{
+	switch (DistanceField::type) {
+		case DFT_UNION:
+		{
+			scalar min_phi = 1e+20;
+			
+			for(auto& child : children)
+			{
+				scalar phi = child->compute_phi(pos);
+				if(phi < min_phi)
+				{
+					min_phi = phi;
+				}
+			}
+			
+			return min_phi;
+		}
+		case DFT_INTERSECT:
+		{
+			scalar max_phi = -1e+20;
+			
+			for(auto& child : children)
+			{
+				scalar phi = child->compute_phi(pos);
+				if(phi > max_phi)
+				{
+					max_phi = phi;
+				}
+			}
+			
+			return max_phi;
+		}
+		default:
+			return 1e+20;
 	}
 }
 

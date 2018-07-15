@@ -57,6 +57,8 @@ public:
 	virtual bool stepScene( TwoDScene& scene, scalar dt ) = 0;
 	
 	virtual bool stepVelocity( TwoDScene& scene, scalar dt ) = 0;
+
+	virtual bool stepVelocityLagrangian( TwoDScene& scene, scalar dt ) = 0;
     
     virtual bool projectFine( TwoDScene& scene, scalar dt ) = 0;
     
@@ -71,6 +73,8 @@ public:
 	virtual bool manifoldPropagate( TwoDScene& scene, scalar dt ) = 0;
     
     virtual bool stepImplicitElasto( TwoDScene& scene, scalar dt ) = 0;
+
+    virtual bool stepImplicitElastoLagrangian( TwoDScene& scene, scalar dt ) = 0;
     
     virtual scalar computeDivergence( TwoDScene& scene ) = 0;
     
@@ -111,6 +115,8 @@ public:
 	
 	void mapSoftParticlesToNode( const TwoDScene& scene, std::vector< VectorXs >& node_vec_x, std::vector< VectorXs >& node_vec_y, std::vector< VectorXs >& node_vec_z, const VectorXs& part_vec ) const;
 	
+	void mapSoftParticlesToNodeSqr( const TwoDScene& scene, std::vector< VectorXs >& node_vec_x, std::vector< VectorXs >& node_vec_y, std::vector< VectorXs >& node_vec_z, const VectorXs& part_vec ) const;
+
 	void allocateNodeVectors( const TwoDScene& scene, std::vector< VectorXs >& node_vec_x, std::vector< VectorXs >& node_vec_y, std::vector< VectorXs >& node_vec_z) const;
     
     void allocateNodeVectors( const TwoDScene& scene, std::vector< VectorXi >& node_vec_x, std::vector< VectorXi >& node_vec_y, std::vector< VectorXi >& node_vec_z) const;
@@ -120,15 +126,20 @@ public:
     void allocateCenterNodeVectors( const TwoDScene& scene, std::vector< VectorXs >& node_vec_p ) const;
 	
 	scalar dotNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az, const std::vector< VectorXs >& node_vec_bx, const std::vector< VectorXs >& node_vec_by, const std::vector< VectorXs >& node_vec_bz ) const;
+
+	scalar dotNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az, const std::vector< VectorXs >& node_vec_bx, const std::vector< VectorXs >& node_vec_by, const std::vector< VectorXs >& node_vec_bz, const VectorXs& twist_vec_a, const VectorXs& twist_vec_b ) const;
 	
 	scalar dotNodeVectors( const std::vector< VectorXs >& node_vec_a, const std::vector< VectorXs >& node_vec_b ) const;
 	
+	scalar lengthNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az, const VectorXs& twist_vec ) const;
+
 	scalar lengthNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az ) const;
 	
 	scalar lengthNodeVectors( const std::vector< VectorXs >& node_vec ) const;
 	
 	void mapGaussToNode( const TwoDScene& scene, std::vector< VectorXs >& node_vec_x, std::vector< VectorXs >& node_vec_y, std::vector< VectorXs >& node_vec_z, const MatrixXs& gauss_vec ) const;
     
+    void allocateLagrangianVectors( const TwoDScene& scene, VectorXs& vec );
 protected:
 	bool m_apic;
 };

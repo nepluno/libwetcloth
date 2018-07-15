@@ -55,3 +55,13 @@ int Force::numAngularHessX()
 {
 	return 0;
 }
+
+void Force::postCompute(VectorXs& v, const scalar& dt)
+{
+
+}
+
+bool Force::parallelized() const
+{
+	return false;
+}

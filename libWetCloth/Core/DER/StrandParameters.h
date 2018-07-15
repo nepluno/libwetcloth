@@ -73,11 +73,10 @@ struct StrandEquilibriumParameters
 	mutable bool m_dirty;
 };
 
-// -0.021586124150231 gives exactly one for max, and ~0.02 for min, instead of [~0.04, ~1.02]
 struct StrandParameters
 {
 	StrandParameters(
-					 scalar radius,
+					 const VecX& radius,
 					 scalar YoungsModulus,
 					 scalar shearModulus,
 					 scalar stretchingMultiplier,
@@ -92,7 +91,6 @@ struct StrandParameters
 					 scalar restVolumeFraction,
 					 bool accumViscous = true,
 					 bool accumViscousBend = true,
-					 bool variableRadiusHair = false,
                      bool postProjectFixed = true,
 					 scalar straightHairs = 1.,
 					 const Vec3& color = Vec3(0, 0, 0)):
@@ -112,7 +110,6 @@ struct StrandParameters
 	m_kt( m_physicalRadius, m_shearModulus ),
 	m_accumulateWithViscous( accumViscous ),
 	m_accumulateViscousOnlyForBendingModes( accumViscousBend ),
-	m_variableRadiusHair( variableRadiusHair ),
 	m_straightHairs( straightHairs ),
 	m_color(color),
     m_friction_alpha(friction_alpha),
@@ -123,48 +120,34 @@ struct StrandParameters
   computeViscousForceCoefficients( dt );
 	}
 	
-	scalar interpolatedRadiusMultiplier( int vtx, int numVertices ) const
-	{
-		// return ( s * 0.5 + ( 1. - s ) * 1.0 ); // fixed constant linear
-		// return ( s * m_tipRadiusMultiplier + ( 1. - s ) * m_rootRadiusMultiplier ); // linear
-		
-		if( m_variableRadiusHair ){
-			const scalar s = vtx / ( numVertices - 1. );
-			return (exp(-3.4612 * s)) * m_straightHairs + (1. - m_straightHairs); // animal hair taper fit function
-		}
-		return 1.; // constant
-	}
-	
 	Vec3 getColor() const
 	{
 		return m_color;
 	}
 	
-	scalar getKs( int vtx, int numVertices ) const
+	scalar getKs( int vtx ) const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		return interpol * interpol * m_ks.get() * m_stretchingMultiplier;
+		return m_ks.get()(vtx) * m_stretchingMultiplier;
 	}
 	
-	scalar getKt( int vtx, int numVertices ) const
+	scalar getKt( int vtx ) const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		const scalar interpol2 = interpol * interpol;
-		
-		return interpol2 * interpol2 * m_kt.get();
+		return m_kt.get()(vtx);
 	}
 	
-	scalar getRadius( int vtx, int numVertices ) const
+	scalar getRadiusA( int vtx ) const
 	{
-		return interpolatedRadiusMultiplier( vtx, numVertices ) * m_physicalRadius.get();
+		return m_physicalRadius.get()(vtx * 2);
+	}
+
+	scalar getRadiusB( int vtx ) const
+	{
+		return m_physicalRadius.get()(vtx * 2 + 1);
 	}
 	
-	scalar bendingCoefficient( int vtx, int numVertices ) const
+	scalar bendingCoefficient() const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		const scalar interpol2 = interpol * interpol;
-		
-		return interpol2 * interpol2 * m_youngsModulus.get();
+		return m_youngsModulus.get();
 	}
 	
 	BendingMatrixBase& getBendingMatrixBase()
@@ -172,53 +155,53 @@ struct StrandParameters
 		return m_bendingMatrixBase;
 	}
 	
-	Mat2 bendingMatrix( int vtx, int numVertices ) const
+	Mat2 bendingMatrix( int vtx ) const
 	{
-		return bendingCoefficient( vtx, numVertices ) * m_bendingMatrixBase.get();
+		return bendingCoefficient() * Mat2(m_bendingMatrixBase.get().block<2, 2>(vtx * 2, 0));
 	}
 	
-	const Mat2& bendingMatrixBase() const
+	Mat2 bendingMatrixBase(int vtx) const
 	{
-		return m_bendingMatrixBase.get();
+		return m_bendingMatrixBase.get().block<2, 2>(vtx * 2, 0);
 	}
 	
 	void computeViscousForceCoefficients( scalar dt )
 	{
-		const scalar m_radius = m_physicalRadius.get();
+		const int nverts = m_physicalRadius.get().size() / 2;
+		m_viscousKs.resize(nverts);
+		m_viscousKt.resize(nverts);
+
+		for(int i = 0; i < nverts; ++i) {
+			const scalar& radiusA = getRadiusA(i);
+			const scalar& radiusB = getRadiusB(i);
+			
+			// Force coefficients are computed without the varying radius multiplier;
+			// correct interpolation will be applied when they are accessed
+			m_viscousKs(i) = M_PI * radiusA * radiusB * 3 * m_viscosity / dt;
+			m_viscousKt(i) = M_PI_4 * radiusA * radiusB * ( radiusA * radiusA + radiusB * radiusB ) * m_viscosity / dt;
+		}
 		
-		// Force coefficients are computed without the varying radius multiplier;
-		// correct interpolation will be applied when they are accessed
-		m_viscousKs = M_PI * m_radius * m_radius * 3 * m_viscosity / dt;
-		m_viscousKt = M_PI_4 * m_radius * m_radius * ( m_radius * m_radius + m_radius * m_radius ) * m_viscosity / dt;
 		m_viscousBendingCoefficientBase = 3 * m_viscosity / dt;
 	}
 	
-	scalar viscousBendingCoefficient( int vtx, int numVertices ) const
+	scalar viscousBendingCoefficient( ) const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		const scalar interpol2 = interpol * interpol;
-		
-		return interpol2 * interpol2 * m_viscousBendingCoefficientBase;
+		return m_viscousBendingCoefficientBase;
 	}
 	
-	Mat2 viscousBendingMatrix( int vtx, int numVertices ) const
+	Mat2 viscousBendingMatrix( int vtx ) const
 	{
-		return viscousBendingCoefficient( vtx, numVertices ) * m_bendingMatrixBase.get();
+		return viscousBendingCoefficient() * Mat2(m_bendingMatrixBase.get().block<2, 2>(vtx * 2, 0));
 	}
 	
-	scalar getViscousKs( int vtx, int numVertices ) const
+	scalar getViscousKs( int vtx ) const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		
-		return interpol * interpol * m_viscousKs * m_stretchingMultiplier;
+		return m_viscousKs(vtx) * m_stretchingMultiplier;
 	}
 	
-	scalar getViscousKt( int vtx, int numVertices ) const
+	scalar getViscousKt( int vtx ) const
 	{
-		const scalar interpol = interpolatedRadiusMultiplier( vtx, numVertices );
-		const scalar interpol2 = interpol * interpol;
-		
-		return interpol2 * interpol2 * m_viscousKt;
+		return m_viscousKt(vtx);
 	}
     
     scalar getFrictionAlpha(){
@@ -233,7 +216,6 @@ struct StrandParameters
 	{
 		std::cout << "density: " << m_density << std::endl;
 		std::cout << "viscosity: " << m_viscosity << std::endl;
-		std::cout << "radius: " << getRadius(0, 10) << std::endl;
 		std::cout << "baseRotation: " << m_baseRotation.get() << std::endl;
 		std::cout << "YoungsModulus: " << m_youngsModulus.get() << std::endl;
 		std::cout << "shearModulus: " << m_shearModulus.get() << std::endl;
@@ -244,7 +226,7 @@ struct StrandParameters
 		std::cout << "m_kt: " << m_kt.get() << std::endl;
 		std::cout << "accumViscousBend: " << m_accumulateWithViscous << std::endl;
 		std::cout << "accumulateViscousOnlyForBendingModes: " << m_accumulateViscousOnlyForBendingModes << std::endl;
-		std::cout << "bendingMatrixBase: " << bendingMatrixBase() << std::endl;
+		std::cout << "bendingMatrixBase: " << m_bendingMatrixBase.get() << std::endl;
         std::cout << "friction alpha" << m_friction_alpha << std::endl;
         std::cout << "friction beta" << m_friction_beta << std::endl;
 	}
@@ -258,8 +240,8 @@ struct StrandParameters
 	
 	// Computed viscous force coefficients. MUST be called at the beginning of each time step if dt has changed.
 	double m_viscousBendingCoefficientBase;
-	scalar m_viscousKt;
-	scalar m_viscousKs;
+	VecX m_viscousKt;
+	VecX m_viscousKs;
     
     // friction
     scalar m_friction_alpha;
@@ -285,7 +267,6 @@ struct StrandParameters
     bool m_postProjectFixed;
 	bool m_accumulateWithViscous;
 	bool m_accumulateViscousOnlyForBendingModes;
-	bool m_variableRadiusHair;
 	scalar m_straightHairs;
 };
 

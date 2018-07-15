@@ -88,6 +88,7 @@ typedef Eigen::Matrix<scalar, 3, 3> Mat3; ///< 3x3 scalar matrix
 typedef Eigen::Matrix<scalar, 11, 11> Mat11; ///< 11x11 scalar matrix (stencil for local forces)
 typedef std::pair<Mat11, Mat11> Mat11Pair;
 typedef std::vector<Mat11, Eigen::aligned_allocator<Mat11> > Mat11Array; ///< an array of 11d scalar matrices
+typedef Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> MatX;
 
 typedef Eigen::Triplet<scalar> Triplets;
 typedef std::vector< Triplets > TripletXs;

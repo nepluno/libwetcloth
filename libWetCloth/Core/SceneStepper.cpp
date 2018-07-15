@@ -107,7 +107,6 @@ void SceneStepper::mapNodeToSoftParticles( const TwoDScene& scene, const std::ve
 		
 		auto& weights = scene.getParticleWeights(pidx);
 		const Vector3s& part_pos = scene.getX().segment<3>(pidx * 4);
-		const scalar part_radius = scene.getRadius()(pidx);
 		
         scalar sum_x(0.), sum_y(0.), sum_z(0.);
 		for(int i = 0; i < 27; ++i) {
@@ -128,6 +127,13 @@ void SceneStepper::mapNodeToSoftParticles( const TwoDScene& scene, const std::ve
 		}
         part_vec(pidx * 4 + 2) = sum_z;
 	});
+}
+
+void SceneStepper::allocateLagrangianVectors( const TwoDScene& scene, VectorXs& vec )
+{
+    const int num_elasto = scene.getNumSoftElastoParticles();
+    vec.resize(num_elasto * 4);
+    vec.setZero();
 }
 
 void SceneStepper::buildLocalGlobalMapping( const TwoDScene& scene,
@@ -304,7 +310,6 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
         
         auto& weights = scene.getParticleWeights(pidx);
         const Vector3s& part_pos = scene.getX().segment<3>(pidx * 4);
-        const scalar part_radius = scene.getRadius()(pidx);
         
         for(int i = 0; i < 27; ++i) {
             if(!indices_x(i, 2) || weights(i, 0) == 0.0) {
@@ -356,7 +361,6 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
 {
 	const Sorter& buckets = scene.getParticleBuckets();
     const VectorXs& x = scene.getX();
-    const VectorXs& radius = scene.getRadius();
 	
 	if((int) node_vec_x.size() != buckets.size()) node_vec_x.resize(buckets.size());
 	if((int) node_vec_y.size() != buckets.size()) node_vec_y.resize(buckets.size());
@@ -437,6 +441,96 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
             bucket_node_vec_z(i) = ret;
 		}
 	});
+}
+
+
+void SceneStepper::mapSoftParticlesToNodeSqr( const TwoDScene& scene, std::vector< VectorXs >& node_vec_x, std::vector< VectorXs >& node_vec_y, std::vector< VectorXs >& node_vec_z, const VectorXs& part_vec ) const
+{
+    const Sorter& buckets = scene.getParticleBuckets();
+    const VectorXs& x = scene.getX();
+    
+    if((int) node_vec_x.size() != buckets.size()) node_vec_x.resize(buckets.size());
+    if((int) node_vec_y.size() != buckets.size()) node_vec_y.resize(buckets.size());
+    if((int) node_vec_z.size() != buckets.size()) node_vec_z.resize(buckets.size());
+    
+    const scalar invD = scene.getInverseDCoeff();
+    
+    const int kernel_order = scene.getKernelOrder();
+    
+    const std::vector<int>& particle_to_surfels = scene.getParticleToSurfels();
+    const int num_elasto = scene.getNumElastoParticles();
+    const std::vector< Matrix27x4s >& particle_weights = scene.getParticleWeights();
+    
+    buckets.for_each_bucket([&] (int bucket_idx) {
+        const int num_nodes_x = scene.getNumNodesX(bucket_idx);
+        VectorXs& bucket_node_vec_x = node_vec_x[ bucket_idx ];
+        
+        const int num_nodes_y = scene.getNumNodesY(bucket_idx);
+        VectorXs& bucket_node_vec_y = node_vec_y[ bucket_idx ];
+        
+        const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        VectorXs& bucket_node_vec_z = node_vec_z[ bucket_idx ];
+        
+        if(bucket_node_vec_x.size() != num_nodes_x) bucket_node_vec_x.resize( num_nodes_x );
+        if(bucket_node_vec_y.size() != num_nodes_y) bucket_node_vec_y.resize( num_nodes_y );
+        if(bucket_node_vec_z.size() != num_nodes_z) bucket_node_vec_z.resize( num_nodes_z );
+        
+        const VectorXs& node_pos_x = scene.getNodePosX( bucket_idx );
+        const VectorXs& node_pos_y = scene.getNodePosY( bucket_idx );
+        const VectorXs& node_pos_z = scene.getNodePosZ( bucket_idx );
+        
+        for(int i = 0; i < num_nodes_x; ++i) {
+            auto& particle_indices = scene.getNodeParticlePairsX(bucket_idx, i);
+            const Vector3s& np = node_pos_x.segment<3>(i * 3);
+            
+            scalar ret(0.);
+            for(auto& pp : particle_indices)
+            {
+                if(pp.first >= num_elasto || particle_to_surfels[pp.first] >= 0) continue;
+                
+                const auto& weights = particle_weights[pp.first];
+
+                scalar w = weights(pp.second, 0);
+                ret += part_vec( pp.first * 4 + 0 ) * (w * w);
+            }
+            
+            bucket_node_vec_x(i) = ret;
+        }
+        
+        for(int i = 0; i < num_nodes_y; ++i) {
+            auto& particle_indices = scene.getNodeParticlePairsY(bucket_idx, i);
+            const Vector3s& np = node_pos_y.segment<3>(i * 3);
+            
+            scalar ret(0.);
+            for(auto& pp : particle_indices)
+            {
+                if(pp.first >= num_elasto || particle_to_surfels[pp.first] >= 0) continue;
+                
+                const auto& weights = particle_weights[pp.first];
+
+                scalar w = weights(pp.second, 1);
+                ret += part_vec( pp.first * 4 + 1 ) * (w * w);
+            }
+            bucket_node_vec_y(i) = ret;
+        }
+        
+        for(int i = 0; i < num_nodes_z; ++i) {
+            auto& particle_indices = scene.getNodeParticlePairsZ(bucket_idx, i);
+            const Vector3s& np = node_pos_z.segment<3>(i * 3);
+            
+            scalar ret(0.);
+            for(auto& pp : particle_indices)
+            {
+                if(pp.first >= num_elasto || particle_to_surfels[pp.first] >= 0) continue;
+                
+                const auto& weights = particle_weights[pp.first];
+
+                scalar w = weights(pp.second, 2);
+                ret += part_vec( pp.first * 4 + 2 ) * (w * w);
+            }
+            bucket_node_vec_z(i) = ret;
+        }
+    });
 }
 
 
@@ -583,6 +677,11 @@ scalar SceneStepper::dotNodeVectors( const std::vector< VectorXs >& node_vec_ax,
 	return bucket_dot.sum();
 }
 
+scalar SceneStepper::dotNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az, const std::vector< VectorXs >& node_vec_bx, const std::vector< VectorXs >& node_vec_by, const std::vector< VectorXs >& node_vec_bz, const VectorXs& twist_vec_a, const VectorXs& twist_vec_b ) const
+{
+    return dotNodeVectors(node_vec_ax, node_vec_ay, node_vec_az, node_vec_bx, node_vec_by, node_vec_bz) + twist_vec_a.dot(twist_vec_b);
+}
+
 scalar SceneStepper::dotNodeVectors( const std::vector< VectorXs >& node_vec_a, const std::vector< VectorXs >& node_vec_b ) const
 {
 	VectorXs bucket_dot(node_vec_a.size());
@@ -598,6 +697,18 @@ scalar SceneStepper::dotNodeVectors( const std::vector< VectorXs >& node_vec_a, 
 	return bucket_dot.sum();
 }
 
+scalar SceneStepper::lengthNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az, const VectorXs& twist_vec ) const
+{
+    VectorXs bucket_length(node_vec_ax.size());
+    
+    const int num_buckets = node_vec_ax.size();
+    
+    threadutils::for_each(0, num_buckets, [&] (int bucket_idx){
+        bucket_length[bucket_idx] = node_vec_ax[bucket_idx].squaredNorm() + node_vec_ay[bucket_idx].squaredNorm() + node_vec_az[bucket_idx].squaredNorm();
+    });
+    
+    return sqrt(bucket_length.sum() + twist_vec.squaredNorm());
+}
 
 scalar SceneStepper::lengthNodeVectors( const std::vector< VectorXs >& node_vec_ax, const std::vector< VectorXs >& node_vec_ay, const std::vector< VectorXs >& node_vec_az ) const
 {

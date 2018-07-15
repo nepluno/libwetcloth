@@ -61,12 +61,19 @@ protected:
 	const scalar& m_young_modulus;
 	const scalar& m_viscous_modulus;
 	const scalar& m_poisson_ratio;
+	Matrix3s m_membrane_material_tensor_base;
 	Matrix3s m_membrane_material_tensor;
 	Matrix3s m_membrane_material_viscous_tensor;
 	MatrixXs m_membrane_ru;
 	MatrixXs m_membrane_rv;
 	
 	VectorXs m_start_pos;
+	
+	VectorXs m_membrane_multiplier;
+	VectorXs m_viscous_multipler;
+	
+	bool m_apply_viscous;
+	scalar m_thickness;
 	
 	void perFaceNormals( const VectorXs& V, const MatrixXi& F, MatrixXs& N );
 	
@@ -79,7 +86,8 @@ public:
 					   const scalar& young_modulus,
 					   const scalar& viscous_modulus,
 					   const scalar& poisson_ratio,
-					   const scalar& thickness);
+					   const scalar& thickness,
+					   bool apply_viscous);
 	
 	virtual ~ShellMembraneForce();
 	
@@ -88,6 +96,8 @@ public:
 	virtual void addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE );
 	
 	virtual void addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
+
+	virtual void updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt );
 	
 	virtual int numHessX();
 	

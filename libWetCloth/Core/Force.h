@@ -70,12 +70,18 @@ public:
 	virtual int numAngularHessX();
 	
 	virtual void preCompute() = 0;
+
+	virtual void updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt ) = 0;
 	
 	virtual void updateStartState() = 0;
 	
 	virtual Force* createNewCopy() = 0;
+
+	virtual void postCompute(VectorXs& v, const scalar& dt);
 	
 	virtual int flag() const = 0;
+
+	virtual bool parallelized() const;
 };
 
 #endif

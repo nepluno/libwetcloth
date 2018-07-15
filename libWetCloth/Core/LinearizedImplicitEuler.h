@@ -55,23 +55,41 @@
 class LinearizedImplicitEuler : public SceneStepper
 {
 public:
-	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_criterion, int maxiters, int manifold_substeps, int viscosity_substeps );
+	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_static_criterion, const scalar& viscous_criterion, int maxiters, int manifold_substeps, int viscosity_substeps );
 	
 	virtual ~LinearizedImplicitEuler();
 	
 	virtual bool stepScene( TwoDScene& scene, scalar dt );
 	
 	virtual bool stepVelocity( TwoDScene& scene, scalar dt );
+
+    virtual bool stepVelocityLagrangian( TwoDScene& scene, scalar dt );
     
     virtual bool projectFine( TwoDScene& scene, scalar dt );
 
 	virtual bool acceptVelocity( TwoDScene& scene );
     
     virtual bool stepImplicitElasto( TwoDScene& scene, scalar dt );
+
+      virtual bool stepImplicitElastoLagrangian( TwoDScene& scene, scalar dt );
     
     virtual bool stepImplicitElastoDiagonalPCR( TwoDScene& scene, scalar dt );
     
     virtual bool stepImplicitElastoDiagonalPCG( TwoDScene& scene, scalar dt );
+	
+	virtual bool stepImplicitViscosityDiagonalPCG( const TwoDScene& scene,
+												  const std::vector< VectorXs >& node_vel_src_x,
+												  const std::vector< VectorXs >& node_vel_src_y,
+												  const std::vector< VectorXs >& node_vel_src_z,
+												  std::vector< VectorXs >& node_vel_x,
+												  std::vector< VectorXs >& node_vel_y,
+												  std::vector< VectorXs >& node_vel_z,
+												  const scalar& dt );
+
+    virtual bool stepImplicitElastoDiagonalPCGCoSolve( TwoDScene& scene, scalar dt );
+
+    virtual bool stepImplicitElastoDiagonalPCRCoSolve( TwoDScene& scene, scalar dt );
+
     
     virtual bool stepImplicitElastoAMGPCG( TwoDScene& scene, scalar dt );
     
@@ -109,7 +127,16 @@ private:
 						   std::vector< VectorXs >& out_node_vec_y,
 						   std::vector< VectorXs >& out_node_vec_z );
 
+  void prepareGroupPrecondition( 
+    const TwoDScene& scene,                 
+    const std::vector< VectorXs >& node_m_x,
+    const std::vector< VectorXs >& node_m_y,
+    const std::vector< VectorXs >& node_m_z,
+    const scalar& dt );
+
   void performLocalSolveTwist( const TwoDScene& scene, const VectorXs& rhs, const VectorXs& m, VectorXs& out);
+
+  void performLocalSolve( const TwoDScene& scene, const VectorXs& rhs, const VectorXs& m, VectorXs& out);
 	
 	void performInvLocalSolve( const TwoDScene& scene,
 						   const std::vector< VectorXs >& node_rhs_x,
@@ -121,6 +148,14 @@ private:
 						   std::vector< VectorXs >& out_node_vec_x,
 						   std::vector< VectorXs >& out_node_vec_y,
 						   std::vector< VectorXs >& out_node_vec_z );
+
+  void performGroupedLocalSolve( const TwoDScene& scene,
+               const std::vector< VectorXs >& node_rhs_x,
+               const std::vector< VectorXs >& node_rhs_y,
+               const std::vector< VectorXs >& node_rhs_z,
+               std::vector< VectorXs >& out_node_vec_x,
+               std::vector< VectorXs >& out_node_vec_y,
+               std::vector< VectorXs >& out_node_vec_z );  
 	
 	void performGlobalMultiply( const TwoDScene& scene, const scalar& dt,
 							   const std::vector< VectorXs >& node_m_x,
@@ -132,6 +167,25 @@ private:
 							   std::vector< VectorXs >& out_node_vec_x,
 							   std::vector< VectorXs >& out_node_vec_y,
 							   std::vector< VectorXs >& out_node_vec_z );
+
+  void performGlobalMultiply( const TwoDScene& scene, const scalar& dt,
+                 const std::vector< VectorXs >& node_m_x,
+                 const std::vector< VectorXs >& node_m_y,
+                 const std::vector< VectorXs >& node_m_z,
+                 const std::vector< VectorXs >& node_v_x,
+                 const std::vector< VectorXs >& node_v_y,
+                 const std::vector< VectorXs >& node_v_z,
+                 std::vector< VectorXs >& out_node_vec_x,
+                 std::vector< VectorXs >& out_node_vec_y,
+                 std::vector< VectorXs >& out_node_vec_z,
+                 const VectorXs& m,
+                 const VectorXs& angular_vec,
+                 VectorXs& out);
+
+  void performGlobalMultiply( const TwoDScene& scene, const scalar& dt,
+                 const VectorXs& m,
+                 const VectorXs& vec,
+                 VectorXs& out);
 
   void performAngularGlobalMultiply( const TwoDScene& scene, const scalar& dt,
                 const VectorXs& m,
@@ -266,6 +320,7 @@ private:
   void constructAngularHessianPreProcess( TwoDScene& scene, const scalar& dt );
     
   void constructAngularHessianPostProcess( TwoDScene& scene, const scalar& dt );
+
 	
 //    std::vector< Eigen::SimplicialLDLT< SparseXs >* > m_local_solvers;
 	
@@ -284,7 +339,8 @@ private:
 	
 	const scalar m_pcg_criterion;
     const scalar m_pressure_criterion;
-	const scalar m_quasi_criterion;
+	const scalar m_quasi_static_criterion;
+	const scalar m_viscous_criterion;
 	const int m_maxiters;
 	const int m_manifold_substeps;
 	const int m_viscosity_substeps;
@@ -391,9 +447,13 @@ private:
 	std::vector< VectorXs > m_node_Cs_y;
 	std::vector< VectorXs > m_node_Cs_z;
 	
-    std::vector< VectorXs > m_node_inv_Cs_x; // (M_s+[hdvs]*M_f)^{-1}
+  std::vector< VectorXs > m_node_inv_Cs_x; // (M_s+[hdvs]*M_f)^{-1}
 	std::vector< VectorXs > m_node_inv_Cs_y;
 	std::vector< VectorXs > m_node_inv_Cs_z;
+
+  std::vector< VectorXs > m_node_inv_precond_x; // (M_s+[hdvs]*M_f+h^2 diag(W.diag(H).W^T))^{-1}
+  std::vector< VectorXs > m_node_inv_precond_y;
+  std::vector< VectorXs > m_node_inv_precond_z;
 	
 	std::vector< VectorXs > m_node_psi_sf_x;
 	std::vector< VectorXs > m_node_psi_sf_y;
@@ -479,6 +539,27 @@ private:
     std::vector< double > m_elasto_rhs;
     std::vector< double > m_elasto_result;
     robertbridson::SparseMatrix<scalar> m_H;
+
+    VectorXs m_lagrangian_rhs;
+    VectorXs m_v_plus;
+    VectorXs m_r;
+    VectorXs m_z;
+    VectorXs m_p;
+    VectorXs m_q;
+
+    std::vector< std::shared_ptr< Eigen::SimplicialLDLT< SparseXs > > > m_group_preconditioners;
+
+	std::vector< VectorXi > m_node_visc_indices_x;
+	std::vector< VectorXi > m_node_visc_indices_y;
+	std::vector< VectorXi > m_node_visc_indices_z;
+	
+	robertbridson::SparseMatrix<scalar> m_visc_matrix;
+	std::vector< scalar > m_visc_rhs;
+	std::vector< scalar > m_visc_solution;
+	
+	std::vector< Vector2i > m_effective_node_indices_x;
+	std::vector< Vector2i > m_effective_node_indices_y;
+	std::vector< Vector2i > m_effective_node_indices_z;
 };
 
 #endif

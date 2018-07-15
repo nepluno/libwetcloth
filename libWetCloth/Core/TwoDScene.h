@@ -70,6 +70,13 @@ enum ParticleClassifier
     PC_L
 };
 
+enum NODE_STATE
+{
+	NS_NONE,
+	NS_FLUID,
+	NS_SOLID
+};
+
 struct LiquidInfo
 {
 	scalar liquid_density;
@@ -81,8 +88,6 @@ struct LiquidInfo
 	scalar yazdchi_power;
 	scalar pore_radius;
     scalar yarn_diameter;
-    scalar half_thickness;
-    scalar fabric_thread_count;
     scalar rest_volume_fraction;
 	scalar lambda;
     scalar cohesion_coeff;
@@ -94,8 +99,12 @@ struct LiquidInfo
     scalar elasto_advect_coeff;
 	scalar particle_cell_multiplier;
     scalar levelset_young_modulus;
+	scalar liquid_boundary_friction;
+	scalar levelset_thickness;
+	scalar elasto_capture_rate;
     int correction_step;
     int bending_scheme;
+    int iteration_print_step;
     bool use_cohesion;
 	bool solid_cohesion;
 	bool soft_cohesion;
@@ -114,10 +123,13 @@ struct LiquidInfo
     bool check_divergence;
 	bool use_varying_fraction;
     bool compute_viscosity;
-    bool apply_viscosity_solid;
+    bool implicit_viscosity;
     bool drag_by_future_solid;
     bool drag_by_air;
     bool init_nonuniform_fraction;
+    bool use_group_precondition;
+    bool use_lagrangian_mpm;
+    bool use_cosolve_angular;
 	
     friend std::ostream& operator<<(std::ostream&, const LiquidInfo&);
 };
@@ -141,7 +153,7 @@ struct RayTriInfo
 class TwoDScene : public std::enable_shared_from_this<TwoDScene>
 {
     const static int m_kernel_order = 2;
-    const static int m_num_armor = 1;
+    const static int m_num_armor = 0;
     
 public:
     
@@ -157,6 +169,8 @@ public:
 	int getNumSurfels() const;
 	int getNumGausses() const;
 	int getNumBuckets() const;
+
+	int getNumStrandParameters() const;
     
     const std::vector<int> getParticleGroup() const;
     
@@ -294,6 +308,18 @@ public:
 	
 	std::vector< VectorXuc >& getNodeLiquidValidZ();
 	
+	const std::vector< VectorXuc >& getNodeStateX() const;
+	
+	std::vector< VectorXuc >& getNodeStateX();
+	
+	const std::vector< VectorXuc >& getNodeStateY() const;
+	
+	std::vector< VectorXuc >& getNodeStateY();
+	
+	const std::vector< VectorXuc >& getNodeStateZ() const;
+	
+	std::vector< VectorXuc >& getNodeStateZ();
+	
 	const std::vector< VectorXi >& getNodeCompressedIndexX() const;
 	
 	const std::vector< VectorXi >& getNodeCompressedIndexY() const;
@@ -377,6 +403,10 @@ public:
 	const std::vector< VectorXs >& getNodePressure() const;
 	
 	std::vector< VectorXs >& getNodePressure();
+	
+	const std::vector< VectorXs >& getNodeCellSolidPhi() const;
+	
+	std::vector< VectorXs >& getNodeCellSolidPhi();
 	
 	const std::vector< VectorXs >& getNodeVelocityX() const;
 	
@@ -588,7 +618,7 @@ public:
 	
 	const std::vector< VectorXi >& getNodePressureIndexZ() const;
 	
-	void distributeFluidElasto();
+	void distributeFluidElasto(const scalar& dt);
 	
 	void distributeElastoFluid();
 	
@@ -648,7 +678,7 @@ public:
 	
     void setFluidMass( int particle, const scalar& mass, const scalar& second_moments );
 	
-    void setRadius( int particle, const scalar& radius );
+    void setRadius( int particle, const scalar& radiusA, const scalar& radiusB );
 	
     void setFixed( int particle, unsigned char fixed );
 	
@@ -674,11 +704,13 @@ public:
 	
 	scalar getCapillaryPressure(const scalar& psi) const;
 	
-	scalar getGaussRadius(int pidx) const;
+	scalar getGaussRadius(int pidx, int dir) const;
     
     scalar getMu(int pidx) const;
     
     scalar getLa(int pidx) const;
+
+   	scalar getViscousModulus(int pidx) const;
 	
 	scalar getYoungModulus(int pidx) const;
 
@@ -713,20 +745,6 @@ public:
     bool isTwist( int particle ) const;
     
     const std::vector<bool>& getTwist() const;
-    
-    void appendPositions(const VectorXs& pos);
-    
-    void appendVelocity(const VectorXs& vel);
-    
-    void appendRadius(const VectorXs& rad);
-    
-    void appendFixed(unsigned char fixed);
-	
-    void appendTwist(bool twist);
-	
-    void appendM(const VectorXs& m);
-    
-    void appendVol(const VectorXs& vol);
 
     void clearEdges();
     
@@ -737,6 +755,7 @@ public:
     const MatrixXi& getFaces() const;
 	
 	void insertStrandParameters( const std::shared_ptr<StrandParameters>& newparams );
+
     
     std::shared_ptr<StrandParameters>& getStrandParameters( const int index );
     
@@ -759,7 +778,9 @@ public:
     void accumulateGaussGradU(MatrixXs& F, const VectorXs& dx = VectorXs(), const VectorXs& dv = VectorXs());
     
     void precompute();
-	
+
+    void postcompute(VectorXs& v, const scalar& dt);
+
 	void stepScript(const scalar& dt, const scalar& current_time);
 	
 	void applyScript(const scalar& dt);
@@ -823,6 +844,8 @@ public:
 	void correctLiquidParticles(const scalar& dt);
 	
 	const VectorXs& getRestPos() const;
+
+	 VectorXs& getRestPos() ;	
 	
 	void initGroupPos();
     
@@ -878,12 +901,16 @@ public:
 	void sampleLiquidDistanceFields( scalar cur_time );
 	
 	scalar computePhiVel(const Vector3s& pos, Vector3s& vel, const std::function< bool(const std::shared_ptr<DistanceField>&) > selector = nullptr) const;
+	
+	scalar computePhi(const Vector3s& pos, const std::function< bool(const std::shared_ptr<DistanceField>&) > selector = nullptr) const;
     
     void dump_geometry(std::string filename);
 	
 	int getKernelOrder() const;
 	
 	void updateSolidPhi();
+
+	void updateMultipliers(const scalar& dt);
 	
 	void solidProjection(const scalar& dt);
     
@@ -922,6 +949,8 @@ public:
 	scalar getDragCoeff( const scalar& psi, const scalar& sat, const scalar& dv, int material ) const;
     
     scalar getPlanarDragCoeff( const scalar& psi, const scalar& sat, const scalar& dv, int material ) const;
+	
+	scalar getVerticalDiffusivity( const scalar& psi, int material ) const;
     
     scalar getDragCoeffWithOrientation( const scalar& psi, const scalar& sat, const scalar& dv, const Vector3s& orientation, const scalar& shape_factor, int index, int material ) const;
 	
@@ -985,7 +1014,7 @@ public:
     
     bool isOutsideFluid(int pidx) const;
     
-    void activateFluidNodesMarked();
+    void expandFluidNodesMarked(int layers);
     
     void updateVelocityDifference();
     
@@ -1002,6 +1031,14 @@ public:
     scalar totalFluidVolumeSoftElasto() const;
 	
 	void computeDDA();
+
+	void insertSolveGroup(const VectorXi& group);
+
+	const std::vector<VectorXi>& getSolveGroup() const;
+	
+	void constrainLiquidVelocity();
+	
+	void updateStrandParamViscosity(const scalar& dt);
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
@@ -1049,8 +1086,8 @@ private:
 	VectorXs m_volume_fraction_gauss;
 	VectorXs m_rest_volume_fraction_gauss;
 	
-    
-    
+	std::vector<unsigned char> m_bucket_marked;
+	
     std::vector< std::vector<RayTriInfo> > m_ray_tri_gauss;
 	
     MatrixXs m_Fe_gauss; // elastic deformation gradient
@@ -1133,8 +1170,16 @@ private:
 	Sorter m_gauss_buckets;
 	Sorter m_particle_cells;
 	
-    std::vector< unsigned char > m_bucket_marked;
-    
+	std::vector< VectorXi > m_node_cpidx_x_tmp;
+	std::vector< VectorXi > m_node_cpidx_y_tmp;
+	std::vector< VectorXi > m_node_cpidx_z_tmp;
+	std::vector< VectorXi > m_node_cpidx_p_tmp;
+	std::vector< VectorXi > m_node_cpidx_solid_phi_tmp;
+	
+	std::vector< VectorXi > m_node_cpidx_ex_tmp;
+	std::vector< VectorXi > m_node_cpidx_ey_tmp;
+	std::vector< VectorXi > m_node_cpidx_ez_tmp;
+	
 	std::vector< VectorXi > m_node_cpidx_x; // bucket id -> node to compressed index
 	std::vector< VectorXi > m_node_cpidx_y; // bucket id -> node to compressed index
 	std::vector< VectorXi > m_node_cpidx_z; // bucket id -> node to compressed index
@@ -1185,7 +1230,12 @@ private:
 	std::vector< VectorXs > m_node_solid_phi;
 	std::vector< VectorXs > m_node_liquid_phi;
 	std::vector< VectorXs > m_node_pressure;
-    
+	std::vector< VectorXs > m_node_cell_solid_phi;
+	
+	std::vector< VectorXuc > m_node_state_u;
+	std::vector< VectorXuc > m_node_state_v;
+	std::vector< VectorXuc > m_node_state_w;
+	
     // volume fractions for viscosity
     std::vector< VectorXs > m_node_liquid_c_vf;
     std::vector< VectorXs > m_node_liquid_u_vf;
@@ -1263,6 +1313,8 @@ private:
 	
 	std::vector< std::shared_ptr<StrandForce> > m_strands;
     std::vector<bool> m_is_strand_tip;
+
+    std::vector< VectorXi > m_solve_groups;
     
     std::vector< MatrixXi > m_gauss_bucket_neighbors;
 	

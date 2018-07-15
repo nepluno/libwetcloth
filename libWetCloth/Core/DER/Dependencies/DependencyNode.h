@@ -190,6 +190,7 @@ std::ostream& operator<<( std::ostream& os, const HessKType& HessKappa );
 typedef std::pair<Mat2, Mat2> ThetaHessKType;
 std::ostream& operator<<( std::ostream& os, const ThetaHessKType& HessKappa );
 
+std::ostream& operator<<( std::ostream& os, const MatX& );
 /**
  * @brief Specialized template for vector quantities
  */

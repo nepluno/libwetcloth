@@ -51,26 +51,69 @@
 
 class TwoDScene;
 
+using namespace robertbridson;
+
 namespace viscosity {
-    void applyNodeViscosityExplicit( const TwoDScene& scene,
-                                    const std::vector< VectorXs >& node_vel_src_x,
-                                    const std::vector< VectorXs >& node_vel_src_y,
-                                    const std::vector< VectorXs >& node_vel_src_z,
-                                    std::vector< VectorXs >& node_vel_x,
-                                    std::vector< VectorXs >& node_vel_y,
-                                    std::vector< VectorXs >& node_vel_z,
-                                    const scalar& dt );
-    
-    void applyNodeViscositySolidRHS( const TwoDScene& scene,
-                                    const std::vector< VectorXs >& node_fv_0_x,
-                                    const std::vector< VectorXs >& node_fv_0_y,
-                                    const std::vector< VectorXs >& node_fv_0_z,
-                                    const std::vector< VectorXs >& node_fv_1_x,
-                                    const std::vector< VectorXs >& node_fv_1_y,
-                                    const std::vector< VectorXs >& node_fv_1_z,
-                                    std::vector< VectorXs >& node_rhs_x,
-                                    std::vector< VectorXs >& node_rhs_y,
-                                    std::vector< VectorXs >& node_rhs_z);
+	
+	void constructViscosityMatrixRHS( const TwoDScene& scene,
+									 std::vector< VectorXi >& node_global_indices_x,
+									 std::vector< VectorXi >& node_global_indices_y,
+									 std::vector< VectorXi >& node_global_indices_z,
+									 std::vector< Vector2i >& effective_node_indices_x,
+									 std::vector< Vector2i >& effective_node_indices_y,
+									 std::vector< Vector2i >& effective_node_indices_z,
+									 const std::vector< VectorXs >& node_vel_src_x,
+									 const std::vector< VectorXs >& node_vel_src_y,
+									 const std::vector< VectorXs >& node_vel_src_z,
+									 SparseMatrix< scalar >& matrix,
+									 std::vector< scalar >& rhs,
+									 int& offset_nodes_x,
+									 int& offset_nodes_y,
+									 int& offset_nodes_z,
+									 const scalar& dt );
+	
+	void updateViscosityRHS( const TwoDScene& scene,
+							const std::vector< VectorXi >& node_global_indices_x,
+							const std::vector< VectorXi >& node_global_indices_y,
+							const std::vector< VectorXi >& node_global_indices_z,
+							const std::vector< Vector2i >& effective_node_indices_x,
+							const std::vector< Vector2i >& effective_node_indices_y,
+							const std::vector< Vector2i >& effective_node_indices_z,
+							const std::vector< VectorXs >& node_vel_src_x,
+							const std::vector< VectorXs >& node_vel_src_y,
+							const std::vector< VectorXs >& node_vel_src_z,
+							std::vector< scalar >& rhs,
+							int offset_nodes_x,
+							int offset_nodes_y,
+							int offset_nodes_z,
+							const scalar& dt  );
+	
+	void applyNodeViscosityImplicit( const TwoDScene& scene,
+									const std::vector< VectorXi >& node_global_indices_x,
+									const std::vector< VectorXi >& node_global_indices_y,
+									const std::vector< VectorXi >& node_global_indices_z,
+									int offset_nodes_x,
+									int offset_nodes_y,
+									int offset_nodes_z,
+									const SparseMatrix< scalar >& matrix,
+									const std::vector< scalar >& rhs,
+									std::vector< scalar >& soln,
+									std::vector< VectorXs >& node_vel_x,
+									std::vector< VectorXs >& node_vel_y,
+									std::vector< VectorXs >& node_vel_z,
+									scalar& residual,
+									int& iter_out,
+									const scalar& criterion,
+									int maxiters);
+	
+	void applyNodeViscosityExplicit( const TwoDScene& scene,
+									const std::vector< VectorXs >& node_vel_src_x,
+									const std::vector< VectorXs >& node_vel_src_y,
+									const std::vector< VectorXs >& node_vel_src_z,
+									std::vector< VectorXs >& node_vel_x,
+									std::vector< VectorXs >& node_vel_y,
+									std::vector< VectorXs >& node_vel_z,
+									const scalar& dt );
 };
 
 #endif

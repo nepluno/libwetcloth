@@ -80,7 +80,7 @@ void serialize_subprog( SerializePacket* packet )
     const int num_hair_vtx = packet->m_hair_vertices.size();
     for(int i = 0; i < num_hair_vtx; ++i)
     {
-        ofs_hair << "v " << std::setprecision(8) << packet->m_hair_vertices[i](0) << " " << packet->m_hair_vertices[i](1) << " " << packet->m_hair_vertices[i](2) << " " << packet->m_hair_radii[i] << " " << packet->m_hair_sat[i] << " " << packet->m_hair_group[i] << " " << packet->m_hair_vertices_rest[i](0) << " " << packet->m_hair_vertices_rest[i](1) << " " << packet->m_hair_vertices_rest[i](2) << std::endl;
+        ofs_hair << "v " << std::setprecision(8) << packet->m_hair_vertices[i](0) << " " << packet->m_hair_vertices[i](1) << " " << packet->m_hair_vertices[i](2) << " " << packet->m_hair_radii[i](0) << " " << packet->m_hair_radii[i](1) << " " << packet->m_hair_sat[i] << " " << packet->m_hair_group[i] << " " << packet->m_hair_vertices_rest[i](0) << " " << packet->m_hair_vertices_rest[i](1) << " " << packet->m_hair_vertices_rest[i](2) << std::endl;
     }
     for(auto& e : packet->m_hair_indices)
     {
@@ -248,7 +248,7 @@ void TwoDSceneSerializer::updateHairs(const TwoDScene& scene, SerializePacket* d
         const int mapped_idx = hair_indicator[pidx] - 1;
         data->m_hair_vertices[mapped_idx] = x.segment<3>(pidx * 4);
         data->m_hair_vertices_rest[mapped_idx] = rest_x.segment<3>(pidx * 4);
-        data->m_hair_radii[mapped_idx] = r(pidx);
+        data->m_hair_radii[mapped_idx] = r.segment<2>(pidx * 2);
         data->m_hair_sat[mapped_idx] = fvol(pidx) / std::max(1e-16, vol(pidx));
         data->m_hair_group[mapped_idx] = group[pidx];
     });
@@ -273,7 +273,7 @@ void TwoDSceneSerializer::updateFluid(const TwoDScene& scene, SerializePacket* d
     
     threadutils::for_each(0, scene.getNumFluidParticles(), [&] (int idx) {
         data->m_fluid_vertices[idx] = x.segment<3>( indices[idx] * 4 );
-        data->m_fluid_radii[idx] = r(indices[idx]);
+        data->m_fluid_radii[idx] = r(indices[idx] * 2 + 0);
     });
 }
 
@@ -432,8 +432,8 @@ void TwoDSceneSerializer::updateDoubleFaceCloth(const TwoDScene& scene, Serializ
         const std::vector<std::pair<int, scalar> >& p2f = scene.getParticleFaces(pidx);
         if(p2f.size() > 0) {
             const int new_pidx = cloth_indicator[pidx] - 1;
-            data->m_dbl_face_cloth_vertices[ new_pidx ] = x.segment<3>(pidx * 4) + vert_norms[pidx] * radius(pidx);
-            data->m_dbl_face_cloth_vertices[ num_single_cloth_verts + new_pidx ] = x.segment<3>(pidx * 4) - vert_norms[pidx] * radius(pidx);
+            data->m_dbl_face_cloth_vertices[ new_pidx ] = x.segment<3>(pidx * 4) + vert_norms[pidx] * radius(pidx * 2 + 0);
+            data->m_dbl_face_cloth_vertices[ num_single_cloth_verts + new_pidx ] = x.segment<3>(pidx * 4) - vert_norms[pidx] * radius(pidx * 2 + 1);
             data->m_dbl_face_cloth_vertices_rest[ new_pidx ] = rest_x.segment<3>(pidx * 4);
             data->m_dbl_face_cloth_vertices_rest[ num_single_cloth_verts + new_pidx ] = rest_x.segment<3>(pidx * 4);
             data->m_dbl_face_cloth_vertices_central[ new_pidx ] = x.segment<3>(pidx * 4);
@@ -477,7 +477,9 @@ void TwoDSceneSerializer::updateDoubleFaceCloth(const TwoDScene& scene, Serializ
             
             for(int i = 1; i < num_cloth_edge_discretization; ++i) {
                 Vector3s dir = Eigen::AngleAxis<scalar>(-rot_angle * (scalar) i, e) * vert_norms[pidx];
-                Vector3s pos = x.segment<3>(pidx * 4) + dir * radius(pidx);
+                const scalar interp = (scalar) i / (scalar) num_cloth_edge_discretization;
+
+                Vector3s pos = x.segment<3>(pidx * 4) + dir * (radius(pidx * 2 + 0) * (1.0 - interp) + radius(pidx * 2 + 1) * interp);
                 const int new_pidx = cloth_edge_vert_base + idx * (num_cloth_edge_discretization - 1) + (i - 1);
                 
                 data->m_dbl_face_cloth_vertices[ new_pidx ] = pos;

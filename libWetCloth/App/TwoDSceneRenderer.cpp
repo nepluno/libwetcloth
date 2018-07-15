@@ -544,15 +544,10 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
     if(m_info.render_vertices) {
         const int num_soft_elasto = scene.getNumSoftElastoParticles();
         glPointSize(4.0);
+        glColor3dv(vertex_color.data());
         glBegin(GL_POINTS);
         for(int i = 0; i < num_soft_elasto; ++i)
         {
-			Vector3s c = vertex_color;
-			if(scene.isFixed(i) & 1)
-				c(0) = 0.0;
-			if(scene.isFixed(i) & 2 || (scene.isFixed(i) & 1 && !scene.getParticleEdges(i).size()))
-				c(1) = 0.0;
-			glColor3dv(c.data());
             const Vector3s& px = x.segment<3>( i * 4 );
             glVertex3dv( px.data() );
         }

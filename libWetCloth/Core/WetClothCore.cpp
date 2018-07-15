@@ -113,7 +113,8 @@ void WetClothCore::stepSystem(const scalar &dt){
 
         scalar t0 = timingutils::seconds();
         scalar t1;
-        
+		
+		m_scene->updateStrandParamViscosity(sub_dt);
         m_scene->stepScript(sub_dt, cur_time);
         m_scene->applyScript(sub_dt);
 		m_scene->sampleLiquidDistanceFields(cur_time + sub_dt);
@@ -129,6 +130,7 @@ void WetClothCore::stepSystem(const scalar &dt){
         // Apply Flow-Rule to Particles
         m_scene->postProcess(sub_dt);
         m_scene->updateManifoldOperators();
+
         m_scene->updateOrientation();
         m_scene->updateLiquidPhi(sub_dt);
         
@@ -144,97 +146,123 @@ void WetClothCore::stepSystem(const scalar &dt){
         timing_buffer[1] += t1 - t0; // Plasticity, Solid Stress, and Compute Kernel Weights
         t0 = t1;
         
-		m_scene->mapParticleNodesAPIC();
-		m_scene->saveFluidVelocity();
-		m_scene->mapParticleSaturationPsiNodes();
-		m_scene->updatePorePressureNodes();
-		t1 = timingutils::seconds();
-		timing_buffer[2] += t1 - t0; // APIC Mapping
-		t0 = t1;
-		
-		
-		if(m_scene->useBiCGSTAB())
-		{
-			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
+        if(m_scene->getLiquidInfo().use_lagrangian_mpm) {
+            // step velocity
+            // 1. add forces from Gauss nodes
+            // 2. add regular vertex forces
+            m_scene_stepper->stepVelocityLagrangian( *m_scene, sub_dt );
             t1 = timingutils::seconds();
             timing_buffer[3] += t1 - t0; // Velocity Prediction
             t0 = t1;
-			
-			m_scene_stepper->solveBiCGSTAB( *m_scene, sub_dt );
-			
-			t1 = timingutils::seconds();
-			timing_buffer[4] += t1 - t0;
-			t0 = t1;
-		} else {
-			
-			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
+            // form the Hessian and solve in a Lagrangian way
+            m_scene_stepper->stepImplicitElastoLagrangian( *m_scene, sub_dt );
             t1 = timingutils::seconds();
-            timing_buffer[3] += t1 - t0; // Velocity Prediction
+            timing_buffer[5] += t1 - t0; // Solve solid velocity
             t0 = t1;
-            
-            if(m_scene->getLiquidInfo().check_divergence) {
-                m_info.m_initial_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-            }
-            
-			m_scene_stepper->projectFine( *m_scene, sub_dt );
-			t1 = timingutils::seconds();
-			timing_buffer[4] += t1 - t0; // Pressure Projection
-			t0 = t1;
-			
-			if(m_scene->getLiquidInfo().solve_solid) {
-				m_scene_stepper->applyPressureDragElasto(*m_scene, sub_dt);
+
+            // map the particle velocity to node so that F can be then updated
+            m_scene->mapParticleNodesAPIC();
+            m_scene->mapNodeParticlesAPIC();
+            t1 = timingutils::seconds();
+            timing_buffer[8] += t1 - t0; // APIC Map Particle Forward
+            t0 = t1;
+        } else {
+    		m_scene->mapParticleNodesAPIC();
+    		m_scene->saveFluidVelocity();
+    		m_scene->mapParticleSaturationPsiNodes();
+    		m_scene->updatePorePressureNodes();
+    		t1 = timingutils::seconds();
+    		timing_buffer[2] += t1 - t0; // APIC Mapping
+    		t0 = t1;
+    		
+    		
+    		if(m_scene->useBiCGSTAB())
+    		{
+    			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
+
                 t1 = timingutils::seconds();
-                timing_buffer[5] += t1 - t0; // Solve solid velocity
+                timing_buffer[3] += t1 - t0; // Velocity Prediction
                 t0 = t1;
-            }
-            
-            if(m_scene->getLiquidInfo().check_divergence) {
-                m_scene_stepper->pushFluidVelocity();
-                m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
-                scalar div = m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-                m_info.m_explicit_div_accu += div;
-                m_scene_stepper->popFluidVelocity();
-            }
+    			
+    			m_scene_stepper->solveBiCGSTAB( *m_scene, sub_dt );
+    			
+    			t1 = timingutils::seconds();
+    			timing_buffer[4] += t1 - t0;
+    			t0 = t1;
+    		} else {
+    			
+    			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
+                t1 = timingutils::seconds();
+                timing_buffer[3] += t1 - t0; // Velocity Prediction
+                t0 = t1;
                 
-            if(m_scene->getLiquidInfo().solve_solid) {
-                m_scene_stepper->stepImplicitElasto( *m_scene, sub_dt );
-                t1 = timingutils::seconds();
-                timing_buffer[5] += t1 - t0; // Solve solid velocity
-                t0 = t1;
-            }
+                if(m_scene->getLiquidInfo().check_divergence) {
+                    m_info.m_initial_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+                }
+                
+    			m_scene_stepper->projectFine( *m_scene, sub_dt );
+    			t1 = timingutils::seconds();
+    			timing_buffer[4] += t1 - t0; // Pressure Projection
+    			t0 = t1;
+    			
+    			if(m_scene->getLiquidInfo().solve_solid) {
+    				m_scene_stepper->applyPressureDragElasto(*m_scene, sub_dt);
+                    t1 = timingutils::seconds();
+                    timing_buffer[5] += t1 - t0; // Solve solid velocity
+                    t0 = t1;
+                }
+                
+                if(m_scene->getLiquidInfo().check_divergence) {
+                    m_scene_stepper->pushFluidVelocity();
+                    m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
+                    scalar div = m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+                    m_info.m_explicit_div_accu += div;
+                    m_scene_stepper->popFluidVelocity();
+                }
+                    
+                if(m_scene->getLiquidInfo().solve_solid) {
+                    m_scene_stepper->stepImplicitElasto( *m_scene, sub_dt );
+                    t1 = timingutils::seconds();
+                    timing_buffer[5] += t1 - t0; // Solve solid velocity
+                    t0 = t1;
+                }
+    			
+    			m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
+    			t1 = timingutils::seconds();
+    			timing_buffer[6] += t1 - t0; // Solve Fluid velocity
+    			t0 = t1;
+
+    			m_scene_stepper->acceptVelocity(*m_scene);
+                
+                if(m_scene->getLiquidInfo().check_divergence) {
+                    m_info.m_implicit_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+                }
+    		}
 			
-			m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
-			t1 = timingutils::seconds();
-			timing_buffer[6] += t1 - t0; // Solve Fluid velocity
-			t0 = t1;
+			m_scene->constrainLiquidVelocity();
 			
-			m_scene_stepper->acceptVelocity(*m_scene);
-            
-            if(m_scene->getLiquidInfo().check_divergence) {
-                m_info.m_implicit_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-            }
+    		// Transfer Velocity Back to Particles
+    		m_scene->correctLiquidParticles(sub_dt);
+    		t1 = timingutils::seconds();
+    		timing_buffer[7] += t1 - t0; // Particle Correction
+    		t0 = t1;
+    		
+    		m_scene->mapNodeParticlesAPIC();
+    		t1 = timingutils::seconds();
+    		timing_buffer[8] += t1 - t0; // APIC Map Particle Back
+    		t0 = t1;
 		}
-		
-		// Transfer Velocity Back to Particles
-		m_scene->correctLiquidParticles(sub_dt);
-		t1 = timingutils::seconds();
-		timing_buffer[7] += t1 - t0; // Particle Correction
-		t0 = t1;
-		
-		m_scene->mapNodeParticlesAPIC();
-		t1 = timingutils::seconds();
-		timing_buffer[8] += t1 - t0; // APIC Map Particle Back
-		t0 = t1;
-		
+
+        m_scene->updateMultipliers( sub_dt );
         // Advect Particles
         m_scene_stepper->advectScene( *m_scene, sub_dt );
 
-        m_scene->solidProjection(dt);
+        m_scene->solidProjection( sub_dt );
         t1 = timingutils::seconds();
         timing_buffer[9] += t1 - t0; // Particle Advection
         t0 = t1;
 		
-        m_scene->distributeFluidElasto();
+        m_scene->distributeFluidElasto(sub_dt);
         t1 = timingutils::seconds();
         timing_buffer[10] += t1 - t0; // Liquid Capturing
         t0 = t1;

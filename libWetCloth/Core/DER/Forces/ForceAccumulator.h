@@ -67,6 +67,16 @@ public:
         }
     }
 
+    static void accumulateMultipliers( VecX& multipliers, const StrandForce& strand, const scalar& dt )
+    {
+        typename ForceT::LocalMultiplierType localL;
+        for( IndexType vtx = ForceT::s_first; vtx < strand.getNumVertices() - ForceT::s_last; ++vtx )
+        {
+            ForceT::computeLocal( localL, strand, vtx, dt );
+            ForceT::addInPosition( multipliers, vtx, localL );
+        }        
+    }
+
     // Jacobian of the Force <==>  - Hessian of the Energy
     static void accumulate( TripletXs& hessianOfEnergy, TripletXs& angularhessianOfEnergy, const StrandForce& strand )
     {

@@ -67,7 +67,7 @@ StrandForce::StrandForce(
         m_globalIndex( globalIndex ),
         m_strandParams( NULL ),
         m_scene( scene ),
-        m_requiresExactForceJacobian( false ),
+        m_requiresExactForceJacobian( true ),
         m_strandEnergyUpdate( 0. ),
          m_strandForceUpdate( getNumVertices() * 4 - 1 ),
         m_strandHessianUpdate(),
@@ -86,7 +86,26 @@ StrandForce::StrandForce(
 
 	m_packing_fraction.resize(m_verts.size());
 	m_packing_fraction.setOnes();
-	
+
+    m_v_plus.resize(m_verts.size() * 4);
+    m_v_plus.setZero();
+
+    m_stretching_multipliers.resize(m_verts.size());
+    m_bending_multipliers.resize(m_verts.size() * 2);
+    m_twisting_multipliers.resize(m_verts.size());
+
+    m_viscous_stretching_multipliers.resize(m_verts.size());
+    m_viscous_bending_multipliers.resize(m_verts.size() * 2);
+    m_viscous_twisting_multipliers.resize(m_verts.size());
+
+    m_stretching_multipliers.setZero();
+    m_bending_multipliers.setZero();
+    m_twisting_multipliers.setZero();
+
+    m_viscous_stretching_multipliers.setZero();
+    m_viscous_bending_multipliers.setZero();
+    m_viscous_twisting_multipliers.setZero();
+   
     resizeInternals();
     freezeRestShape( 0, getNumEdges() ); // for now the rest shape is the shape in which the strand is created, unless this is called later on.
 	
@@ -231,7 +250,7 @@ void StrandForce::updateEverythingThatDependsOnRestLengths()
     // Compute masses and inverse of Voronoi lengths
     for( IndexType vtx = 0; vtx < getNumVertices(); ++vtx ){
         m_vertexMasses[vtx] = m_strandParams->m_density * m_VoronoiLengths[vtx] * 
-                                M_PI * m_strandParams->getRadius( vtx, getNumVertices() ) * m_strandParams->getRadius( vtx, getNumVertices() );
+                                M_PI * m_strandParams->getRadiusA( vtx ) * m_strandParams->getRadiusB( vtx );
         m_invVoronoiLengths[vtx] = 1.0 / m_VoronoiLengths[vtx];
     }
 }
@@ -383,6 +402,36 @@ void StrandForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, 
         int row_vert = data.row() / 4;
         hessE[hessE_index + i] = Triplets( m_verts[row_vert], m_verts[col_vert], -data.value() );
     });
+}
+
+void StrandForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{
+    const int num_verts = getNumVertices();
+    for(int i = 0; i < num_verts; ++i)
+    {
+        m_v_plus.segment<4>(i * 4) = vplus.segment<4>(m_verts[i] * 4);
+    }
+
+    m_stretching_multipliers.setZero();
+    m_twisting_multipliers.setZero();
+    m_bending_multipliers.setZero();
+
+    ForceAccumulator< StretchingForce< NonViscous > >::accumulateMultipliers( m_stretching_multipliers, *this, dt );
+    ForceAccumulator< TwistingForce< NonViscous > >::accumulateMultipliers( m_twisting_multipliers, *this, dt );
+    ForceAccumulator< BendingForce< NonViscous > >::accumulateMultipliers( m_bending_multipliers, *this, dt );
+
+    if( m_strandParams->m_accumulateWithViscous ){
+        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
+        {
+            m_viscous_stretching_multipliers.setZero();
+            ForceAccumulator< StretchingForce< Viscous > >::accumulateMultipliers( m_viscous_stretching_multipliers, *this, dt );
+        }
+        m_viscous_twisting_multipliers.setZero();
+        m_viscous_bending_multipliers.setZero();
+        
+        ForceAccumulator< TwistingForce<Viscous> >::accumulateMultipliers( m_viscous_twisting_multipliers, *this, dt );
+        ForceAccumulator< BendingForce<Viscous> >::accumulateMultipliers( m_viscous_bending_multipliers, *this, dt );
+    }
 }
 
 int StrandForce::numHessX( )

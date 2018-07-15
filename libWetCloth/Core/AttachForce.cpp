@@ -82,11 +82,6 @@ int AttachForce::getParticleIndex() const
 
 void AttachForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE )
 {
-
-	assert( x.size() == v.size() );
-	assert( x.size() == gradE.size() );
-	assert( x.size()%4 == 0 );
-
 	const Vector4s& endpoint = m_scene->getRestPos().segment<4>(m_pidx * 4);
 	// Compute the elastic component
 	gradE.segment<3>(4*m_pidx)  += m_k*(x.segment<3>(4*m_pidx) - endpoint.segment(0, 3));
@@ -104,10 +99,6 @@ void AttachForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const V
 
 void AttachForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
-	assert( x.size() == v.size() );
-	assert( x.size() == m.size() );
-	assert( x.size()%4 == 0 );
-	
 	hessE[hessE_index + 0] = Triplets(4 * m_pidx + 0, 4 * m_pidx + 0, (m_k+m_b));
 	hessE[hessE_index + 1] = Triplets(4 * m_pidx + 1, 4 * m_pidx + 1, (m_k+m_b));
 	hessE[hessE_index + 2] = Triplets(4 * m_pidx + 2, 4 * m_pidx + 2, (m_k+m_b));
@@ -115,12 +106,13 @@ void AttachForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const V
 
 void AttachForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
-	assert( x.size() == v.size() );
-	assert( x.size() == m.size() );
-	assert( x.size()%4 == 0 );
+
 	
 	hessE[hessE_index] = Triplets(m_pidx, m_pidx, (m_k_twist+m_b_twist));
 }
+
+void AttachForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{}
 
 scalar AttachForce::getKs() const
 {

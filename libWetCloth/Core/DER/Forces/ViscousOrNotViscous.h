@@ -68,12 +68,12 @@ public:
 
     static scalar bendingCoefficient( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->bendingCoefficient( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->bendingCoefficient( );
     }
 
     static Mat2 bendingMatrix( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->bendingMatrix( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->bendingMatrix( vtx );
     }
 
     static const Vec2 kappaBar( const StrandForce& strand, int vtx )
@@ -83,7 +83,7 @@ public:
 
     static scalar kt( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->getKt( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->getKt( vtx );
     }
 
     static scalar thetaBar( const StrandForce& strand, int vtx )
@@ -93,12 +93,27 @@ public:
 
     static scalar ks( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->getKs( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->getKs( vtx );
     }
 
     static scalar ellBar( const StrandForce& strand, int vtx )
     {
         return strand.m_restLengths[vtx];
+    }
+
+    static const Vec2 bendingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_bending_multipliers.segment<2>( vtx * 2 );
+    }
+
+    static scalar stretchingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_stretching_multipliers( vtx );
+    }
+
+    static scalar twistingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_twisting_multipliers( vtx );
     }
 
     class NonDissipativeForce{};
@@ -121,12 +136,12 @@ public:
 
     static scalar bendingCoefficient( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->viscousBendingCoefficient( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->viscousBendingCoefficient( );
     }
 
     static Mat2 bendingMatrix( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->viscousBendingMatrix( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->viscousBendingMatrix( vtx );
     }
 
     static const Vec2 kappaBar( const StrandForce& strand, int vtx )
@@ -136,7 +151,7 @@ public:
 
     static scalar kt( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->getViscousKt( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->getViscousKt( vtx );
     }
 
     static scalar thetaBar( const StrandForce& strand, int vtx )
@@ -146,12 +161,27 @@ public:
 
     static scalar ks( const StrandForce& strand, int vtx )
     {
-        return strand.m_strandParams->getViscousKs( vtx, strand.getNumVertices() );
+        return strand.m_strandParams->getViscousKs( vtx );
     }
 
     static scalar ellBar( const StrandForce& strand, int vtx )
     {
         return strand.m_startState->m_lengths[vtx];
+    }
+
+    static const Vec2 bendingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_viscous_bending_multipliers.segment<2>( vtx * 2 );
+    }
+
+    static scalar stretchingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_viscous_stretching_multipliers( vtx );
+    }
+
+    static scalar twistingMultiplier( const StrandForce& strand, int vtx )
+    {
+        return strand.m_viscous_twisting_multipliers( vtx );
     }
 
     class DissipativeForce{};

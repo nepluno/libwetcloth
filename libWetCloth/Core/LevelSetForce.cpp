@@ -112,6 +112,11 @@ void LevelSetForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
     });
 }
 
+bool LevelSetForce::parallelized() const
+{
+    return true;
+}
+
 void LevelSetForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
 	assert( x.size() == v.size() );
@@ -166,6 +171,11 @@ void LevelSetForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const
             }
         }
     });
+}
+
+void LevelSetForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{
+
 }
 
 void LevelSetForce::preCompute()

@@ -70,7 +70,9 @@ JunctionForce::JunctionForce(const std::shared_ptr< TwoDScene >& scene)
 				int another_p = (edges(e, 0) == pidx) ? edges(e, 1) : edges(e, 0);
 				another_ps.push_back(another_p);
                 
-                const scalar coeff = M_PI / 4.0 * pow(radius(another_p), 4.0) * m_scene->getYoungModulus(e) / m_scene->getParticleRestLength(another_p);
+                const scalar ra = radius(another_p * 2 + 0);
+                const scalar rb = radius(another_p * 2 + 1);
+                const scalar coeff = M_PI / 4.0 * (ra * rb * (ra * ra + rb * rb)) * m_scene->getYoungModulus(e) / m_scene->getParticleRestLength(another_p);
                 another_coeff.push_back(coeff);
 			}
 			
@@ -157,6 +159,11 @@ void JunctionForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
 	});
 }
 
+bool JunctionForce::parallelized() const
+{
+	return true;
+}
+
 void JunctionForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
 	threadutils::for_each(0, (int) m_junctions_indices.size(), [&] (int i) {
@@ -224,6 +231,11 @@ void JunctionForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const
 			}
 		}
 	});
+}
+
+void JunctionForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{
+
 }
 
 int JunctionForce::numHessX()

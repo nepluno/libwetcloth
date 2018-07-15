@@ -110,6 +110,11 @@ void SimpleGravityForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, 
 	// Nothing to do.
 }
 
+void SimpleGravityForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{
+	
+}
+
 int SimpleGravityForce::numHessX( )
 {
 	return 0;

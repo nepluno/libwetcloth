@@ -106,7 +106,7 @@ private:
     
     void loadSimulationType( rapidxml::xml_node<>* node, std::string& simtype );
     
-    void loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene);
+    void loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene, const scalar& dt);
 	
 	void loadClothes(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene);
 

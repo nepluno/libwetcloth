@@ -49,11 +49,11 @@
 /**
  * Unit: cm
  */
-class PhysicalRadius: public DependencyNode< scalar >
+class PhysicalRadius: public DependencyNode< VecX >
 {
 public:
-    PhysicalRadius( scalar radius ) :
-            DependencyNode< scalar >( radius )
+    PhysicalRadius( VecX radius ) :
+            DependencyNode< VecX >( radius )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
@@ -104,17 +104,19 @@ protected:
  *
  * Unit: cm^4
  */
-class BendingMatrixBase: public DependencyNode<Mat2>
+class BendingMatrixBase: public DependencyNode<MatX>
 {
 public:
     BendingMatrixBase( PhysicalRadius& rad, BaseRotation& baseRotation ) :
-            DependencyNode<Mat2>( Mat2() ), //
+            DependencyNode<MatX>( MatX() ), //
             m_physicalRadius( rad ), //
             m_baseRotation( baseRotation )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
 #endif
+        m_value.resize( rad.get().size(), 2 );
+
         m_value.setZero();
         m_physicalRadius.addDependent( this );
         m_baseRotation.addDependent( this );
@@ -128,16 +130,23 @@ public:
 protected:
     virtual void compute()
     {
-        const scalar& radius = m_physicalRadius.get();
-        const scalar baseRotation = m_baseRotation.get();
+        const int nverts = m_value.rows() / 2;
 
-        Mat2& B = m_value;
-        B( 0, 0 ) = PI_4 * radius * cube( radius );
-        B( 1, 1 ) = PI_4 * radius * cube( radius );
-        // rotate cross section by a constant angle
-        const Mat2& rot = Eigen::Rotation2D<scalar>( baseRotation ).toRotationMatrix();
-        B = rot * B * rot.transpose();
-        B( 0, 1 ) = B( 1, 0 ) = 0.5 * ( B( 0, 1 ) + B( 1, 0 ) ); // For perfect numerical symmetry
+        for(int i = 0; i < nverts; ++i) {
+            const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
+            const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
+            const scalar baseRotation = m_baseRotation.get();
+
+            Mat2 B = Mat2::Zero();
+            B( 0, 0 ) = PI_4 * radiusB * cube( radiusA );
+            B( 1, 1 ) = PI_4 * radiusA * cube( radiusB );
+            // rotate cross section by a constant angle
+            const Mat2& rot = Eigen::Rotation2D<scalar>( baseRotation ).toRotationMatrix();
+            B = rot * B * rot.transpose();
+            B( 0, 1 ) = B( 1, 0 ) = 0.5 * ( B( 0, 1 ) + B( 1, 0 ) ); // For perfect numerical symmetry
+
+            m_value.block<2, 2>(i * 2, 0) = B;
+        }
 
         setDependentsDirty();
     }
@@ -193,11 +202,11 @@ protected:
 /**
  * Unit: 10^-5 N = g cm s^-2
  */
-class ElasticKs: public DependencyNode<scalar>
+class ElasticKs: public DependencyNode<VecX>
 {
 public:
     ElasticKs( PhysicalRadius& rad, YoungsModulus& ym ) :
-            DependencyNode<scalar>( std::numeric_limits<scalar>::signaling_NaN() ), //
+            DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
             m_physicalRadius( rad ), //
             m_youngsModulus( ym ) //
     {
@@ -213,10 +222,17 @@ public:
 protected:
     virtual void compute()
     {
-        const scalar& radius = m_physicalRadius.get();
-        const scalar youngsModulus = m_youngsModulus.get();
+        const int nverts = m_value.size();
+        assert(nverts * 2 == (int) m_physicalRadius.get().size());
 
-        m_value = 3.1415926535897932384626 * radius * radius * youngsModulus;
+        for(int i = 0; i < nverts; ++i) {
+            const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
+            const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
+
+            const scalar youngsModulus = m_youngsModulus.get();
+
+            m_value(i) = 3.1415926535897932384626 * radiusA * radiusB * youngsModulus;
+        }
 
         setDependentsDirty();
     }
@@ -228,11 +244,11 @@ protected:
 /**
  * Unit: 10^-5 cm^2 N = g cm^3 s^-2
  */
-class ElasticKt: public DependencyNode<scalar>
+class ElasticKt: public DependencyNode<VecX>
 {
 public:
     ElasticKt( PhysicalRadius& rad, ShearModulus& sm ) :
-            DependencyNode<scalar>( std::numeric_limits<scalar>::signaling_NaN() ), //
+            DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
             m_physicalRadius( rad ), //
             m_shearModulus( sm )
     {
@@ -248,12 +264,18 @@ public:
 protected:
     virtual void compute()
     {
-        const scalar& radius = m_physicalRadius.get();
-        const scalar shearModulus = m_shearModulus.get();
+        const int nverts = m_value.size();
+        assert(nverts * 2 == (int) m_physicalRadius.get().size());
 
-        m_value = PI_4 * radius * radius
-                * ( radius * radius + radius * radius ) * shearModulus;
+        for(int i = 0; i < nverts; ++i) {
+            const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
+            const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
 
+            const scalar shearModulus = m_shearModulus.get();
+
+            m_value(i) = PI_4 * radiusA * radiusB
+                    * ( radiusA * radiusA + radiusB * radiusB ) * shearModulus;
+        }
         setDependentsDirty();
     }
 

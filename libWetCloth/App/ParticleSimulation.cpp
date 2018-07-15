@@ -184,8 +184,6 @@ void ParticleSimulation::initializeOpenGLRenderer(){
     
     TwAddVarRO(bar, "pore radius", TW_TYPE_DOUBLE, &info.pore_radius, " help='Pore radius (cm)' group='static parameters'");
     TwAddVarRO(bar, "fiber diameter", TW_TYPE_DOUBLE, &info.yarn_diameter, " help='Yarn (mesh-based) / fiber (yarn-based) diameter (cm)' group='static parameters'");
-    TwAddVarRO(bar, "half thickness", TW_TYPE_DOUBLE, &info.half_thickness, " help='Half of the thickness of (mesh-based) cloth / radii of (yarn-based) fiber (cm)' group='static parameters'");
-    TwAddVarRO(bar, "thread count", TW_TYPE_DOUBLE, &info.fabric_thread_count, " help='Thread count (per cm^2)' group='static parameters'");
     TwAddVarRO(bar, "rest volume fraction", TW_TYPE_DOUBLE, &info.rest_volume_fraction, " help='Volume fraction at rest' group='static parameters'");
     
     TwAddVarRW(bar, "liquid density", TW_TYPE_DOUBLE, &info.liquid_density, " min=0.1 max=10.0 step=0.1 help='Liquid density  (g/cm^3)' group='dynamic parameters'");
@@ -227,7 +225,7 @@ void ParticleSimulation::initializeOpenGLRenderer(){
     TwAddVarRW(bar, "Check divergence", TW_TYPE_BOOLCPP, &info.check_divergence, " help='Check the divergence after pressure projection' group='features'");
     TwAddVarRW(bar, "Update volume fraction", TW_TYPE_BOOLCPP, &info.use_varying_fraction, " help='Update the volume fraction of cloth/yarn after solving for their dynamics' group='features'");
     TwAddVarRW(bar, "Compute viscosity", TW_TYPE_BOOLCPP, &info.use_varying_fraction, " help='Solve the viscosity term for liquid' group='features'");
-    TwAddVarRW(bar, "Viscosity term affects cloth/yarn", TW_TYPE_BOOLCPP, &info.apply_viscosity_solid, " help='Viscosity term affects the dynamics of cloth/yarn' group='features'");
+    TwAddVarRW(bar, "Implicit viscosity", TW_TYPE_BOOLCPP, &info.implicit_viscosity, " help='Use implicit viscosity computation' group='features'");
     TwAddVarRW(bar, "Implicit cloth/yarn for liquid drag", TW_TYPE_BOOLCPP, &info.drag_by_future_solid, " help='Use implicitly (turn off to use explicitly integrated cloth/yarn velocity) integrated cloth/yarn velocity to compute liquid drag force' group='features'");
     TwAddVarRW(bar, "Air drag", TW_TYPE_BOOLCPP, &info.drag_by_future_solid, " help='Turn on to apply air drag force to the cloth/yarn' group='features'");
     TwAddVarRO(bar, "Init with nonuniform volume fraction", TW_TYPE_BOOLCPP, &info.init_nonuniform_fraction, " help='Must be turned on when initializing the cloth/yarn with nonuniform volume fraction' group='features'");

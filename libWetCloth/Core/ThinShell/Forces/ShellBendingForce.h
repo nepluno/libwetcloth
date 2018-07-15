@@ -68,11 +68,14 @@ protected:
 	
 	scalar m_thickness;
 	
+	bool m_apply_viscous;
+	
 	scalar m_bending_stiffness;
 	scalar m_viscous_stiffness;
 	VectorXs m_per_edge_rest_phi; // theta or tantheta, depending on choice of bending formulation
 	VectorXs m_per_edge_start_phi;
 	std::vector<int> m_unique_edge_usable;
+	VectorXs m_multipliers;
 	
 	void computeBendingRestPhi(const VectorXs & rest_pos, VectorXs & rest_phis);
     
@@ -92,7 +95,8 @@ public:
 					  const scalar& viscous_modulus,
 					  const scalar& poisson_ratio,
 					  const scalar& thickness,
-                      int bending_mode);
+                      int bending_mode,
+					  bool apply_viscous);
 	
 	virtual ~ShellBendingForce();
 	
@@ -101,6 +105,8 @@ public:
 	virtual void addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE );
 	
 	virtual void addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
+
+	virtual void updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt );
 	
 	virtual int numHessX();
 	

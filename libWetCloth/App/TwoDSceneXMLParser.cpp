@@ -42,6 +42,7 @@
 
 
 #include "TwoDSceneXMLParser.h"
+#include "MathDefs.h"
 
 void TwoDSceneXMLParser::loadExecutableSimulation( const std::string& file_name, bool rendering_enabled, std::shared_ptr<ParticleSimulation>& execsim, Camera& cam, scalar& dt, scalar& max_time, scalar& steps_per_sec_cap, renderingutils::Color& bgcolor, std::string& description, std::string& scenetag, bool& cam_inited, const std::string& input_bin )
 {
@@ -477,6 +478,7 @@ void TwoDSceneXMLParser::loadParticleSimulation(bool rendering_enabled, std::sha
 	int mg_part, mg_df;
     loadParticles( node, scene, mg_part);
 	loadDistanceFields( node, scene, mg_df );
+
     loadStrandParameters(node, scene, dt);
 	
 	int maxgroup = std::max(mg_part, mg_df);
@@ -486,8 +488,8 @@ void TwoDSceneXMLParser::loadParticleSimulation(bool rendering_enabled, std::sha
 	scene->updateRestPos();
 	scene->initGroupPos();
 
-    loadHairs(node, scene);
     loadClothes(node, scene);
+    loadHairs(node, scene, dt);
 	loadScripts( node, scene );
 
 	scene->initGaussSystem();
@@ -517,7 +519,7 @@ void TwoDSceneXMLParser::loadParticleSimulation(bool rendering_enabled, std::sha
 	scene->loadAttachForces();
     if(scene->getLiquidInfo().use_cohesion) scene->insertForce( std::make_shared<CohesionForce>(scene) );
     scene->insertForce( std::make_shared<JunctionForce>(scene) );
-    if(scene->getLiquidInfo().use_levelset_force) scene->insertForce( std::make_shared<LevelSetForce>(scene, scene->getCellSize() * 1.5) );
+    if(scene->getLiquidInfo().use_levelset_force) scene->insertForce( std::make_shared<LevelSetForce>(scene, scene->getCellSize() * scene->getLiquidInfo().levelset_thickness) );
 	loadSpringForces(node, scene);
 	loadSimpleGravityForces(node, scene);
 	
@@ -541,8 +543,8 @@ void TwoDSceneXMLParser::loadSpringForces( rapidxml::xml_node<>* node, const std
 {
 	assert( node != NULL );
 	
-	// Extract the edge the force acts across
 	int forcenum = 0;
+	// Extract the edge the force acts across
 	for( rapidxml::xml_node<>* nd = node->first_node("springforce"); nd; nd = nd->next_sibling("springforce") )
 	{
 		int edge = -1;
@@ -611,8 +613,8 @@ void TwoDSceneXMLParser::loadSpringForces( rapidxml::xml_node<>* node, const std
 		//std::cout << "Springforce: " << forcenum << "    i: " << newedge.first << "   j: " << newedge.second << "   k: " << k << "   l0: " << l0 << std::endl;
 		
 		twodscene->insertForce( std::make_shared<SpringForce>(twodscene->getEdge(edge), k, l0, b) );
-		
-		++forcenum;
+
+		forcenum++;
 	}
 	
 	//SpringForce( const std::pair<int,int>& endpoints, const scalar& k, const scalar& l0 )
@@ -1083,7 +1085,6 @@ void TwoDSceneXMLParser::loadClothes(rapidxml::xml_node<>* node, const std::shar
 		}
 		
 		if(paramsIndex == -1) continue;
-		auto& params = twodscene->getStrandParameters(paramsIndex);
 		
 		std::vector< Vector3i > faces;
 		
@@ -1124,12 +1125,18 @@ void TwoDSceneXMLParser::loadClothes(rapidxml::xml_node<>* node, const std::shar
 		
 		twodscene->insertForce( std::make_shared<ThinShellForce>( twodscene, faces, paramsIndex, numclothes ) );
 		
+
+		const std::shared_ptr<StrandParameters>& params = twodscene->getStrandParameters(paramsIndex);
 		for(int pidx : unique_particles)
 		{
-			const scalar radius = params->getRadius(0, 1);
-			twodscene->setRadius(pidx, radius);
+			scalar radius_A = params->getRadiusA(0);
+			scalar radius_B = params->getRadiusB(0);
+
+			if(twodscene->getRadius()(pidx * 2 + 0) == 0.0 || twodscene->getRadius()(pidx * 2 + 1) == 0.0)
+				twodscene->setRadius(pidx, radius_A, radius_B);
+			
 			const scalar original_vol = twodscene->getVol()(pidx);
-			scalar vol = twodscene->getParticleRestArea(pidx) * radius * 2.0;
+			scalar vol = twodscene->getParticleRestArea(pidx) * (radius_A + radius_B);
 			twodscene->setVolume(pidx, original_vol + vol);
 			const scalar original_mass = twodscene->getM()(pidx * 4);
 			scalar mass = params->m_density * vol * params->m_restVolumeFraction;
@@ -1142,10 +1149,21 @@ void TwoDSceneXMLParser::loadClothes(rapidxml::xml_node<>* node, const std::shar
 		
 		++numclothes;
 		numfaces += num_newfaces;
+
+		VectorXi solve_group(unique_particles.size());
+
+		int i = 0;
+		for(int pidx : unique_particles) 
+			solve_group(i++) = pidx;
+
+		twodscene->insertSolveGroup(solve_group);
+
+		// leave radius empty since we don't need it for thin-shell model
+
 	}
 }
 
-void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene){
+void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene, const scalar& dt){
     assert(node != NULL);
     // Count the number of particles, edges, and strands
     int numstrands = 0;
@@ -1195,6 +1213,9 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared
 		}
 
         std::vector<int> particle_indices;
+        std::vector<int> edge_indices;
+        VecX particle_radius;
+
         if(count == 0) {
             for (rapidxml::xml_node<>* subnd = nd->first_node("p"); subnd; subnd = subnd->next_sibling("p")) {
                 int id = -1;
@@ -1219,33 +1240,51 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared
             
             twodscene->conservativeResizeEdges(numedges + num_newedges);
             
+            particle_radius.resize(count * 2);
+
+            const VectorXs& scene_radius = twodscene->getRadius();
+
             for(int i = 0; i < count; ++i) {
-                const scalar radius = params->getRadius(i, count);
-                twodscene->setRadius(particle_indices[i], radius);
+            	const int pidx = particle_indices[i];
+
+            	if(scene_radius(pidx * 2 + 0) == 0.0 || scene_radius(pidx * 2 + 1) == 0.0 )
+            	{
+            		const scalar radius_A = params->getRadiusA(0);
+            		const scalar radius_B = params->getRadiusB(0);
+                	twodscene->setRadius(pidx, radius_A, radius_B);
+            	}
+
+            	particle_radius.segment<2>(i * 2) = scene_radius.segment<2>(pidx * 2);
             }
             
             for(int i = 1; i < count; ++i) {
                 std::pair<int,int> newedge( particle_indices[ i - 1 ], particle_indices[ i ] );
                 twodscene->setEdge( numedges, newedge );
                 twodscene->setEdgeRestLength( numedges, ( twodscene->getPosition( newedge.first ) - twodscene->getPosition(newedge.second)).norm());
-                twodscene->setEdgeToParameter( numedges, paramsIndex );
+                // twodscene->setEdgeToParameter( numedges, paramsIndex );
+                edge_indices.push_back(numedges);
                 ++numedges;
             }
             
             for(int i = 0; i < count; ++i) {
+            	const int pidx = particle_indices[i];
+
                 if(i == count - 1) {
-                    twodscene->setTipVerts( particle_indices[i], true );
+                    twodscene->setTipVerts( pidx, true );
                 } else {
-                    twodscene->setTipVerts( particle_indices[i], false );
+                    twodscene->setTipVerts( pidx, false );
                 }
             
-                const scalar radius = params->getRadius(i, count);
+
+                const scalar radius_A = particle_radius(i * 2 + 0);
+                const scalar radius_B = particle_radius(i * 2 + 1);
+
                 const scalar original_vol = twodscene->getVol()(particle_indices[i]);
-                scalar vol = twodscene->getParticleRestLength(particle_indices[i]) * M_PI * radius * radius;
+                scalar vol = twodscene->getParticleRestLength(particle_indices[i]) * M_PI * radius_A * radius_B;
                 twodscene->setVolume(particle_indices[i], original_vol + vol);
                 const scalar original_mass = twodscene->getM()(particle_indices[i] * 4);
                 scalar mass = params->m_density * vol * params->m_restVolumeFraction;
-                twodscene->setMass(particle_indices[i], original_mass + mass, 0.5 * mass * radius * radius);
+                twodscene->setMass(particle_indices[i], original_mass + mass, 0.25 * mass * (radius_A * radius_A + radius_B * radius_B));
                 twodscene->setTwist(particle_indices[i], twodscene->getLiquidInfo().use_twist);
                 
                 if(!twodscene->getLiquidInfo().init_nonuniform_fraction)
@@ -1256,10 +1295,22 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared
             int num_newedges = count - 1;
             
             twodscene->conservativeResizeEdges(numedges + num_newedges);
+
+            particle_radius.resize(count * 2);
+
+            const VectorXs& scene_radius = twodscene->getRadius();
             
             for(int i = 0; i < count; ++i) {
-                const scalar radius = params->getRadius(i, count);
-                twodscene->setRadius(start + i, radius);
+            	const int pidx = start + i;
+
+            	if(scene_radius(pidx * 2 + 0) == 0.0 || scene_radius(pidx * 2 + 1) == 0.0 )
+            	{
+	                const scalar radius_A = params->getRadiusA(0);
+	                const scalar radius_B = params->getRadiusB(0);
+	                twodscene->setRadius(pidx, radius_A, radius_B);
+	            }
+
+	            particle_radius.segment<2>(i * 2) = scene_radius.segment<2>(pidx * 2);
             }
             
             for(int i = 1; i < count; ++i) {
@@ -1267,35 +1318,76 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared
                 std::pair<int,int> newedge( vtx - 1, vtx );
                 twodscene->setEdge( numedges, newedge );
                 twodscene->setEdgeRestLength( numedges, ( twodscene->getPosition( newedge.first ) - twodscene->getPosition(newedge.second)).norm());
-                twodscene->setEdgeToParameter( numedges, paramsIndex );
+                // twodscene->setEdgeToParameter( numedges, paramsIndex );
+                edge_indices.push_back(numedges);
                 ++numedges;
             }
             
             particle_indices.resize(count);
+
             for(int i = 0; i < count; ++i) {
+            	const int pidx = start + i;
+
                 if(i == count - 1) {
-                    twodscene->setTipVerts( start + i, true );
+                    twodscene->setTipVerts( pidx, true );
                 } else {
-                    twodscene->setTipVerts( start + i, false );
+                    twodscene->setTipVerts( pidx, false );
                 }
                 
-                particle_indices[i] = start + i;
+                particle_indices[i] = pidx;
                 
-                const scalar radius = params->getRadius(i, count);
+                const scalar radius_A = particle_radius(i * 2 + 0);
+                const scalar radius_B = particle_radius(i * 2 + 1);
+
                 const scalar original_vol = twodscene->getVol()(particle_indices[i]);
-                scalar vol = twodscene->getParticleRestLength(particle_indices[i]) * M_PI * radius * radius;
+                scalar vol = twodscene->getParticleRestLength(particle_indices[i]) * M_PI * radius_A * radius_B;
                 twodscene->setVolume(particle_indices[i], original_vol + vol);
                 const scalar original_mass = twodscene->getM()(particle_indices[i] * 4);
                 scalar mass = params->m_density * vol * params->m_restVolumeFraction;
-                twodscene->setMass(particle_indices[i], original_mass + mass, 0.5 * mass * radius * radius);
+                twodscene->setMass(particle_indices[i], original_mass + mass, 0.25 * mass * (radius_A * radius_A + radius_B * radius_B));
                 twodscene->setTwist(particle_indices[i], twodscene->getLiquidInfo().use_twist);
                 
                 if(!twodscene->getLiquidInfo().init_nonuniform_fraction)
                     twodscene->setVolumeFraction(particle_indices[i], params->m_restVolumeFraction);
             }
         }
+
+        // instance new StrandParameters
+        const int idx_sp = twodscene->getNumStrandParameters();
+        twodscene->insertStrandParameters(std::make_shared<StrandParameters>(
+        	particle_radius,
+        	params->m_youngsModulus.get(), 
+        	params->m_shearModulus.get(),
+        	params->m_stretchingMultiplier,
+        	params->m_collisionMultiplier, 
+        	params->m_attachMultiplier,
+        	params->m_density,
+        	params->m_viscosity, 
+        	params->m_baseRotation.get(),
+        	dt,
+            params->m_friction_alpha,
+            params->m_friction_beta,
+            params->m_restVolumeFraction,
+            params->m_accumulateWithViscous, 
+            params->m_accumulateViscousOnlyForBendingModes, 
+            params->m_postProjectFixed,
+            params->m_straightHairs, 
+            params->m_color
+        	));
+
+        for(int eidx : edge_indices)
+        {
+        	twodscene->setEdgeToParameter(eidx, idx_sp);
+        }
 		
-		twodscene->insertForce( std::make_shared<StrandForce>( twodscene, particle_indices, paramsIndex, numstrands ) );
+		twodscene->insertForce( std::make_shared<StrandForce>( twodscene, particle_indices, idx_sp, numstrands ) );
+
+
+		VectorXi solve_group(particle_indices.size());
+		for(int i = 0; i < (int) particle_indices.size(); ++i) 
+			solve_group(i) = particle_indices[i];
+
+		twodscene->insertSolveGroup(solve_group);
 		
         ++numstrands;
     }
@@ -1311,10 +1403,8 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
 	info.yazdchi_power = 1.6;
 	info.viscosity = 8.9e-3;
 	info.air_viscosity = 1.81e-4;
-    info.half_thickness = 0.018;
 	info.pore_radius = 0.005;
     info.yarn_diameter = 0.01;
-    info.fabric_thread_count = 180.0;                    // threads per cm^2
     info.rest_volume_fraction = 0.4;
 	info.lambda = 2.0;
     info.cohesion_coeff = 0.002;
@@ -1328,6 +1418,7 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
 	info.particle_cell_multiplier = 0.3535533906;
     info.bending_scheme = 2;
     info.levelset_young_modulus = 6.6e6;
+	info.liquid_boundary_friction = 1.0;
     info.use_cohesion = true;
 	info.soft_cohesion = true;
 	info.solid_cohesion = true;
@@ -1344,45 +1435,27 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
     info.use_pcr = true;
     info.propagate_solid_velocity = false;
     info.check_divergence = false;
-	info.use_varying_fraction = true;
+	info.use_varying_fraction = false;
     info.compute_viscosity = false;
-    info.apply_viscosity_solid = false;
+    info.implicit_viscosity = true;
     info.drag_by_future_solid = false;
     info.drag_by_air = false;
     info.init_nonuniform_fraction = false;
+    info.use_group_precondition = false;
+    info.use_lagrangian_mpm = false;
+    info.use_cosolve_angular = false;
+    info.levelset_thickness = 0.25;
+    info.iteration_print_step = 0;
+	info.elasto_capture_rate = 1.0;
 	
 	rapidxml::xml_node<>* nd = node->first_node("liquidinfo");
 	if( nd )
 	{
 		rapidxml::xml_node<>* subnd = NULL;
 		
-        bool fabric_thread_count_provided;
         bool yarn_diameter_provided;
         bool pore_radius_provided;
         bool volume_fraction_provided;
-        
-        if( ( subnd = nd->first_node("halfThickness") ) )
-        {
-            std::string attribute( subnd->first_attribute("value")->value() );
-            if( !stringutils::extractFromString(attribute, info.half_thickness) )
-            {
-                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of halfThickness attribute for LiquidInfo. Value must be numeric. Exiting." << std::endl;
-                exit(1);
-            }
-        }
-        
-        if( ( subnd = nd->first_node("fabricThreadCount") ) )
-        {
-            std::string attribute( subnd->first_attribute("value")->value() );
-            if( !stringutils::extractFromString(attribute, info.fabric_thread_count) )
-            {
-                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of fabricThreadCount attribute for LiquidInfo. Value must be numeric. Exiting." << std::endl;
-                exit(1);
-            }
-            fabric_thread_count_provided = true;
-        } else {
-            fabric_thread_count_provided = false;
-        }
         
         if( ( subnd = nd->first_node("yarnDiameter") ) )
         {
@@ -1423,42 +1496,60 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
             pore_radius_provided = false;
         }
         
-        if(fabric_thread_count_provided && yarn_diameter_provided) {
-            info.pore_radius = sqrt(std::max(0.0, 2.0 * info.half_thickness / (M_PI * info.fabric_thread_count) - info.yarn_diameter * info.yarn_diameter / 4.0 ));
-            info.rest_volume_fraction = mathutils::clamp( M_PI * info.yarn_diameter * info.yarn_diameter * info.fabric_thread_count / (8.0 * info.half_thickness), 0.0, 1.0 );
-        } else if(fabric_thread_count_provided && volume_fraction_provided) {
-            info.yarn_diameter = std::max(0.0, sqrt(8.0 * info.half_thickness * info.rest_volume_fraction / (M_PI * info.fabric_thread_count)));
-            info.pore_radius = sqrt(std::max(0.0, 2.0 * info.half_thickness / (M_PI * info.fabric_thread_count) * (1.0 - info.rest_volume_fraction)));
-        } else if(fabric_thread_count_provided && pore_radius_provided) {
-            info.yarn_diameter = sqrt(std::max(0.0, 8.0 * info.half_thickness / (M_PI * info.fabric_thread_count) - 4.0 * info.pore_radius * info.pore_radius));
-            info.rest_volume_fraction = mathutils::clamp( 1.0 - M_PI * info.pore_radius * info.pore_radius * info.half_thickness / (2.0 * info.half_thickness), 0.0, 1.0 );
-        } else if(yarn_diameter_provided && volume_fraction_provided) {
+        if(yarn_diameter_provided && volume_fraction_provided) {
             info.pore_radius = info.yarn_diameter * 0.5 * sqrt(std::max(0.0, (1.0 - info.rest_volume_fraction) / info.rest_volume_fraction));
-            info.fabric_thread_count = (8.0 * info.half_thickness * info.rest_volume_fraction) / (M_PI * info.yarn_diameter * info.yarn_diameter);
         } else if(yarn_diameter_provided && pore_radius_provided) {
-            info.fabric_thread_count = 8.0 * info.half_thickness / (M_PI * (4.0 * info.pore_radius * info.pore_radius + info.yarn_diameter * info.yarn_diameter));
             info.rest_volume_fraction = info.yarn_diameter * info.yarn_diameter / (info.yarn_diameter * info.yarn_diameter + 4.0 * info.pore_radius * info.pore_radius);
         } else if(volume_fraction_provided && pore_radius_provided) {
             info.yarn_diameter = 2.0 * info.pore_radius * sqrt(std::max(0.0, info.rest_volume_fraction / (1.0 - info.rest_volume_fraction)));
-            info.fabric_thread_count = 2.0 * info.half_thickness / (M_PI * info.pore_radius * info.pore_radius) * (1.0 - info.rest_volume_fraction);
-        } 
+        } else {
+            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to process fabric parameters. " << std::endl;
+        }
         
-        if( ( subnd = nd->first_node("applyViscositySolid") ) )
+        if( ( subnd = nd->first_node("implicitViscosity") ) )
         {
             std::string attribute( subnd->first_attribute("value")->value() );
-            if( !stringutils::extractFromString(attribute, info.apply_viscosity_solid) )
+            if( !stringutils::extractFromString(attribute, info.implicit_viscosity) )
             {
-                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of applyViscositySolid attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of implicitViscosity attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
                 exit(1);
             }
         }
-        
+		if( ( subnd = nd->first_node("liquidBoundaryFriction") ) )
+		{
+			std::string attribute( subnd->first_attribute("value")->value() );
+			if( !stringutils::extractFromString(attribute, info.liquid_boundary_friction) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of liquidBoundaryFriction attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		
+		if( ( subnd = nd->first_node("iterationPrintStep") ) )
+		{
+			std::string attribute( subnd->first_attribute("value")->value() );
+			if( !stringutils::extractFromString(attribute, info.iteration_print_step) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of iterationPrintStep attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+				exit(1);
+			}
+		}
 		if( ( subnd = nd->first_node("useVaryingFraction") ) )
 		{
 			std::string attribute( subnd->first_attribute("value")->value() );
 			if( !stringutils::extractFromString(attribute, info.use_varying_fraction) )
 			{
 				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of useVaryingFraction attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+        
+		if( ( subnd = nd->first_node("useCosolveAngular") ) )
+		{
+			std::string attribute( subnd->first_attribute("value")->value() );
+			if( !stringutils::extractFromString(attribute, info.use_cosolve_angular) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of useCosolveAngular attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
 				exit(1);
 			}
 		}
@@ -1502,6 +1593,16 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
                 exit(1);
             }
         }
+
+        if( ( subnd = nd->first_node("useGroupPrecondition") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, info.use_group_precondition) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of useGroupPrecondition attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+                exit(1);
+            }
+        }
         
         if( ( subnd = nd->first_node("bendingScheme") ) )
         {
@@ -1521,6 +1622,16 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
             if( !stringutils::extractFromString(attribute, info.use_bicgstab) )
             {
                 std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of useBiCGSTAB attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+                exit(1);
+            }
+        }
+
+        if( ( subnd = nd->first_node("useLagrangianMPM") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, info.use_lagrangian_mpm) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of useLagrangianMPM attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
                 exit(1);
             }
         }
@@ -1571,6 +1682,16 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
 			if( !stringutils::extractFromString(attribute, info.particle_cell_multiplier) )
 			{
 				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of particleCellMultiplier attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		
+		if( ( subnd = nd->first_node("elastoCaptureRate") ) )
+		{
+			std::string attribute( subnd->first_attribute("value")->value() );
+			if( !stringutils::extractFromString(attribute, info.elasto_capture_rate) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of elastoCaptureRate attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
 				exit(1);
 			}
 		}
@@ -1664,6 +1785,16 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
                 exit(1);
             }
         }
+
+        if( ( subnd = nd->first_node("levelsetThickness") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, info.levelset_thickness) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of levelsetThickness attribute for LiquidInfo. Value must be numeric. Exiting." << std::endl;
+                exit(1);
+            }
+        }
         
         if( ( subnd = nd->first_node("elastoAdvectCoeff") ) )
         {
@@ -1744,7 +1875,17 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
                 exit(1);
             }
         }
-        
+		
+		if( ( subnd = nd->first_node("correctionStep") ) )
+		{
+			std::string attribute( subnd->first_attribute("value")->value() );
+			if( !stringutils::extractFromString(attribute, info.correction_step) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of correctionStep attribute for LiquidInfo. Value must be integer. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		
         if( ( subnd = nd->first_node("correctionStrength") ) )
         {
             std::string attribute( subnd->first_attribute("value")->value() );
@@ -1863,7 +2004,8 @@ void TwoDSceneXMLParser::loadStrandParameters( rapidxml::xml_node<>* node, const
     for( nd = node->first_node("StrandParameters"); nd; nd = nd->next_sibling("StrandParameters") )
     {
         // default values:
-        scalar radius = twodscene->getLiquidInfo().half_thickness;
+        scalar radius = 0.018;
+        scalar biradius = 0.018;
 		scalar restVolumeFraction = twodscene->getLiquidInfo().rest_volume_fraction;
         scalar YoungsModulus = 6.687e5;
         scalar shearModulus = 2.476e5;
@@ -1875,7 +2017,6 @@ void TwoDSceneXMLParser::loadStrandParameters( rapidxml::xml_node<>* node, const
         scalar baseRotation = 0.;
         bool accumulateWithViscous = false;
         bool accumulateViscousOnlyForBendingModes = true;
-        bool variableRadiusHair = false;
         bool postProjectFixed = false;
         scalar straightHairs = 1.;
         Vec3 haircolor = Vec3(0, 0, 0);
@@ -1910,6 +2051,16 @@ void TwoDSceneXMLParser::loadStrandParameters( rapidxml::xml_node<>* node, const
             if( !stringutils::extractFromString(attribute, radius) )
             {
                 std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of radius attribute for StrandParameters " << paramsCount << ". Value must be numeric. Exiting." << std::endl;
+                exit(1);
+            }
+        }
+
+        if( ( subnd = nd->first_node("biradius") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, biradius) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of biradius attribute for StrandParameters " << paramsCount << ". Value must be numeric. Exiting." << std::endl;
                 exit(1);
             }
         }
@@ -2025,17 +2176,7 @@ void TwoDSceneXMLParser::loadStrandParameters( rapidxml::xml_node<>* node, const
                 exit(1);
             }
         }
-        
-        if( (subnd = nd->first_node("variableRadiusHair")) )
-        {
-            std::string attribute( subnd->first_attribute("value")->value() );
-            if( !stringutils::extractFromString(attribute, variableRadiusHair) )
-            {
-                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of variableRadiusHair attribute for StrandParameters " << paramsCount << ". Value must be numeric. Exiting." << std::endl;
-                exit(1);
-            }
-        }
-        
+
         if( (subnd = nd->first_node("postProjectFixed")) )
         {
             std::string attribute( subnd->first_attribute("value")->value() );
@@ -2070,19 +2211,23 @@ void TwoDSceneXMLParser::loadStrandParameters( rapidxml::xml_node<>* node, const
 		friction_angle = std::max(0., std::min(90.0, friction_angle)) / 180.0 * M_PI;
 		const scalar friction_alpha = 1.6329931619 * sin(friction_angle) / (3.0 - sin(friction_angle));
 		const scalar friction_beta = tan(friction_angle);
+
+		VecX rad_vec(2);
+		rad_vec(0) = radius;
+		rad_vec(1) = biradius;
 		
 		twodscene->insertStrandParameters( std::make_shared<StrandParameters>(
-                                                                              radius, YoungsModulus, shearModulus,
-                                                                              stretchingMultiplier, collisionMultiplier, attachMultiplier,
-                                                                              density,
-                                                                              viscosity, baseRotation,
-                                                                              dt,
-                                                                              friction_alpha,
-                                                                              friction_beta,
-                                                                              restVolumeFraction,
-                                                                              accumulateWithViscous, accumulateViscousOnlyForBendingModes, variableRadiusHair,
-                                                                              postProjectFixed,
-                                                                              straightHairs, haircolor ) );
+                                                            rad_vec, YoungsModulus, shearModulus,
+                                                            stretchingMultiplier, collisionMultiplier, attachMultiplier,
+                                                            density,
+                                                            viscosity, baseRotation,
+                                                            dt,
+                                                            friction_alpha,
+                                                            friction_beta,
+                                                            restVolumeFraction,
+                                                            accumulateWithViscous, accumulateViscousOnlyForBendingModes,
+                                                            postProjectFixed,
+                                                            straightHairs, haircolor ) );
         ++paramsCount;
     }
 }
@@ -2185,7 +2330,18 @@ void TwoDSceneXMLParser::loadParticles( rapidxml::xml_node<>* node, const std::s
 				exit(1);
 			}
 		}
-		twodscene->setRadius( particle, radius );
+
+		scalar biradius = radius;
+		if( nd->first_attribute("biradius") )
+		{
+			std::string attribute(nd->first_attribute("biradius")->value());
+			if( !stringutils::extractFromString(attribute,biradius) )
+			{
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse biradius attribute for particle " << particle << ". Value must be scalar. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		twodscene->setRadius( particle, radius, biradius );
 		
 		scalar vol = 0.0;
 		if( nd->first_attribute("vol") )
@@ -2334,7 +2490,7 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
         }
         
         
-		scalar criterion = 1e-8;
+		scalar criterion = 1e-6;
 		subnd = nd->first_attribute("criterion");
 		if( subnd ){
 			if( !stringutils::extractFromString(std::string(subnd->value()), criterion)) {
@@ -2352,16 +2508,25 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
             }
         }
 		
-		scalar quasicriterion = 1e-6;
-		subnd = nd->first_attribute("quasicriterion");
+		scalar viscous_criterion = criterion;
+		subnd = nd->first_attribute("viscouscriterion");
 		if( subnd ){
-			if( !stringutils::extractFromString(std::string(subnd->value()), quasicriterion)) {
-				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse 'criterion' attribute for integrator. Value must be numeric. Exiting." << std::endl;
+			if( !stringutils::extractFromString(std::string(subnd->value()), viscous_criterion)) {
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse 'pressurecriterion' attribute for integrator. Value must be numeric. Exiting." << std::endl;
 				exit(1);
 			}
 		}
 		
-		int maxiters = 1000;
+		scalar quasi_static_criterion = criterion;
+		subnd = nd->first_attribute("quasistaticcriterion");
+		if( subnd ){
+			if( !stringutils::extractFromString(std::string(subnd->value()), quasi_static_criterion)) {
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse 'quasistaticcriterion' attribute for integrator. Value must be numeric. Exiting." << std::endl;
+				exit(1);
+			}
+		}
+		
+		int maxiters = 100;
 		subnd = nd->first_attribute("maxiters");
 		if( subnd ){
 			if( !stringutils::extractFromString(std::string(subnd->value()), maxiters)) {
@@ -2379,7 +2544,7 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
 			}
 		}
 		
-		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, quasicriterion, maxiters, manifoldsubsteps, viscositysubsteps);
+		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, quasi_static_criterion, viscous_criterion, maxiters, manifoldsubsteps, viscositysubsteps);
 	}
     else
     {

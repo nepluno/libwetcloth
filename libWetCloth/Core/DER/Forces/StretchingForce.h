@@ -63,6 +63,7 @@ public:
     typedef Eigen::Matrix<scalar, 6, 1> LocalForceType;
     typedef Eigen::Matrix<scalar, 6, 6> LocalJacobianType;
     typedef VecX ForceVectorType;
+    typedef scalar LocalMultiplierType;
 
     static std::string getName()
     {
@@ -70,6 +71,8 @@ public:
     }
 
     static scalar localEnergy( const StrandForce& strand, const IndexType vtx );
+
+    static void computeLocal( LocalMultiplierType& localL, const StrandForce& strand, const IndexType vtx, const scalar& dt );
 
     static void computeLocal( LocalForceType& localF, const StrandForce& strand, const IndexType vtx );
 
@@ -79,21 +82,11 @@ public:
     static void addInPosition( ForceVectorType& globalForce, const IndexType vtx,
             const LocalForceType& localForce );
 
+    static void addInPosition( VecX& globalMultiplier, const IndexType vtx, const LocalMultiplierType& localL );
+
+
     static void accumulateCurrentE( scalar& energy, StrandForce& strand );
     static void accumulateCurrentF( VecX& force, StrandForce& strand );
-
-    static void accumulateIntegrationVars( 
-            const unsigned& pos_start, 
-            const unsigned& j_start, 
-            const unsigned& tildek_start, 
-            const unsigned& global_start_dof, 
-            StrandForce& strand, 
-            VectorXs& lambda, 
-            TripletXs& J, 
-            TripletXs& tildeK, 
-            TripletXs& stiffness, 
-            VectorXs& Phi,
-            const int& lambda_start );
 };
 
 #endif

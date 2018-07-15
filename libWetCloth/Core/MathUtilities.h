@@ -287,6 +287,13 @@ namespace mathutils
 	
     scalar scalarRand(const scalar min, const scalar max);
 	
+    inline scalar perimeter(const scalar& ra, const scalar& rb)
+    {
+    	// The second-Ramanujan approximation to ellipse perimeter
+    	const scalar h = (ra - rb) * (ra - rb) / ((ra + rb) * (ra + rb));
+    	return PI * (ra + rb) * (1. + 3. * h / (10. + sqrt(4. - 3. * h)));
+    }
+
     inline int mod_floor(int a, int n) {
         return ((a % n) + n) % n;
     }
@@ -916,6 +923,11 @@ namespace mathutils
         if(b>c) std::swap(b,c);
     }
 
+    inline Vector4s QuatVec4(const Quat4s& q)
+    {
+    	return Vector4s(q.w(), q.x(), q.y(), q.z());
+    }
+
     inline void dhdr_yarn(double mu, double la, double r22, double r23, double r33, double *dhdr22, double *dhdr23, double *dhdr33){
 		Eigen::Matrix2d r(2,2);
 	    r(0,0) = r22;
@@ -960,6 +972,24 @@ namespace mathutils
     	twist.normalize();
     	return Eigen::AngleAxis<scalar>(twist).angle();
     }
+
+    // build orthonormal basis from a unit vector
+    // Listing 2 in Frisvad 2012, Building an Orthonormal Basis from a 3D Unit Vector Without Normalization
+    inline void orthonormal_basis(const Vector3s& n, Vector3s& b1, Vector3s& b2)
+    {
+    	if(n(2) + 1.0 < 1e-12) {
+    		b1 = Vector3s(0.0, -1.0, 0.0);
+    		b2 = Vector3s(-1.0, 0.0, 0.0);
+    		return;
+    	}
+
+    	const scalar a = 1.0 / (1.0 + n(2));
+    	const scalar b = -n(0) * n(1) * a;
+    	b1 = Vector3s(1.0 - n(0) * n(0) * a, b, -n(0));
+    	b2 = Vector3s(b, 1.0 - n(1) * n(1) * a, -n(1));
+    }
+	
+	void print_histogram_analysis(const std::vector< VectorXs >&, int, const std::string&, bool);
 }
 
 #endif

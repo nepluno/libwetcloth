@@ -116,6 +116,8 @@ public:
 	virtual void preCompute();
 	
 	virtual void updateStartState();
+
+	virtual void updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt );
 	
 	virtual void addEnergyToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, scalar& E );
 	
@@ -169,6 +171,17 @@ public:
 	//// FOSSSim related //////////////////////////////////////////////////
 	std::vector< int > m_verts; // in order root to tip
 	VectorXs m_packing_fraction;
+
+	VectorXs m_v_plus;
+
+	VectorXs m_stretching_multipliers;
+	VectorXs m_bending_multipliers;
+	VectorXs m_twisting_multipliers;
+
+	VectorXs m_viscous_stretching_multipliers;
+	VectorXs m_viscous_bending_multipliers;
+	VectorXs m_viscous_twisting_multipliers;	
+
 	int m_globalIndex; // Global index amongst the hairs
 	std::shared_ptr<StrandParameters> m_strandParams;
 	std::shared_ptr<TwoDScene> m_scene;

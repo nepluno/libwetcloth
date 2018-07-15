@@ -76,7 +76,7 @@ struct SerializePacket
     std::vector< Vector3s > m_hair_vertices;
     std::vector< Vector3s > m_hair_vertices_rest;
     std::vector< Vector2i > m_hair_indices;
-    std::vector< scalar > m_hair_radii;
+    std::vector< Vector2s > m_hair_radii;
     std::vector< scalar > m_hair_sat;
     std::vector< int > m_hair_group;
     

@@ -56,6 +56,11 @@ void CohesionForce::addEnergyToTotal( const VectorXs& x, const VectorXs& v, cons
 {
 }
 
+void CohesionForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
+{
+
+}
+
 void CohesionForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE )
 {
     const std::vector< std::vector<RayTriInfo> >& intersections = m_scene->getIntersections();
@@ -128,6 +133,11 @@ void CohesionForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
             }
         }
     }
+}
+
+bool CohesionForce::parallelized() const
+{
+    return true;
 }
 
 void CohesionForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )

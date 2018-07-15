@@ -85,6 +85,7 @@ struct DistanceField
 	DistanceField(DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, int group_, int params_index_, bool sampled_);
 	
 	virtual void advance(const scalar& dt) = 0;
+	virtual scalar compute_phi(const Vector3s& pos) const = 0;
 	virtual scalar compute_phi_vel(const Vector3s& pos, Vector3s& vel) const = 0;
 	virtual void sample(const scalar& dx, VectorXs& result, VectorXs& normals);
 	virtual bool check_durations(const scalar& cur_time, const scalar& cur_vol, Vector3s& shooting_vel) = 0;
@@ -121,6 +122,7 @@ struct DistanceFieldOperator : public DistanceField
 	
 	virtual void advance(const scalar& dt);
 	virtual scalar compute_phi_vel(const Vector3s& pos, Vector3s& vel) const;
+	virtual scalar compute_phi(const Vector3s& pos) const;
 	virtual bool local_bounding_box(Vector3s& low, Vector3s& high) const;
     virtual void resample_mesh(const scalar& dx, VectorXs& result, VectorXs& normals);
 	virtual bool check_durations(const scalar& cur_time, const scalar& cur_vol, Vector3s& shooting_vel);
@@ -144,6 +146,7 @@ struct DistanceFieldObject : public DistanceField
     virtual void resample_mesh(const scalar& dx, VectorXs& result, VectorXs& normals);
 	virtual bool check_durations(const scalar& cur_time, const scalar& cur_vol, Vector3s& shooting_vel);
 	virtual scalar compute_phi_vel(const Vector3s& pos, Vector3s& vel) const;
+	virtual scalar compute_phi(const Vector3s& pos) const;
 	virtual bool local_bounding_box(Vector3s& low, Vector3s& high) const;
 	virtual void apply_global_rotation(const Eigen::Quaternion<scalar>& rot);
 	virtual void apply_local_rotation(const Eigen::Quaternion<scalar>& rot);
