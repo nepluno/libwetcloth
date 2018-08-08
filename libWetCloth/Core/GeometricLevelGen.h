@@ -47,6 +47,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 #include <tbb/tbb.h>
 #include <cmath>
 #include "MathDefs.h"
@@ -62,17 +63,6 @@ struct levelGen{
 		FixedSparseMatrix<T> &R,
 		FixedSparseMatrix<T> &P,
 		int ni, int nj, int nk);
-
-
-
-	void generateLevelsGalerkinCoarsening(vector<FixedSparseMatrix<T> > &A_L,
-		vector<FixedSparseMatrix<T> > &R_L,
-		vector<FixedSparseMatrix<T> > &P_L,
-		vector<Vector3i>                 &S_L,
-		int & total_level,
-		//given
-		FixedSparseMatrix<T> &A,
-		int ni,int nj,int nk);
 
 	void generateRPCompressed(const FixedSparseMatrix<T> &A,
 		FixedSparseMatrix<T> &R,
@@ -184,92 +174,6 @@ struct levelGen{
 		});
 	}
 
-	void generateLevelsGalerkinCoarseningCompressed(vector<FixedSparseMatrix<T> > &A_L,
-		vector<FixedSparseMatrix<T> > &R_L,
-		vector<FixedSparseMatrix<T> > &P_L,
-		vector<vector<bool> >          &b_L,
-		int & total_level,
-		//given
-		FixedSparseMatrix<T> &A,
-		vector<char>         &mask,
-		vector<int>          &index_table,
-		int ni,int nj,int nk){
-#ifdef AMG_VERBOSE
-			cout<<"building levels ...... "<<endl;
-#endif
-			vector<Vector3i> S_L;
-			vector<char>          mask0;
-			vector<int>           idxTable0;
-			A_L.resize(0);
-			R_L.resize(0);
-			P_L.resize(0);
-			b_L.resize(0);
-			total_level = 1;
-      A_L.push_back(std::move(A));
-			mask0 = mask;
-			idxTable0 = index_table;
-			S_L.push_back(Vector3i(ni,nj,nk));
-			b_L.push_back(vector<bool>());
-			int nni = ni, nnj = nj, nnk = nk;
-			unsigned int unknowns = A.n;
-			while (unknowns > 4096)
-			{
-				A_L.push_back(FixedSparseMatrix<T>());
-				R_L.push_back(FixedSparseMatrix<T>());
-				P_L.push_back(FixedSparseMatrix<T>());
-				nni = ceil((float)nni/2.0);
-				nnj = ceil((float)nnj/2.0);
-				nnk = ceil((float)nnk/2.0);
-
-				S_L.push_back(Vector3i(nni,nnj,nnk));
-				b_L.push_back(vector<bool>());
-
-				int i = total_level - 1;
-				vector<char> mask_temp;
-				vector<int> idxTable_temp;
-				//printf("generating R and P\n");
-				generateRPCompressed((A_L[i]), (R_L[i]),(P_L[i]), (b_L[i]),
-					mask0, idxTable0,
-					mask_temp, idxTable_temp,
-					S_L[i][0], S_L[i][1],S_L[i][2]);
-				//printf("generating R and P done!\n");
-				//printf("%d,%d,%d\n",A_L[i]->n, P_L[i]->n, R_L[i]->n);
-				FixedSparseMatrix<T> temp;
-				multiplyMat((A_L[i]),(P_L[i]),temp,1.0);
-				multiplyMat((R_L[i]),temp, (A_L[i+1]),0.5);
-				//printf("multiply matrix done\n");
-				temp.resize(0);
-				temp.clear();
-				mask0 = mask_temp;
-				idxTable0 = idxTable_temp;
-				idxTable_temp.resize(0);idxTable_temp.shrink_to_fit();
-				mask_temp.resize(0);    mask_temp.shrink_to_fit();
-
-
-				unknowns = A_L[i+1].n;
-				total_level++;
-			}
-
-
-			generatePattern(mask0, idxTable0,
-				(b_L[total_level-1]),
-				S_L[total_level-1][0],
-				S_L[total_level-1][1],
-				S_L[total_level-1][2]);
-
-
-
-#ifdef AMG_VERBOSE
-			cout<<"build levels done"<<endl;
-#endif
-	}
-
-
-
-
-
-
-
 	void generateRPSparse(const FixedSparseMatrix<T> &A,
 		FixedSparseMatrix<T> &R,
 		FixedSparseMatrix<T> &P,
@@ -352,13 +256,13 @@ struct levelGen{
 	}
 
 	void generateLevelsGalerkinCoarseningSparse
-		(vector<FixedSparseMatrix<T> > &A_L,
+	(vector< std::shared_ptr< FixedSparseMatrix<T> > > &A_L,
 		vector<FixedSparseMatrix<T> > &R_L,
 		vector<FixedSparseMatrix<T> > &P_L,
 		vector<vector<bool> >           &b_L,
 		int & total_level,
 		//given
-		FixedSparseMatrix<T> &A,
+	 	const std::shared_ptr< FixedSparseMatrix<T> > &A,
 		vector<Vector3i> & Dof_ijk,
 		int ni, int nj, int nk){
 #ifdef AMG_VERBOSE
@@ -373,14 +277,14 @@ struct levelGen{
 			P_L.resize(0);
 			b_L.resize(0);
 			total_level = 1;
-      A_L.push_back(std::move(A));
+      		A_L.push_back(A);
 			S_L.push_back(Vector3i(ni,nj,nk));
 			b_L.push_back(vector<bool>());
 			int nni = ni, nnj = nj, nnk = nk;
-			unsigned int unknowns = A.n;
+			unsigned int unknowns = A->n;
 			while (unknowns > 4096)
 			{
-				A_L.push_back(FixedSparseMatrix<T>());
+				A_L.push_back(std::make_shared< FixedSparseMatrix<T> >());
 				R_L.push_back(FixedSparseMatrix<T>());
 				P_L.push_back(FixedSparseMatrix<T>());
 				nni = ceil((float)nni/2.0);
@@ -392,7 +296,7 @@ struct levelGen{
 
 				int i = total_level - 1;
 				//printf("generating R and P\n");
-				generateRPSparse((A_L[i]), (R_L[i]),(P_L[i]), (b_L[i]),
+				generateRPSparse(*(A_L[i]), (R_L[i]),(P_L[i]), (b_L[i]),
 					Dof_ijk_fine,Dof_ijk_coarse,
 					S_L[i][0], S_L[i][1],S_L[i][2]);
 				Dof_ijk_fine.resize(0); Dof_ijk_fine.shrink_to_fit();
@@ -400,14 +304,14 @@ struct levelGen{
 				//printf("generating R and P done!\n");
 				//printf("%d,%d,%d\n",A_L[i]->n, P_L[i]->n, R_L[i]->n);
 				FixedSparseMatrix<T> temp;
-				multiplyMat((A_L[i]),(P_L[i]),temp,1.0);
-				multiplyMat((R_L[i]),temp, (A_L[i+1]),0.5);
+				multiplyMat(*(A_L[i]),(P_L[i]),temp,1.0);
+				multiplyMat((R_L[i]),temp, *(A_L[i+1]),0.5);
 				//printf("multiply matrix done\n");
 				temp.resize(0);
 				temp.clear();
 
 
-				unknowns = A_L[i+1].n;
+				unknowns = A_L[i+1]->n;
 				total_level++;
 			}
 

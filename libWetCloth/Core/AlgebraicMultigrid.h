@@ -48,6 +48,7 @@
 #include <tbb/tbb.h>
 #include <thread>
 #include <cmath>
+#include <memory>
 #include "MathDefs.h"
 #include "pcgsolver/sparse_matrix.h"
 #include "pcgsolver/blas_wrapper.h"
@@ -169,178 +170,7 @@ void prolongatoin(const FixedSparseMatrix<T> &P,
 	add_scaled(1.0,xx,x_next);
 	xx.resize(0);
 }
-template<class T>
-void amgVCycle(vector<FixedSparseMatrix<T> > &A_L,
-	vector<FixedSparseMatrix<T> > &R_L,
-	vector<FixedSparseMatrix<T> > &P_L,
-	vector<Vector3i>                  &S_L,
-	vector<T>                      &x,
-	const vector<T>                &b)
-{
-	int total_level = A_L.size();
-	vector<vector<T>> x_L;
-	vector<vector<T>> b_L;
-	x_L.resize(total_level);
-	b_L.resize(total_level);
-	b_L[0] = b;
-	x_L[0] = x;
-	for(int i=1;i<total_level;i++)
-	{
-		int unknowns = S_L[i][0]*S_L[i][1]*S_L[i][2];
-		x_L[i].resize(unknowns);
-		x_L[i].assign(x_L[i].size(),0);
-		b_L[i].resize(unknowns);
-		b_L[i].assign(b_L[i].size(),0);
-	}
 
-	for (int i=0;i<total_level-1;i++)
-	{
-		RBGS((A_L[i]),b_L[i],x_L[i],S_L[i][0],S_L[i][1],S_L[i][2],4);
-		restriction((R_L[i]),(A_L[i]),x_L[i],b_L[i],b_L[i+1]);
-	}
-	int i = total_level-1;
-	RBGS((A_L[i]),b_L[i],x_L[i],S_L[i][0],S_L[i][1],S_L[i][2],200);
-	for (int i=total_level-2;i>=0;i--)
-	{
-		prolongatoin(*(P_L[i]),x_L[i+1],x_L[i]);
-		RBGS((A_L[i]),b_L[i],x_L[i],S_L[i][0],S_L[i][1],S_L[i][2],4);
-	}
-	x = x_L[0];
-
-	for(int i=0;i<total_level;i++)
-	{
-
-		x_L[i].resize(0);
-		x_L[i].shrink_to_fit();
-		b_L[i].resize(0);
-		b_L[i].shrink_to_fit();
-	}
-}
-template<class T>
-void amgPrecond(vector<FixedSparseMatrix<T> > &A_L,
-	vector<FixedSparseMatrix<T> > &R_L,
-	vector<FixedSparseMatrix<T> > &P_L,
-	vector<Vector3i>                  &S_L,
-	vector<T>                      &x,
-	const vector<T>                &b)
-{
-	x.resize(b.size());
-	x.assign(x.size(),0);
-	amgVCycle(A_L,R_L,P_L,S_L,x,b);
-}
-template<class T>
-bool AMGPCGSolve(const SparseMatrix<T> &matrix, 
-	const std::vector<T> &rhs, 
-	std::vector<T> &result, 
-	T tolerance_factor,
-	int max_iterations,
-	T &residual_out, 
-	int &iterations_out,
-	int ni, int nj, int nk) 
-{
-	FixedSparseMatrix<T> fixed_matrix;
-	fixed_matrix.construct_from_matrix(matrix);
-	vector<FixedSparseMatrix<T> > A_L;
-	vector<FixedSparseMatrix<T> > R_L;
-	vector<FixedSparseMatrix<T> > P_L;
-	vector<Vector3i>                  S_L;
-	vector<T>                      m,z,s,r;
-	int total_level;
-	levelGen<T> amg_levelGen;
-	amg_levelGen.generateLevelsGalerkinCoarsening(A_L,R_L,P_L,S_L,total_level,fixed_matrix,ni,nj,nk);
-
-	unsigned int n=matrix.n;
-	if(m.size()!=n){ m.resize(n); s.resize(n); z.resize(n); r.resize(n); }
-	zero(result);
-	r=rhs;
-	residual_out=BLAS::abs_max(r);
-	if(residual_out==0) {
-		iterations_out=0;
-
-
-		for (int i=0; i<total_level; i++)
-		{
-			A_L[i].clear();
-		}
-		for (int i=0; i<total_level-1; i++)
-		{
-
-			R_L[i].clear();
-			P_L[i].clear();
-
-		}
-
-		return true;
-	}
-	double tol=tolerance_factor*residual_out;
-
-	amgPrecond(A_L,R_L,P_L,S_L,z,r);
-	double rho=BLAS::dot(z, r);
-	if(rho==0 || rho!=rho) {
-		for (int i=0; i<total_level; i++)
-		{
-			A_L[i].clear();
-
-		}
-		for (int i=0; i<total_level-1; i++)
-		{
-
-			R_L[i].clear();
-			P_L[i].clear();
-
-		}
-		iterations_out=0;
-		return false;
-	}
-
-	s=z;
-
-	int iteration;
-	for(iteration=0; iteration<max_iterations; ++iteration){
-		multiply(fixed_matrix, s, z);
-		double alpha=rho/BLAS::dot(s, z);
-		BLAS::add_scaled(alpha, s, result);
-		BLAS::add_scaled(-alpha, z, r);
-		residual_out=BLAS::abs_max(r);
-		if(residual_out<=tol) {
-			iterations_out=iteration+1;
-
-			for (int i=0; i<total_level; i++)
-			{
-				A_L[i].clear();
-
-			}
-			for (int i=0; i<total_level-1; i++)
-			{
-
-				R_L[i].clear();
-				P_L[i].clear();
-
-			}
-
-			return true; 
-		}
-		amgPrecond(A_L,R_L,P_L,S_L,z,r);
-		double rho_new=BLAS::dot(z, r);
-		double beta=rho_new/rho;
-		BLAS::add_scaled(beta, s, z); s.swap(z); // s=beta*s+z
-		rho=rho_new;
-	}
-	iterations_out=iteration;
-	for (int i=0; i<total_level; i++)
-	{
-		A_L[i].clear();
-
-	}
-	for (int i=0; i<total_level-1; i++)
-	{
-
-		R_L[i].clear();
-		P_L[i].clear();
-
-	}
-	return false;
-}
 
 template<class T>
 void RBGS_with_pattern(const FixedSparseMatrix<T> &A,
@@ -419,7 +249,7 @@ void RBGS_with_pattern(const FixedSparseMatrix<T> &A,
 }
 
 template<class T>
-void amgVCycleCompressed(vector<FixedSparseMatrix<T> > &A_L,
+void amgVCycleCompressed(vector< std::shared_ptr< FixedSparseMatrix<T> > > &A_L,
 	vector<FixedSparseMatrix<T> > &R_L,
 	vector<FixedSparseMatrix<T> > &P_L,
 	vector<vector<bool> >         &p_L,
@@ -435,7 +265,7 @@ void amgVCycleCompressed(vector<FixedSparseMatrix<T> > &A_L,
 	x_L[0] = x;
 	for(int i=1;i<total_level;i++)
 	{
-		int unknowns = A_L[i].n;
+		int unknowns = A_L[i]->n;
 		x_L[i].resize(unknowns);
 		x_L[i].assign(x_L[i].size(),0);
 		b_L[i].resize(unknowns);
@@ -447,17 +277,17 @@ void amgVCycleCompressed(vector<FixedSparseMatrix<T> > &A_L,
 #ifdef AMG_VERBOSE
 		printf("level: %d, RBGS\n", i);
 #endif
-		RBGS_with_pattern((A_L[i]),b_L[i],x_L[i],(p_L[i]),4);
+		RBGS_with_pattern(*(A_L[i]),b_L[i],x_L[i],(p_L[i]),4);
 #ifdef AMG_VERBOSE
 		printf("level: %d, restriction\n", i);
 #endif
-		restriction((R_L[i]),(A_L[i]),x_L[i],b_L[i],b_L[i+1]);
+		restriction((R_L[i]),*(A_L[i]),x_L[i],b_L[i],b_L[i+1]);
 	}
 	int i = total_level-1;
 #ifdef AMG_VERBOSE
 	printf("level: %d, top solve\n", i);
 #endif
-	RBGS_with_pattern((A_L[i]),b_L[i],x_L[i],(p_L[i]),200);
+	RBGS_with_pattern(*(A_L[i]),b_L[i],x_L[i],(p_L[i]),200);
 	for (int i=total_level-2;i>=0;i--)
 	{
 #ifdef AMG_VERBOSE
@@ -467,7 +297,7 @@ void amgVCycleCompressed(vector<FixedSparseMatrix<T> > &A_L,
 #ifdef AMG_VERBOSE
 		printf("level: %d, RBGS\n", i);
 #endif
-		RBGS_with_pattern((A_L[i]),b_L[i],x_L[i],(p_L[i]),4);
+		RBGS_with_pattern(*(A_L[i]),b_L[i],x_L[i],(p_L[i]),4);
 	}
 	x = x_L[0];
 
@@ -481,7 +311,7 @@ void amgVCycleCompressed(vector<FixedSparseMatrix<T> > &A_L,
 	}
 }
 template<class T>
-void amgPrecondCompressed(vector<FixedSparseMatrix<T> > &A_L,
+void amgPrecondCompressed(vector< std::shared_ptr< FixedSparseMatrix<T> > > &A_L,
 	vector<FixedSparseMatrix<T> > &R_L,
 	vector<FixedSparseMatrix<T> > &P_L,
 	vector<vector<bool>  >        &p_L,
@@ -493,141 +323,6 @@ void amgPrecondCompressed(vector<FixedSparseMatrix<T> > &A_L,
 	x.assign(x.size(),0);
 	amgVCycleCompressed(A_L,R_L,P_L,p_L,x,b);
 	//printf("preconditioning finished\n");
-}
-template<class T>
-bool AMGPCGSolveCompressed(const SparseMatrix<T> &matrix, 
-	const std::vector<T> &rhs, 
-	std::vector<T> &result, 
-	vector<char> &mask,
-	vector<int>  &index_table,
-	T tolerance_factor,
-	int max_iterations,
-	T &residual_out, 
-	int &iterations_out,
-	int ni, int nj, int nk) 
-{
-	static FixedSparseMatrix<T> fixed_matrix;
-	fixed_matrix.construct_from_matrix(matrix);
-	static vector<FixedSparseMatrix<T> > A_L;
-	static vector<FixedSparseMatrix<T> > R_L;
-	static vector<FixedSparseMatrix<T> > P_L;
-	static vector<vector<bool> >          p_L;
-	vector<T>                      m,z,s,r;
-	int total_level;
-	levelGen<T> amg_levelGen;
-#ifdef AMG_VERBOSE
-	std::cout << "[AMG: generate levels]" << std::endl;
-#endif
-	amg_levelGen.generateLevelsGalerkinCoarseningCompressed(A_L,R_L,P_L,p_L,
-		total_level,fixed_matrix,mask,index_table,ni,nj,nk);
-
-	unsigned int n=matrix.n;
-	if(m.size()!=n){ m.resize(n); s.resize(n); z.resize(n); r.resize(n); }
-	zero(result);
-	r=rhs;
-	residual_out=BLAS::abs_max(r);
-	if(residual_out==0) {
-		iterations_out=0;
-
-
-		for (int i=0; i<total_level; i++)
-		{
-			A_L[i].clear();
-		}
-		for (int i=0; i<total_level-1; i++)
-		{
-
-			R_L[i].clear();
-			P_L[i].clear();
-
-		}
-
-		return true;
-	}
-	double tol=tolerance_factor*residual_out;
-#ifdef AMG_VERBOSE
-	std::cout << "[AMG: preconditioning]" << std::endl;
-#endif
-	amgPrecondCompressed(A_L,R_L,P_L,p_L,z,r);
-#ifdef AMG_VERBOSE
-  std::cout<<"[AMG: first precond done]"<< std::endl;
-#endif
-	double rho=BLAS::dot(z, r);
-	if(rho==0 || rho!=rho) {
-		for (int i=0; i<total_level; i++)
-		{
-			A_L[i].clear();
-
-		}
-		for (int i=0; i<total_level-1; i++)
-		{
-
-			R_L[i].clear();
-			P_L[i].clear();
-
-		}
-		iterations_out=0;
-		return false;
-	}
-
-	s=z;
-#ifdef AMG_VERBOSE
-	std::cout << "[AMG: iterative solve]" << std::endl;
-#endif
-	int iteration;
-	for(iteration=0; iteration<max_iterations; ++iteration){
-		multiply(fixed_matrix, s, z);
-		//printf("multiply done\n");
-		double alpha=rho/BLAS::dot(s, z);
-		//printf("%d,%d,%d,%d\n",s.size(),z.size(),r.size(),result.size());
-		BLAS::add_scaled(alpha, s, result);
-		BLAS::add_scaled(-alpha, z, r);
-		residual_out=BLAS::abs_max(r);
-
-		if(residual_out<=tol) {
-			iterations_out=iteration+1;
-
-			for (int i=0; i<total_level; i++)
-			{
-				A_L[i].clear();
-
-			}
-			for (int i=0; i<total_level-1; i++)
-			{
-
-				R_L[i].clear();
-				P_L[i].clear();
-
-			}
-
-			return true; 
-		}
-#ifdef AMG_VERBOSE
-		std::cout << "[AMG: iterative preconditioning]" << std::endl;
-#endif
-		amgPrecondCompressed(A_L,R_L,P_L,p_L,z,r);
-#ifdef AMG_VERBOSE
-    std::cout << "[AMG: second precond done]"<< std::endl;
-#endif
-		double rho_new=BLAS::dot(z, r);
-		double beta=rho_new/rho;
-		BLAS::add_scaled(beta, s, z); s.swap(z); // s=beta*s+z
-		rho=rho_new;
-	}
-	iterations_out=iteration;
-	for (int i=0; i<total_level; i++)
-	{
-		A_L[i].clear();
-
-	}
-	for (int i=0; i<total_level-1; i++)
-	{
-
-		R_L[i].clear();
-		P_L[i].clear();
-
-	}
-	return false;
 }
 
 template<class T>
@@ -641,9 +336,9 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 	int &iterations_out,
 	int ni, int nj, int nk) 
 {
-	static FixedSparseMatrix<T> fixed_matrix;
-	fixed_matrix.construct_from_matrix(matrix);
-	static vector<FixedSparseMatrix<T> > A_L;
+	static std::shared_ptr< FixedSparseMatrix<T> > fixed_matrix = std::make_shared< FixedSparseMatrix<T> >();
+	fixed_matrix->construct_from_matrix(matrix);
+	static vector< std::shared_ptr< FixedSparseMatrix<T> > > A_L;
 	static vector<FixedSparseMatrix<T> > R_L;
 	static vector<FixedSparseMatrix<T> > P_L;
 	static vector<vector<bool> >          p_L;
@@ -667,7 +362,7 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 
 		for (int i=0; i<total_level; i++)
 		{
-			A_L[i].clear();
+			A_L[i]->clear();
 		}
 		for (int i=0; i<total_level-1; i++)
 		{
@@ -691,7 +386,7 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 	if(rho==0 || rho!=rho) {
 		for (int i=0; i<total_level; i++)
 		{
-			A_L[i].clear();
+			A_L[i]->clear();
 
 		}
 		for (int i=0; i<total_level-1; i++)
@@ -711,7 +406,7 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 #endif
 	int iteration;
 	for(iteration=0; iteration<max_iterations; ++iteration){
-		multiply(fixed_matrix, s, z);
+		multiply(*fixed_matrix, s, z);
 		//printf("multiply done\n");
 		double alpha=rho/BLAS::dot(s, z);
 		//printf("%d,%d,%d,%d\n",s.size(),z.size(),r.size(),result.size());
@@ -724,7 +419,7 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 
 			for (int i=0; i<total_level; i++)
 			{
-				A_L[i].clear();
+				A_L[i]->clear();
 
 			}
 			for (int i=0; i<total_level-1; i++)
@@ -752,7 +447,7 @@ bool AMGPCGSolveSparse(const SparseMatrix<T> &matrix,
 	iterations_out=iteration;
 	for (int i=0; i<total_level; i++)
 	{
-		A_L[i].clear();
+		A_L[i]->clear();
 
 	}
 	for (int i=0; i<total_level-1; i++)
