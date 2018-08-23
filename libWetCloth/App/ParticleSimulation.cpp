@@ -198,6 +198,7 @@ void ParticleSimulation::initializeOpenGLRenderer(){
     TwAddVarRW(bar, "correction range", TW_TYPE_DOUBLE, &info.correction_multiplier, " min=0.0 max=10.0 step=0.1 help='Range of liquid particle correction' group='dynamic parameters'");
     TwAddVarRW(bar, "correction strength", TW_TYPE_DOUBLE, &info.correction_strength, " min=0.0 max=10.0 step=0.1 help='Strength of liquid particle correction' group='dynamic parameters'");
     TwAddVarRW(bar, "steps per correction", TW_TYPE_INT32, &info.correction_step, " min=1 max=1000 step=1 help='# steps between each time of correction' group='dynamic parameters'");
+    TwAddVarRW(bar, "passes of curvature smoothing", TW_TYPE_INT32, &info.surf_tension_smoothing_step, " min=0 max=1000 step=1 help='# passes of Laplacian smoothing of the curvature before computing surface tension' group='dynamic parameters'");
     TwAddVarRW(bar, "Liquid 1st-order lossless", TW_TYPE_DOUBLE, &info.flip_coeff, " min=0.0 max=1.0 step=0.0001 help='Lossless of liquid 1st-order movement' group='dynamic parameters'");
     TwAddVarRW(bar, "Solid rotation/shearing lossless", TW_TYPE_DOUBLE, &info.elasto_flip_asym_coeff, " min=0.0 max=1.0 step=0.0001 help='Lossless of solid rotation/shearing' group='dynamic parameters'");
     TwAddVarRW(bar, "Solid stretching lossless", TW_TYPE_DOUBLE, &info.elasto_flip_coeff, " min=0.0 max=1.0 step=0.0001 help='Lossless of solid stretching' group='dynamic parameters'");
@@ -209,6 +210,7 @@ void ParticleSimulation::initializeOpenGLRenderer(){
         TwAddVarRW(bar, "Bending energy", bendingType, &info.bending_scheme, " help='Change the way to calculate bending energy of cloth' group='dynamic parameters'");
     }
     
+    TwAddVarRW(bar, "Use surface tension", TW_TYPE_BOOLCPP, &info.use_surf_tension, " help='Use/Not use surface tension force' group='features'");
     TwAddVarRW(bar, "Use cohesion", TW_TYPE_BOOLCPP, &info.use_cohesion, " help='Use/Not use cohesion force' group='features'");
     TwAddVarRW(bar, "Levelset cohesion", TW_TYPE_BOOLCPP, &info.solid_cohesion, " help='Calculate cohesion force between cloth/yarn and levelset' group='features'");
     TwAddVarRW(bar, "Cloth/Yarn cohesion", TW_TYPE_BOOLCPP, &info.soft_cohesion, " help='Calculate self-cohesion of cloth/yarn' group='features'");

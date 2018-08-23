@@ -55,7 +55,7 @@
 class LinearizedImplicitEuler : public SceneStepper
 {
 public:
-	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_static_criterion, const scalar& viscous_criterion, int maxiters, int manifold_substeps, int viscosity_substeps );
+	LinearizedImplicitEuler( const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_static_criterion, const scalar& viscous_criterion, int maxiters, int manifold_substeps, int viscosity_substeps, int surf_tension_substeps );
 	
 	virtual ~LinearizedImplicitEuler();
 	
@@ -100,6 +100,8 @@ public:
     virtual bool solveBiCGSTAB( TwoDScene& scene, scalar dt );
 	
 	virtual bool manifoldPropagate( TwoDScene& scene, scalar dt );
+    
+    virtual bool advectSurfTension( TwoDScene& scene, scalar dt );
     
     virtual scalar computeDivergence( TwoDScene& scene );
     
@@ -344,6 +346,7 @@ private:
 	const int m_maxiters;
 	const int m_manifold_substeps;
 	const int m_viscosity_substeps;
+    const int m_surf_tension_substeps;
 	
 	std::vector< VectorXs > m_node_rhs_x;
 	std::vector< VectorXs > m_node_rhs_y;

@@ -148,6 +148,9 @@ void WetClothCore::stepSystem(const scalar &dt){
         
         // Compute Cohesion Force
         m_scene->updateIntersection();
+        
+        // Advect Surface Tension Force
+        m_scene_stepper->advectSurfTension( *m_scene, dt );
 		
 		// Here's the precomputation of some forces lay
         m_scene->updateStartState();

@@ -1624,6 +1624,11 @@ void TwoDScene::initGaussSystem()
     m_gauss_nodes_x.resize(num_system);
     m_gauss_nodes_y.resize(num_system);
     m_gauss_nodes_z.resize(num_system);
+    
+    if(useSurfTension()) {
+        m_gauss_nodes_p.resize(num_system);
+    }
+    
     m_gauss_grads_x.resize(num_system);
     m_gauss_grads_y.resize(num_system);
     m_gauss_grads_z.resize(num_system);
@@ -1947,6 +1952,11 @@ void TwoDScene::setBucketInfo( const scalar& bucket_size, int num_nodes, int ker
 int TwoDScene::getNumColors() const
 {
     return m_num_colors;
+}
+
+const std::vector< VectorXi >& TwoDScene::getNodeColorP() const
+{
+    return m_node_color_p;
 }
 
 const std::vector< std::pair<int, int> >& TwoDScene::getNodeParticlePairsX(int bucket_idx, int pidx) const
@@ -3110,6 +3120,604 @@ void TwoDScene::mergeLiquidParticles()
     relabelLiquidParticles();
 }
 
+void TwoDScene::extendLiquidPhi()
+{
+    const int num_buckets = (int) m_particle_buckets.size();
+    const int num_elasto = getNumSoftElastoParticles();
+    const scalar dx = getCellSize();
+    
+    m_node_combined_phi.resize(num_buckets);
+    m_node_surf_tension.resize(num_buckets);
+    // construct extended phi
+    m_gauss_buckets.for_each_bucket([&] (int bucket_idx) {
+        m_node_combined_phi[bucket_idx] = m_node_liquid_phi[bucket_idx];
+        m_node_surf_tension[bucket_idx].resize(m_node_liquid_phi[bucket_idx].size());
+        m_node_surf_tension[bucket_idx].setZero();
+    });
+    
+    const int num_edges = getNumEdges();
+    const int num_faces = getNumFaces();
+    
+    MatrixXs m_x_reshaped(num_elasto, 3);
+    
+    threadutils::for_each(0, num_elasto, [&] (int pidx) {
+        m_x_reshaped.row(pidx) = m_x.segment<3>(pidx * 4).transpose();
+    });
+    
+    m_gauss_buckets.for_each_bucket_particles_colored([&] (int gidx, int) {
+        if(gidx < num_edges) {
+            const auto& indices = m_gauss_nodes_p[gidx];
+            
+            const scalar rad_e = m_radius_gauss(gidx);
+            
+            for(int i = 0; i < indices.rows(); ++i) {
+                if(indices(i, 0) < 0) continue;
+                
+                VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
+                if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
+                
+                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                
+                scalar sqr_d = dx * 3.0;
+                Vector3s cp;
+                igl::point_simplex_squared_distance<3>(np, m_x_reshaped, m_edges, gidx, sqr_d, cp);
+                
+                const scalar phi = sqrt(std::max(0.0, sqr_d)) - std::max(dx * 0.71, rad_e);
+                
+                if(phi < phis( indices(i, 1) )) {
+                    phis( indices(i, 1) ) = phi;
+                }
+            }
+        } else if(gidx < num_edges + num_faces) {
+            const int fidx = gidx - num_edges;
+            
+            const auto& indices = m_gauss_nodes_p[gidx];
+            const scalar rad_e = m_radius_gauss(gidx);
+            
+            for(int i = 0; i < indices.rows(); ++i) {
+                if(indices(i, 0) < 0) continue;
+                
+                VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
+                if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
+                
+                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                
+                scalar sqr_d = dx * 3.0;
+                Vector3s cp;
+                igl::point_simplex_squared_distance<3>(np, m_x_reshaped, m_faces, fidx, sqr_d, cp);
+                
+                const scalar phi = sqrt(std::max(0.0, sqr_d)) - std::max(dx * 0.51, rad_e);
+                
+                if(phi < phis( indices(i, 1) )) {
+                    phis( indices(i, 1) ) = phi;
+                }
+            }
+        }
+    });
+}
+
+
+void TwoDScene::updateColorP()
+{
+    const int num_buckets = (int) m_particle_buckets.size();
+    m_node_color_p.resize( num_buckets );
+    
+    std::vector< std::vector< std::unordered_set<uint64> > > color_map( num_buckets );
+    std::vector< std::vector< int > > color_remap( num_buckets );
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        const VectorXi& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+        const VectorXs& bucket_phi = m_node_combined_phi[bucket_idx];
+        const int num_nodes_p = bucket_phi.size();
+        
+        bucket_color.resize(num_nodes_p);
+        bucket_color.setZero();
+        
+        int c = 0;
+        
+        for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+        {
+            if(bucket_color(node_idx) != 0) continue;
+            
+            bool isBoundary = false;
+            
+            const scalar cur_phi = bucket_phi(node_idx);
+            
+            for(int r = 0; r < 6; ++r) {
+                const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                if(neigh[0] < 0 || neigh[1] < 0) continue;
+                
+                const scalar neigh_phi = m_node_combined_phi[ neigh[0] ][ neigh[1] ];
+                if(cur_phi * neigh_phi <= 0.0) {
+                    isBoundary = true;
+                    break;
+                }
+            }
+            
+            if(!isBoundary) continue;
+            
+            c++;
+            
+            bucket_color(node_idx) = c;
+            
+            std::stack<int> node_stack;
+            
+            for(int r = 0; r < 6; ++r) {
+                const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                if(neigh[0] < 0 || neigh[1] < 0) continue;
+                
+                if(neigh[0] == bucket_idx && bucket_color[neigh[1]] == 0)
+                    node_stack.push(neigh[1]);
+            }
+            
+            while(!node_stack.empty()) {
+                const int cur_node_idx = node_stack.top();
+                node_stack.pop();
+                
+                if(bucket_color(cur_node_idx) != 0) continue;
+                
+                const scalar& cur_phi = bucket_phi(cur_node_idx);
+                
+                bool cur_isBoundary = false;
+                
+                for(int r = 0; r < 6; ++r) {
+                    const Vector2i& neigh = pp_neighbors.segment<2>(cur_node_idx * 36 + r * 2);
+                    if(neigh[0] < 0 || neigh[1] < 0) continue;
+                    
+                    const scalar neigh_phi = m_node_combined_phi[ neigh[0] ][ neigh[1] ];
+                    if(cur_phi * neigh_phi <= 0.0) {
+                        cur_isBoundary = true;
+                        break;
+                    }
+                }
+                
+                if(!cur_isBoundary) continue;
+                
+                bucket_color(cur_node_idx) = c;
+                
+                for(int r = 0; r < 6; ++r) {
+                    const Vector2i& neigh = pp_neighbors.segment<2>(cur_node_idx * 36 + r * 2);
+                    if(neigh[0] < 0 || neigh[1] < 0) continue;
+                    
+                    if(neigh[0] == bucket_idx && bucket_color[neigh[1]] == 0)
+                        node_stack.push(neigh[1]);
+                }
+            }
+        }
+        
+        auto& bucket_color_map = color_map[bucket_idx];
+        bucket_color_map.resize(c + 1);
+        
+        color_remap[bucket_idx].resize(c + 1, 0);
+    });
+    
+    // sync color between buckets
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        const VectorXi& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+        auto& bucket_color_map = color_map[bucket_idx];
+        const int num_nodes_p = bucket_color.size();
+        
+        for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+        {
+            int color_center = bucket_color[node_idx];
+            if(color_center == 0) continue;
+            
+            for(int r = 0; r < 6; ++r) {
+                const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                if(neigh[0] < 0 || neigh[1] < 0 || neigh[0] == bucket_idx) continue;
+                
+                int color_neigh = m_node_color_p[neigh[0]][neigh[1]];
+                if(color_neigh == 0) continue;
+                
+                bucket_color_map[color_center].insert(((uint64) neigh[0] << 32UL) | (uint64) color_neigh);
+            }
+        }
+    });
+    
+    int c = 0;
+    for(int bucket_idx = 0; bucket_idx < num_buckets; ++bucket_idx)
+    {
+        auto& bucket_color_map = color_map[bucket_idx];
+        auto& bucket_color_remap = color_remap[bucket_idx];
+        const int num_colors = bucket_color_map.size();
+        for(int i = 1; i < num_colors; ++i) {
+            if(bucket_color_remap[i] != 0) continue;
+            
+            c++;
+            
+            bucket_color_remap[i] = c;
+            
+            auto& color_neigh = bucket_color_map[i];
+            
+            std::stack<Vector2i> node_stack;
+            
+            for(const uint64& neigh : color_neigh)
+            {
+                node_stack.push(Vector2i((int)(neigh >> 32UL), (int) (neigh & 0xFFFFFFFFUL)));
+            }
+            
+            while(!node_stack.empty())
+            {
+                Vector2i cur_node = node_stack.top();
+                node_stack.pop();
+                
+                if(color_remap[cur_node[0]][cur_node[1]] != 0) continue;
+                
+                color_remap[cur_node[0]][cur_node[1]] = c;
+                
+                auto& cur_color_neigh = color_map[cur_node[0]][cur_node[1]];
+                
+                for(const uint64& neigh : cur_color_neigh)
+                {
+                    node_stack.push(Vector2i((int)(neigh >> 32UL), (int) (neigh & 0xFFFFFFFFUL)));
+                }
+            }
+        }
+    }
+    
+    m_num_colors = c + 1;
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        const int num_nodes_p = bucket_color.size();
+        
+        for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+        {
+            if(bucket_color[node_idx] != 0) {
+                const int mapped_c = color_remap[ bucket_idx ][ bucket_color[node_idx] ];
+                bucket_color[node_idx] = mapped_c;
+            }
+        }
+    });
+}
+
+/*
+ * see Section 4 in [Sussman and Ohta 2009] for details
+ */
+void TwoDScene::updateCurvatureP()
+{
+    const int num_buckets = (int) m_particle_buckets.size();
+    
+    const int search_pattern[3][9] = {
+        {12, 4, 13, 2, -1, 3, 16, 5, 17},
+        {10, 4, 11, 0, -1, 1, 14, 5, 15},
+        {6, 2, 7, 0, -1, 1, 8, 3, 9}
+    };
+    
+    m_node_curvature_p.resize( num_buckets );
+    std::vector< VectorXuc > valid( num_buckets );
+    
+    auto find_height = [this] (const Vector2i& index, int orien) -> scalar {
+        if(index[0] < 0 || index[1] < 0) return 0.0;
+        
+        const int backward_dir = orien * 2;
+        
+        scalar height = 0.0;
+        
+        Vector2i cur_node = index;
+        scalar cur_phi = m_node_combined_phi[index[0]][index[1]];
+        for(int i = 0; i < 3; ++i) {
+            Vector2i next_node = m_node_pp_neighbors[cur_node[0]].segment<2>(cur_node[1] * 36 + backward_dir * 2);
+            
+            scalar next_phi = cur_phi + getCellSize();
+            if(next_node[0] >= 0 && next_node[1] >= 0) next_phi = m_node_combined_phi[next_node[0]][next_node[1]];
+            
+            height += mathutils::fraction_inside(cur_phi, next_phi);
+            
+            if(!(next_node[0] >= 0 && next_node[1] >= 0)) break;
+            
+            cur_phi = next_phi;
+            cur_node = next_node;
+        }
+        
+        const int forward_dir = orien * 2 + 1;
+        cur_node = index;
+        cur_phi = m_node_combined_phi[index[0]][index[1]];
+        for(int i = 0; i < 3; ++i) {
+            Vector2i next_node = m_node_pp_neighbors[cur_node[0]].segment<2>(cur_node[1] * 36 + forward_dir * 2);
+            
+            scalar next_phi = cur_phi + getCellSize();
+            if(next_node[0] >= 0 && next_node[1] >= 0) next_phi = m_node_combined_phi[next_node[0]][next_node[1]];
+            
+            height += mathutils::fraction_inside(cur_phi, next_phi);
+            
+            if(!(next_node[0] >= 0 && next_node[1] >= 0)) break;
+            
+            cur_phi = next_phi;
+            cur_node = next_node;
+        }
+        
+        return height * getCellSize();
+    };
+    
+    const scalar dx = getCellSize();
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        VectorXs& bucket_curv = m_node_curvature_p[bucket_idx];
+        const VectorXi& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+        const VectorXs& bucket_phi = m_node_combined_phi[bucket_idx];
+        const int num_nodes_p = bucket_phi.size();
+        
+        VectorXuc& bucket_valid = valid[bucket_idx];
+        
+        bucket_curv.resize(num_nodes_p);
+        bucket_curv.setZero();
+        
+        bucket_valid.resize(num_nodes_p);
+        bucket_valid.setZero();
+        
+        for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+        {
+            scalar phi_center = bucket_phi[node_idx];
+            
+            int test_dir = -1;
+            scalar max_grad_phi = 0.0;
+            
+            for(int r = 0; r < 6; ++r) {
+                const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                if(neigh[0] < 0 || neigh[1] < 0) continue;
+                if(m_node_combined_phi[neigh[0]].size() == 0) continue;
+                
+                const scalar& phi_neigh = m_node_combined_phi[neigh[0]][neigh[1]];
+                
+                if(phi_center * phi_neigh <= 0.0 &&
+                   fabs(phi_center - phi_neigh) > max_grad_phi) {
+                    test_dir = r;
+                    max_grad_phi = fabs(phi_center - phi_neigh);
+                }
+            }
+            
+            if(test_dir < 0) continue;
+            
+            const int orientation = test_dir / 2;
+            
+            Vector9s hfs;
+            
+            for(int i = 0; i < 9; ++i) {
+                const int spo = search_pattern[orientation][i];
+                if(spo < 0) {
+                    const Vector2i seed = Vector2i(bucket_idx, node_idx);
+                    hfs(i) = find_height(seed, orientation);
+                } else {
+                    const Vector2i& seed = pp_neighbors.segment<2>(node_idx * 36 + spo * 2);
+                    hfs(i) = find_height(seed, orientation);
+                }
+            }
+            
+            bucket_curv(node_idx) = mathutils::mean_curvature(hfs, dx);
+            bucket_valid(node_idx) = 1U;
+        }
+    });
+    
+    /*
+     * Compute kappa_avg and substract from kappa, see Section 5 in [Sussman and Ohta 2009] for details
+     */
+    std::vector< VectorXs > kappa_avg(num_buckets);
+    std::vector< VectorXi > count_avg(num_buckets);
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        const VectorXs& bucket_curv = m_node_curvature_p[bucket_idx];
+        const VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        const VectorXuc& bucket_valid = valid[bucket_idx];
+        const int num_nodes_p = bucket_curv.size();
+        
+        VectorXs& bucket_kavg = kappa_avg[bucket_idx];
+        bucket_kavg.resize(m_num_colors);
+        bucket_kavg.setZero();
+        
+        VectorXi& bucket_count_avg = count_avg[bucket_idx];
+        bucket_count_avg.resize(m_num_colors);
+        bucket_count_avg.setZero();
+        
+        for(int i = 0; i < num_nodes_p; ++i)
+        {
+            if(!bucket_valid[i]) continue;
+            
+            const int c = bucket_color[i];
+            bucket_kavg[c] += bucket_curv(i);
+            bucket_count_avg[c]++;
+        }
+    });
+    
+    std::vector< scalar > global_kappa_avg(m_num_colors, 0.0);
+    std::vector< int > global_kappa_count(m_num_colors, 0);
+    for(int i = 0; i < num_buckets; ++i) {
+        for(int c = 0; c < m_num_colors; ++c)
+        {
+            global_kappa_avg[c] += kappa_avg[i][c];
+            global_kappa_count[c] += count_avg[i][c];
+        }
+    }
+    
+    for(int c = 0; c < m_num_colors; ++c)
+    {
+        if(global_kappa_count[c] > 0)
+            global_kappa_avg[c] /= (scalar) global_kappa_count[c];
+    }
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        VectorXs& bucket_curv = m_node_curvature_p[bucket_idx];
+        const VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        const VectorXuc& bucket_valid = valid[bucket_idx];
+        
+        const int num_nodes_p = bucket_curv.size();
+        
+        for(int i = 0; i < num_nodes_p; ++i)
+        {
+            if(!bucket_valid[i]) continue;
+            
+            bucket_curv[i] -= global_kappa_avg[ bucket_color[i] ];
+        }
+    });
+    
+    /*
+     * Laplacian smoothing
+     */
+    for(int i = 0; i < m_liquid_info.surf_tension_smoothing_step; ++i) {
+        std::vector<VectorXs> backup_curv = m_node_curvature_p;
+        
+        m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+            VectorXs& bucket_curv = backup_curv[bucket_idx];
+            const VectorXi& bucket_color = m_node_color_p[bucket_idx];
+            const VectorXuc& bucket_valid = valid[bucket_idx];
+            const VectorXi& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+            
+            const int num_nodes_p = bucket_curv.size();
+            
+            for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+            {
+                if(!bucket_valid[node_idx]) continue;
+                
+                scalar curv = bucket_curv[node_idx];
+                scalar w = 1.0;
+                
+                for(int r = 0; r < 6; ++r) {
+                    const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                    if(neigh[0] < 0 || neigh[1] < 0) continue;
+                    if(!valid[neigh[0]][neigh[1]]) continue;
+                    if(m_node_color_p[neigh[0]][neigh[1]] != bucket_color[node_idx]) continue;
+                    
+                    curv += backup_curv[neigh[0]][neigh[1]] * 0.7071;
+                    w += 0.7071;
+                }
+                
+                m_node_curvature_p[bucket_idx][node_idx] = curv / w;
+            }
+        });
+    }
+    
+    /*
+     * Extrapolate for kappa - kappa_avg, see Section 5.2 in [Sussman and Ohta 2009] for details
+     */
+    for(int i = 0; i < 3; ++i) {
+        std::vector<VectorXuc> old_valid = valid;
+        
+        m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+            VectorXs& bucket_curv = m_node_curvature_p[bucket_idx];
+            const VectorXuc& bucket_valid = old_valid[bucket_idx];
+            const VectorXi& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+            
+            const int num_nodes_p = bucket_curv.size();
+            
+            for(int node_idx = 0; node_idx < num_nodes_p; ++node_idx)
+            {
+                if(bucket_valid[node_idx]) continue;
+                
+                scalar curv = 0.0;
+                scalar w = 0.0;
+                
+                for(int r = 0; r < 6; ++r) {
+                    const Vector2i& neigh = pp_neighbors.segment<2>(node_idx * 36 + r * 2);
+                    if(neigh[0] < 0 || neigh[1] < 0) continue;
+                    if(!old_valid[neigh[0]][neigh[1]]) continue;
+                    
+                    curv += m_node_curvature_p[neigh[0]][neigh[1]] * 0.555556;
+                    w += 0.555556;
+                }
+                
+                if(w > 1e-12) {
+                    m_node_curvature_p[bucket_idx][node_idx] = curv / w;
+                    valid[bucket_idx][node_idx] = 1U;
+                } else {
+                    m_node_curvature_p[bucket_idx][node_idx] = 0.0;
+                }
+            }
+        });
+    }
+}
+
+void TwoDScene::advectCurvatureP(const scalar& dt)
+{
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        const VectorXs& bucket_curv = m_node_curvature_p[bucket_idx];
+        VectorXs& bucket_phi = m_node_combined_phi[bucket_idx];
+        VectorXs& bucket_surf_tension = m_node_surf_tension[bucket_idx];
+        
+        const int num_nodes_p = bucket_curv.size();
+        for(int i = 0; i < num_nodes_p; ++i)
+        {
+            const scalar sig_kappa = m_liquid_info.surf_tension_coeff * bucket_curv[i] * dt;
+            bucket_phi(i) += sig_kappa;
+            bucket_surf_tension(i) += sig_kappa;
+        }
+    });
+    
+    // reinit elasto part
+    const int num_edges = getNumEdges();
+    const int num_faces = getNumFaces();
+    const int num_elasto = num_edges + num_faces;
+    const scalar dx = getCellSize();
+    
+    MatrixXs m_x_reshaped(num_elasto, 3);
+    
+    threadutils::for_each(0, num_elasto, [&] (int pidx) {
+        m_x_reshaped.row(pidx) = m_x.segment<3>(pidx * 4).transpose();
+    });
+    
+    m_gauss_buckets.for_each_bucket_particles_colored([&] (int gidx, int) {
+        if(gidx < num_edges) {
+            const auto& indices = m_gauss_nodes_p[gidx];
+            
+            const scalar rad_e = m_radius_gauss(gidx);
+            
+            for(int i = 0; i < indices.rows(); ++i) {
+                if(indices(i, 0) < 0) continue;
+                
+                VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
+                if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
+                
+                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                
+                scalar sqr_d = dx * 3.0;
+                Vector3s cp;
+                igl::point_simplex_squared_distance<3>(np, m_x_reshaped, m_edges, gidx, sqr_d, cp);
+                
+                const scalar phi = sqrt(std::max(0.0, sqr_d)) - std::max(dx * 0.71, rad_e);
+                
+                if(phi < phis( indices(i, 1) )) {
+                    phis( indices(i, 1) ) = phi;
+                }
+            }
+        } else if(gidx < num_edges + num_faces) {
+            const int fidx = gidx - num_edges;
+            
+            const auto& indices = m_gauss_nodes_p[gidx];
+            const scalar rad_e = m_radius_gauss(gidx);
+            
+            for(int i = 0; i < indices.rows(); ++i) {
+                if(indices(i, 0) < 0) continue;
+                
+                VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
+                if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
+                
+                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                
+                scalar sqr_d = dx * 3.0;
+                Vector3s cp;
+                igl::point_simplex_squared_distance<3>(np, m_x_reshaped, m_faces, fidx, sqr_d, cp);
+                
+                const scalar phi = sqrt(std::max(0.0, sqr_d)) - std::max(dx * 0.51, rad_e);
+                
+                if(phi < phis( indices(i, 1) )) {
+                    phis( indices(i, 1) ) = phi;
+                }
+            }
+        }
+    });
+}
+
+const std::vector< VectorXs >& TwoDScene::getNodeSurfTensionP() const
+{
+    return m_node_surf_tension;
+}
+
+bool TwoDScene::useSurfTension() const
+{
+    return m_liquid_info.use_surf_tension;
+}
+
 void TwoDScene::updateLiquidPhi(scalar dt)
 {
     const int num_buckets = (int) m_particle_buckets.size();
@@ -3118,7 +3726,6 @@ void TwoDScene::updateLiquidPhi(scalar dt)
     m_node_pressure.resize(num_buckets);
     
     const scalar dx = getCellSize();
-    const scalar DX = getBucketLength();
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
         const int num_phi = m_node_pos_p[bucket_idx].size() / 3;
@@ -3185,6 +3792,153 @@ void TwoDScene::updateLiquidPhi(scalar dt)
         estimateVolumeFractions(m_node_liquid_ey_vf, m_node_pos_ey);
         estimateVolumeFractions(m_node_liquid_ez_vf, m_node_pos_ez);
     }
+    
+    if(m_liquid_info.use_surf_tension)
+    {
+        extendLiquidPhi();
+    }
+}
+
+void TwoDScene::renormalizeLiquidPhi()
+{
+    // for all negative values, mark it to be invalid if their neighbors are all negative
+    const int num_buckets = getNumBuckets();
+    
+    std::vector< VectorXuc > negative( num_buckets );
+    
+    const scalar dx = getCellSize();
+    
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        auto& bucket_phi = m_node_combined_phi[bucket_idx];
+        const int num_node_p = bucket_phi.size();
+        auto& bucket_state = negative[bucket_idx];
+        const VectorXi& bucket_color = m_node_color_p[bucket_idx];
+        
+        bucket_state.resize(num_node_p);
+        bucket_state.setZero();
+        
+        for(int node_idx = 0; node_idx < num_node_p; ++node_idx)
+        {
+            if(bucket_phi(node_idx) < 0.0) {
+                bucket_state(node_idx) = 1U;
+                bucket_phi(node_idx) *= -1.0;
+            }
+            
+            if(bucket_color(node_idx) == 0) {
+                bucket_phi(node_idx) = dx * 3.0;
+            }
+        }
+    });
+    
+    auto sweep_func = [this] (const VectorXi& pp_neighbors,
+                              const VectorXi& bucket_cpidx,
+                              const VectorXi& bucket_color,
+                              VectorXs& bucket_phi,
+                              int raw_node_idx) {
+        const int node_idx = bucket_cpidx[raw_node_idx];
+        if(node_idx < 0 || node_idx >= bucket_color.size() || bucket_color[node_idx]) return;
+        
+        const Vector2i& p_left = pp_neighbors.segment<2>( node_idx * 36 + 0 );
+        const Vector2i& p_right = pp_neighbors.segment<2>( node_idx * 36 + 2 );
+        const Vector2i& p_bottom = pp_neighbors.segment<2>( node_idx * 36 + 4 );
+        const Vector2i& p_top = pp_neighbors.segment<2>( node_idx * 36 + 6 );
+        const Vector2i& p_near = pp_neighbors.segment<2>( node_idx * 36 + 8 );
+        const Vector2i& p_far = pp_neighbors.segment<2>( node_idx * 36 + 10 );
+        
+        const scalar dx = getCellSize();
+        
+        scalar phi_left = (p_left[0] >= 0 && p_left[1] >= 0) ? m_node_combined_phi[ p_left[0] ][ p_left[1] ] : (dx * 3.0);
+        scalar phi_right = (p_right[0] >= 0 && p_right[1] >= 0) ? m_node_combined_phi[ p_right[0] ][ p_right[1] ] : (dx * 3.0);
+        scalar phi_bottom = (p_bottom[0] >= 0 && p_bottom[1] >= 0) ? m_node_combined_phi[ p_bottom[0] ][ p_bottom[1] ] : (dx * 3.0);
+        scalar phi_top = (p_top[0] >= 0 && p_top[1] >= 0) ? m_node_combined_phi[ p_top[0] ][ p_top[1] ] : (dx * 3.0);
+        scalar phi_near = (p_near[0] >= 0 && p_near[1] >= 0) ? m_node_combined_phi[ p_near[0] ][ p_near[1] ] : (dx * 3.0);
+        scalar phi_far = (p_far[0] >= 0 && p_far[1] >= 0) ? m_node_combined_phi[ p_far[0] ][ p_far[1] ] : (dx * 3.0);
+        
+        scalar m[3];
+        
+        m[0] = std::min( phi_left, phi_right );
+        m[1] = std::min( phi_bottom, phi_top );
+        m[2] = std::min( phi_near, phi_far );
+        
+        // sort the mins
+        for(int i = 1; i < 3; i++){
+            for(int j = 0; j < 3 - i; j++) {
+                if(m[j] > m[j + 1]) {
+                    std::swap(m[j], m[j + 1]);
+                }
+            }
+        }
+        
+        const scalar d2 = dx * dx;
+        
+        scalar m2_0 = m[0] * m[0], m2_1 = m[1] * m[1], m2_2 = m[2] * m[2];
+        
+        scalar dist_new = m[0] + dx;
+        if(dist_new > m[1]) {
+            
+            scalar s = sqrt(std::max(0.0, - m2_0 + 2.0 * m[0] * m[1] - m2_1 + d2 * 2.0));
+            dist_new = ( m[1] + m[0] + s ) * 0.5;
+            
+            if(dist_new > m[2]) {
+                double a = sqrt(std::max(0.0, (- m2_0 + m[0] * m[1]
+                                               - m2_1 + m[0] * m[2]
+                                               - m2_2 + m[1] * m[2]) * 2.0
+                                         + d2 * 3.0));
+                
+                dist_new = (m[0] + m[1] + m[2] + a) / 3.0;
+            }
+        }
+        
+        bucket_phi(node_idx) = std::min(bucket_phi(node_idx), dist_new);
+    };
+    
+    // colored sweep in 8 directions, for distance within (0, -5*dx)
+    const int sweeps[8][3] = {{1,1,1}, {0,1,0}, {0,1,1}, {1,1,0}, {0,0,0}, {1,0,1}, {1,0,0}, {0,0,1}};
+    
+    for(int r = 0; r < 8; ++r) {
+        const int iStart = (sweeps[r][0]) ? 0 : m_num_nodes - 1;
+        const int iEnd   = (sweeps[r][0]) ? m_num_nodes : -1;
+        
+        const int jStart = (sweeps[r][1]) ? 0 : m_num_nodes - 1;
+        const int jEnd   = (sweeps[r][1]) ? m_num_nodes : -1;
+        
+        const int kStart = (sweeps[r][2]) ? 0 : m_num_nodes - 1;
+        const int kEnd   = (sweeps[r][2]) ? m_num_nodes : -1;
+        
+        const int iIncr = (sweeps[r][0]) ? 1 : -1;
+        const int jIncr = (sweeps[r][1]) ? 1 : -1;
+        const int kIncr = (sweeps[r][2]) ? 1 : -1;
+        
+        m_particle_buckets.fast_sweep_buckets(r, [&] (int bucket_idx) {
+            auto& bucket_phi = m_node_combined_phi[bucket_idx];
+            
+            const auto& pp_neighbors = m_node_pp_neighbors[bucket_idx];
+            const auto& bucket_color = m_node_color_p[bucket_idx];
+            const auto& bucket_cpidx = m_node_cpidx_p[bucket_idx];
+            
+            if(bucket_color.size() == 0) return;
+            
+            for (int k = kStart; k != kEnd; k += kIncr) for (int j = jStart; j != jEnd; j += jIncr) for (int i = iStart; i != iEnd; i += iIncr)
+            {
+                const int raw_node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
+                sweep_func(pp_neighbors, bucket_cpidx, bucket_color, bucket_phi, raw_node_idx);
+            }
+        });
+    }
+    
+    // inverse the sign
+    m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        auto& bucket_phi = m_node_combined_phi[bucket_idx];
+        const int num_node_p = bucket_phi.size();
+        auto& bucket_state = negative[bucket_idx];
+        
+        for(int node_idx = 0; node_idx < num_node_p; ++node_idx)
+        {
+            if(bucket_state(node_idx)) {
+                bucket_phi(node_idx) *= -1.0;
+            }
+        }
+    });
 }
 
 void TwoDScene::estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos)
@@ -5554,6 +6308,10 @@ void TwoDScene::resampleNodes()
     findSolidPhiNodes(m_particle_buckets, m_x, m_particle_nodes_solid_phi);
     findNodesPressure(m_particle_buckets, m_x, m_particle_nodes_p);
     
+    if(useSurfTension()) {
+        findNodesPressure(m_gauss_buckets, m_x_gauss, m_gauss_nodes_p);
+    }
+    
     if(m_liquid_info.compute_viscosity) {
         findEdgeNodes(m_particle_buckets, m_x);
     }
@@ -5561,7 +6319,7 @@ void TwoDScene::resampleNodes()
     findGaussNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_x, m_gauss_nodes_y, m_gauss_nodes_z);
 	
 	if(getNumFluidParticles() > 0) {
-		if(m_liquid_info.compute_viscosity)
+		if(m_liquid_info.compute_viscosity || m_liquid_info.use_surf_tension)
 			expandFluidNodesMarked(2);
 		else
 			expandFluidNodesMarked(1);
@@ -5588,6 +6346,10 @@ void TwoDScene::resampleNodes()
     compressParticleNodes<27>(m_node_cpidx_x, m_gauss_nodes_x);
     compressParticleNodes<27>(m_node_cpidx_y, m_gauss_nodes_y);
     compressParticleNodes<27>(m_node_cpidx_z, m_gauss_nodes_z);
+    
+    if(useSurfTension()) {
+        compressParticleNodes<27>(m_node_cpidx_p, m_gauss_nodes_p);
+    }
     
     markInsideOut();
     

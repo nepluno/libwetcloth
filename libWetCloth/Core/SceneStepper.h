@@ -72,6 +72,8 @@ public:
     
 	virtual bool manifoldPropagate( TwoDScene& scene, scalar dt ) = 0;
     
+    virtual bool advectSurfTension( TwoDScene& scene, scalar dt ) = 0;
+    
     virtual bool stepImplicitElasto( TwoDScene& scene, scalar dt ) = 0;
 
     virtual bool stepImplicitElastoLagrangian( TwoDScene& scene, scalar dt ) = 0;

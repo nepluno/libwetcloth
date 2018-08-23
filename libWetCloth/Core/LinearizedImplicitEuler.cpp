@@ -54,12 +54,31 @@
 //#define OPTIMIZE_SAT
 //#define CHECK_EQU_24
 
-LinearizedImplicitEuler::LinearizedImplicitEuler(const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_static_criterion, const scalar& viscous_criterion, int maxiters, int manifold_substeps, int viscosity_substeps)
-: SceneStepper(), m_pcg_criterion(criterion), m_pressure_criterion(pressure_criterion), m_quasi_static_criterion(quasi_static_criterion), m_viscous_criterion(viscous_criterion), m_maxiters(maxiters), m_manifold_substeps(manifold_substeps), m_viscosity_substeps(viscosity_substeps)
+LinearizedImplicitEuler::LinearizedImplicitEuler(const scalar& criterion, const scalar& pressure_criterion, const scalar& quasi_static_criterion, const scalar& viscous_criterion, int maxiters, int manifold_substeps, int viscosity_substeps, int surf_tension_substeps)
+: SceneStepper(), m_pcg_criterion(criterion), m_pressure_criterion(pressure_criterion), m_quasi_static_criterion(quasi_static_criterion), m_viscous_criterion(viscous_criterion), m_maxiters(maxiters), m_manifold_substeps(manifold_substeps), m_viscosity_substeps(viscosity_substeps), m_surf_tension_substeps(surf_tension_substeps)
 {}
 
 LinearizedImplicitEuler::~LinearizedImplicitEuler()
 {
+}
+
+bool LinearizedImplicitEuler::advectSurfTension( TwoDScene& scene, scalar dt )
+{
+    if(!scene.useSurfTension()) return true;
+    
+    const scalar subdt = dt / (scalar) m_surf_tension_substeps;
+    
+    for(int i = 0; i < m_surf_tension_substeps; ++i)
+    {
+        scene.updateColorP();
+        scene.renormalizeLiquidPhi();
+        scene.updateCurvatureP();
+        scene.advectCurvatureP(subdt);
+        
+        std::cout << "[surface tension advect: " << (i + 1) << " / " << m_surf_tension_substeps << "]" << std::endl;
+    }
+    
+    return true;
 }
 
 bool LinearizedImplicitEuler::stepScene( TwoDScene& scene, scalar dt )
@@ -559,18 +578,13 @@ void LinearizedImplicitEuler::constructNodeForce( TwoDScene& scene, const scalar
                                            scene.getNodeVolX(), scene.getNodeVolY(), scene.getNodeVolZ(),
                                            dt);
     }
-    //
-    //    pressure::applySurfTensionFluid(scene, scene.getNodeSurfTensionP(), node_rhs_fluid_x, node_rhs_fluid_y, node_rhs_fluid_z,
-    //                                    scene.getNodeFluidVolX(), scene.getNodeFluidVolY(), scene.getNodeFluidVolZ());
-    //
-    //  pressure::applySurfTensionFluid(scene, scene.getNodeSurfTensionP(), node_rhs_x, node_rhs_y, node_rhs_z,
-    //                     scene.getNodeVolX(), scene.getNodeVolY(), scene.getNodeVolZ());
-    //////////
-    //    pressure::computePorePressureGrads(scene, node_rhs_x, node_rhs_y, node_rhs_z,
-    //                                       scene.getNodeVolX(), scene.getNodeVolY(), scene.getNodeVolZ(),
-    //                                       -dt);
     
-    //    std::cout << rhs_gauss_fluid << std::endl;
+    if(scene.useSurfTension())
+    {
+        pressure::applySurfTensionFluid(scene, scene.getNodeSurfTensionP(), node_rhs_fluid_x, node_rhs_fluid_y, node_rhs_fluid_z, scene.getNodeFluidVolX(), scene.getNodeFluidVolY(), scene.getNodeFluidVolZ());
+        pressure::applySurfTensionFluid(scene, scene.getNodeSurfTensionP(), node_rhs_x, node_rhs_y, node_rhs_z, scene.getNodeVolX(), scene.getNodeVolY(), scene.getNodeVolZ());
+    }
+
     if(scene.getLiquidInfo().solve_solid) {
         MatrixXs rhs_gauss(scene.getNumGausses()*3, 3);
         rhs_gauss.setZero();

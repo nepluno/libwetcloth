@@ -259,11 +259,40 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 			}
 			
 			if(durations.size() == 0) {
-                DF_SOURCE_DURATION dur = {0.0, 0.0, std::numeric_limits<scalar>::infinity(), Vector3s::Zero()};
+                Vector3s eject_vel = Vector3s::Zero();
+                if(subnd->first_attribute("vx"))
+                {
+                    std::string attribute(subnd->first_attribute("vx")->value());
+                    if( !stringutils::extractFromString(attribute, eject_vel(0)) )
+                    {
+                        std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse end attribute for vx parameters. Value must be numeric. Exiting." << std::endl;
+                        exit(1);
+                    }
+                }
+                
+                if(subnd->first_attribute("vy"))
+                {
+                    std::string attribute(subnd->first_attribute("vy")->value());
+                    if( !stringutils::extractFromString(attribute, eject_vel(1)) )
+                    {
+                        std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse end attribute for vy parameters. Value must be numeric. Exiting." << std::endl;
+                        exit(1);
+                    }
+                }
+                
+                if(subnd->first_attribute("vz"))
+                {
+                    std::string attribute(subnd->first_attribute("vz")->value());
+                    if( !stringutils::extractFromString(attribute, eject_vel(2)) )
+                    {
+                        std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse end attribute for vz parameters. Value must be numeric. Exiting." << std::endl;
+                        exit(1);
+                    }
+                }
+                DF_SOURCE_DURATION dur = {0.0, 0.0, std::numeric_limits<scalar>::infinity(), eject_vel};
 				durations.push_back(dur);
 			}
 			
-			Vector3s eject_vel = Vector3s::Zero();
 			Vector3s center;
 			Vector3s raxis = Vector3s(0, 1, 0);
 			scalar rangle = 0.0;
@@ -1409,8 +1438,8 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
 	info.lambda = 2.0;
     info.cohesion_coeff = 0.002;
     info.correction_step = 8;
-    info.correction_multiplier = 1.0;
-    info.correction_strength = 0.1;
+    info.correction_multiplier = 2.0;
+    info.correction_strength = 0.2;
     info.flip_coeff = 0.99;
     info.elasto_flip_asym_coeff = 1.0;
     info.elasto_flip_coeff = 0.95;
@@ -1419,6 +1448,8 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
     info.bending_scheme = 2;
     info.levelset_young_modulus = 6.6e6;
 	info.liquid_boundary_friction = 1.0;
+    info.use_surf_tension = false;
+    info.surf_tension_smoothing_step = 7;
     info.use_cohesion = true;
 	info.soft_cohesion = true;
 	info.solid_cohesion = true;
@@ -1525,6 +1556,15 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
 			}
 		}
 		
+        if( ( subnd = nd->first_node("surfTensionSmoothingStep") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, info.surf_tension_smoothing_step) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of surfTensionSmoothingStep attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+                exit(1);
+            }
+        }
 		if( ( subnd = nd->first_node("iterationPrintStep") ) )
 		{
 			std::string attribute( subnd->first_attribute("value")->value() );
@@ -1832,6 +1872,16 @@ void TwoDSceneXMLParser::loadLiquidInfo(rapidxml::xml_node<>* node, const std::s
             if( !stringutils::extractFromString(attribute, info.check_divergence) )
             {
                 std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of checkDivergence attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
+                exit(1);
+            }
+        }
+        
+        if( ( subnd = nd->first_node("surfTension") ) )
+        {
+            std::string attribute( subnd->first_attribute("value")->value() );
+            if( !stringutils::extractFromString(attribute, info.use_surf_tension) )
+            {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of surfTension attribute for LiquidInfo. Value must be boolean. Exiting." << std::endl;
                 exit(1);
             }
         }
@@ -2543,8 +2593,17 @@ void TwoDSceneXMLParser::loadIntegrator( rapidxml::xml_node<>* node, std::shared
 				exit(1);
 			}
 		}
+        
+        int surftensionsubsteps = 1;
+        subnd = nd->first_attribute("surftensionsubsteps");
+        if( subnd ){
+            if( !stringutils::extractFromString(std::string(subnd->value()), surftensionsubsteps)) {
+                std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse 'surftensionsubsteps' attribute for integrator. Value must be integer. Exiting." << std::endl;
+                exit(1);
+            }
+        }
 		
-		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, quasi_static_criterion, viscous_criterion, maxiters, manifoldsubsteps, viscositysubsteps);
+		scenestepper = std::make_shared< LinearizedImplicitEuler >(criterion, pressure_criterion, quasi_static_criterion, viscous_criterion, maxiters, manifoldsubsteps, viscositysubsteps, surftensionsubsteps);
 	}
     else
     {

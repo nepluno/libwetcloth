@@ -105,6 +105,8 @@ struct LiquidInfo
     int correction_step;
     int bending_scheme;
     int iteration_print_step;
+    int surf_tension_smoothing_step;
+    bool use_surf_tension;
     bool use_cohesion;
 	bool solid_cohesion;
 	bool soft_cohesion;
@@ -831,6 +833,11 @@ public:
 	void postProcess(scalar dt);
 	void updateSolidWeights();
 	void updateLiquidPhi(scalar dt);
+    void extendLiquidPhi();
+    void renormalizeLiquidPhi();
+    void updateCurvatureP();
+    void updateColorP();
+    void advectCurvatureP(const scalar& dt);
     void estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos);
     void updateOptiVolume();
     void splitLiquidParticles();
@@ -1014,6 +1021,8 @@ public:
     
     bool isOutsideFluid(int pidx) const;
     
+    bool useSurfTension() const;
+    
     void expandFluidNodesMarked(int layers);
     
     void updateVelocityDifference();
@@ -1131,6 +1140,7 @@ private:
 	std::vector< Matrix27x3i > m_gauss_nodes_x;
 	std::vector< Matrix27x3i > m_gauss_nodes_y;
 	std::vector< Matrix27x3i > m_gauss_nodes_z;
+    std::vector< Matrix27x3i > m_gauss_nodes_p;
 	
 	std::vector< Vector27s > m_particle_weights_p;
 	std::vector< Matrix27x4s > m_particle_weights;
@@ -1229,6 +1239,10 @@ private:
 	
 	std::vector< VectorXs > m_node_solid_phi;
 	std::vector< VectorXs > m_node_liquid_phi;
+    std::vector< VectorXs > m_node_combined_phi;
+    std::vector< VectorXs > m_node_surf_tension;
+    std::vector< VectorXs > m_node_curvature_p;
+    std::vector< VectorXi > m_node_color_p;
 	std::vector< VectorXs > m_node_pressure;
 	std::vector< VectorXs > m_node_cell_solid_phi;
 	
