@@ -51,6 +51,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>
+#include <cstring>
 
 #include <png.h>
 
@@ -85,7 +86,7 @@ YImage& YImage::operator=(const YImage& rhs)
 
   assert(m_data);
 
-  memcpy(m_data, rhs.m_data, m_width * m_height * sizeof(YPixel));
+  std::memcpy(m_data, rhs.m_data, m_width * m_height * sizeof(YPixel));
 
   return *this;
 }
@@ -148,14 +149,14 @@ void YImage::resize(int widthh, int heightt)
 
   YPixel* new_data = (YPixel*) malloc(widthh * heightt * sizeof(YPixel));
 
-  memset(new_data, 0, widthh * heightt * sizeof(YPixel));
+  std::memset(new_data, 0, widthh * heightt * sizeof(YPixel));
 
   if (m_data) {
     int min_width = std::min(m_width, widthh);
     int min_height = std::min(m_height, heightt);
 
     for (int j = 0; j < min_height; ++j)
-      memcpy(new_data + j*widthh, m_data + j*m_width, min_width * sizeof(YPixel));
+      std::memcpy(new_data + j*widthh, m_data + j*m_width, min_width * sizeof(YPixel));
 
     free(m_data);
   }
