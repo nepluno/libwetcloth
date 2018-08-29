@@ -299,16 +299,6 @@ template <typename Index> struct MemcpyTriggerForSlicing<Index, GpuDevice>  {
   EIGEN_DEVICE_FUNC bool operator ()(Index val) const { return val > 4*1024*1024; }
 };
 #endif
-
-// It is very expensive to start the memcpy kernel on GPU: we therefore only
-// use it for large copies.
-#ifdef EIGEN_USE_SYCL
-template <typename Index> struct MemcpyTriggerForSlicing<Index, const Eigen::SyclDevice>  {
-  EIGEN_DEVICE_FUNC MemcpyTriggerForSlicing(const SyclDevice&) { }
-  EIGEN_DEVICE_FUNC bool operator ()(Index val) const { return val > 4*1024*1024; }
-};
-#endif
-
 }
 
 // Eval as rvalue
@@ -503,14 +493,7 @@ struct TensorEvaluator<const TensorSlicingOp<StartIndices, Sizes, ArgType>, Devi
     }
     return NULL;
   }
-  /// used by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const TensorEvaluator<ArgType, Device>& impl() const{
-    return m_impl;
-  }
-  /// used by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const StartIndices& startIndices() const{
-    return m_offsets;
-  }
+
  protected:
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index srcCoeff(Index index) const
   {
@@ -711,12 +694,6 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
 {
   typedef TensorStridingSlicingOp<StartIndices, StopIndices, Strides, ArgType> XprType;
   static const int NumDims = internal::array_size<Strides>::value;
-  typedef typename XprType::Index Index;
-  typedef typename XprType::Scalar Scalar;
-  typedef typename internal::remove_const<Scalar>::type ScalarNonConst;
-  typedef typename XprType::CoeffReturnType CoeffReturnType;
-  typedef typename PacketType<CoeffReturnType, Device>::type PacketReturnType;
-  typedef Strides Dimensions;
 
   enum {
     // Alignment can't be guaranteed at compile time since it depends on the
@@ -729,7 +706,7 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
   };
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
-      : m_impl(op.expression(), device), m_device(device), m_strides(op.strides()), m_exprStartIndices(op.startIndices()), m_exprStopIndices(op.stopIndices())
+      : m_impl(op.expression(), device), m_device(device), m_strides(op.strides())
   {
     // Handle degenerate intervals by gracefully clamping and allowing m_dimensions to be zero
     DSizes<Index,NumDims> startIndicesClamped, stopIndicesClamped;
@@ -739,7 +716,7 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
         startIndicesClamped[i] = clamp(op.startIndices()[i], 0, m_impl.dimensions()[i]);
         stopIndicesClamped[i] = clamp(op.stopIndices()[i], 0, m_impl.dimensions()[i]);
       }else{
-      /* implies m_strides[i]<0 by assert */
+        /* implies m_strides[i]<0 by assert */
         startIndicesClamped[i] = clamp(op.startIndices()[i], -1, m_impl.dimensions()[i] - 1);
         stopIndicesClamped[i] = clamp(op.stopIndices()[i], -1, m_impl.dimensions()[i] - 1);
       }
@@ -802,6 +779,13 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
                                           sizeof(Scalar));
   }
 
+  typedef typename XprType::Index Index;
+  typedef typename XprType::Scalar Scalar;
+  typedef typename internal::remove_const<Scalar>::type ScalarNonConst;
+  typedef typename XprType::CoeffReturnType CoeffReturnType;
+  typedef typename PacketType<CoeffReturnType, Device>::type PacketReturnType;
+  typedef Strides Dimensions;
+
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
 
 
@@ -827,15 +811,6 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
     return NULL;
   }
 
-  //use by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const StartIndices& exprStartIndices() const { return m_exprStartIndices; }
-  //use by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE  const StartIndices& exprStopIndices() const { return m_exprStopIndices; }
-  //use by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE  const StartIndices& strides() const { return m_strides; }
-  /// used by sycl
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const TensorEvaluator<ArgType, Device>& impl() const{return m_impl;}
-
  protected:
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index srcCoeff(Index index) const
   {
@@ -857,11 +832,7 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
   }
 
   static EIGEN_STRONG_INLINE Index clamp(Index value, Index min, Index max) {
-#ifndef __SYCL_DEVICE_ONLY__
     return numext::maxi(min, numext::mini(max,value));
-#else
-    return cl::sycl::clamp(value, min, max);
-#endif
   }
 
   array<Index, NumDims> m_outputStrides;
@@ -874,10 +845,6 @@ struct TensorEvaluator<const TensorStridingSlicingOp<StartIndices, StopIndices, 
   DSizes<Index, NumDims> m_offsets; // offset in a flattened shape
   const Strides m_strides;
   std::size_t m_block_total_size_max;
-  //use by sycl
-  const StartIndices m_exprStartIndices;
-  //use by sycl
-  const StopIndices m_exprStopIndices;
 };
 
 // Eval as lvalue

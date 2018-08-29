@@ -32,10 +32,9 @@ bool aux_evalSolver( const POLYNOMIAL& pols, SOLVER& psolve )
 {
   typedef typename POLYNOMIAL::Index Index;
   typedef typename POLYNOMIAL::Scalar Scalar;
-  typedef typename POLYNOMIAL::RealScalar RealScalar;
 
   typedef typename SOLVER::RootsType    RootsType;
-  typedef Matrix<RealScalar,Deg,1>      EvalRootsType;
+  typedef Matrix<Scalar,Deg,1>          EvalRootsType;
 
   const Index deg = pols.size()-1;
 
@@ -58,7 +57,7 @@ bool aux_evalSolver( const POLYNOMIAL& pols, SOLVER& psolve )
     cerr << endl;
   }
 
-  std::vector<RealScalar> rootModuli( roots.size() );
+  std::vector<Scalar> rootModuli( roots.size() );
   Map< EvalRootsType > aux( &rootModuli[0], roots.size() );
   aux = roots.array().abs();
   std::sort( rootModuli.begin(), rootModuli.end() );
@@ -84,7 +83,7 @@ void evalSolver( const POLYNOMIAL& pols )
 {
   typedef typename POLYNOMIAL::Scalar Scalar;
 
-  typedef PolynomialSolver<Scalar, Deg > PolynomialSolverType;
+  typedef PolynomialSolver<Scalar, Deg >              PolynomialSolverType;
 
   PolynomialSolverType psolve;
   aux_evalSolver<Deg, POLYNOMIAL, PolynomialSolverType>( pols, psolve );
@@ -98,7 +97,6 @@ void evalSolverSugarFunction( const POLYNOMIAL& pols, const ROOTS& roots, const 
 {
   using std::sqrt;
   typedef typename POLYNOMIAL::Scalar Scalar;
-  typedef typename POLYNOMIAL::RealScalar RealScalar;
 
   typedef PolynomialSolver<Scalar, Deg >              PolynomialSolverType;
 
@@ -109,12 +107,15 @@ void evalSolverSugarFunction( const POLYNOMIAL& pols, const ROOTS& roots, const 
     // 1) the roots found are correct
     // 2) the roots have distinct moduli
 
-    //Test realRoots
-    std::vector< RealScalar > calc_realRoots;
-    psolve.realRoots( calc_realRoots,  test_precision<RealScalar>());
-    VERIFY_IS_EQUAL( calc_realRoots.size() , (size_t)real_roots.size() );
+    typedef typename POLYNOMIAL::Scalar                 Scalar;
+    typedef typename REAL_ROOTS::Scalar                 Real;
 
-    const RealScalar psPrec = sqrt( test_precision<RealScalar>() );
+    //Test realRoots
+    std::vector< Real > calc_realRoots;
+    psolve.realRoots( calc_realRoots );
+    VERIFY( calc_realRoots.size() == (size_t)real_roots.size() );
+
+    const Scalar psPrec = sqrt( test_precision<Scalar>() );
 
     for( size_t i=0; i<calc_realRoots.size(); ++i )
     {
@@ -137,7 +138,7 @@ void evalSolverSugarFunction( const POLYNOMIAL& pols, const ROOTS& roots, const 
 
     bool hasRealRoot;
     //Test absGreatestRealRoot
-    RealScalar r = psolve.absGreatestRealRoot( hasRealRoot );
+    Real r = psolve.absGreatestRealRoot( hasRealRoot );
     VERIFY( hasRealRoot == (real_roots.size() > 0 ) );
     if( hasRealRoot ){
       VERIFY( internal::isApprox( real_roots.array().abs().maxCoeff(), abs(r), psPrec ) );  }
@@ -166,11 +167,9 @@ void evalSolverSugarFunction( const POLYNOMIAL& pols, const ROOTS& roots, const 
 template<typename _Scalar, int _Deg>
 void polynomialsolver(int deg)
 {
-  typedef typename NumTraits<_Scalar>::Real RealScalar;
-  typedef internal::increment_if_fixed_size<_Deg>     Dim;
+  typedef internal::increment_if_fixed_size<_Deg>            Dim;
   typedef Matrix<_Scalar,Dim::ret,1>                  PolynomialType;
   typedef Matrix<_Scalar,_Deg,1>                      EvalRootsType;
-  typedef Matrix<RealScalar,_Deg,1>                   RealRootsType;
 
   cout << "Standard cases" << endl;
   PolynomialType pols = PolynomialType::Random(deg+1);
@@ -183,11 +182,15 @@ void polynomialsolver(int deg)
   evalSolver<_Deg,PolynomialType>( pols );
 
   cout << "Test sugar" << endl;
-  RealRootsType realRoots = RealRootsType::Random(deg);
+  EvalRootsType realRoots = EvalRootsType::Random(deg);
   roots_to_monicPolynomial( realRoots, pols );
   evalSolverSugarFunction<_Deg>(
       pols,
-      realRoots.template cast <std::complex<RealScalar> >().eval(),
+      realRoots.template cast <
+                    std::complex<
+                         typename NumTraits<_Scalar>::Real
+                         >
+                    >(),
       realRoots );
 }
 
@@ -211,6 +214,5 @@ void test_polynomialsolver()
             internal::random<int>(9,13)
             )) );
     CALL_SUBTEST_11((polynomialsolver<float,Dynamic>(1)) );
-    CALL_SUBTEST_12((polynomialsolver<std::complex<double>,Dynamic>(internal::random<int>(2,13))) );
   }
 }
