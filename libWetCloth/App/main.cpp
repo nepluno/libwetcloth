@@ -354,6 +354,13 @@ void idle()
 		stepSystem();
 		glutPostRedisplay();
 	}
+  
+#ifdef __APPLE__
+  static int mojave_counter = 0;
+  if(mojave_counter < 2) {
+    glutReshapeWindow(g_executable_simulation->getWindowWidth() - 1 + mojave_counter++, g_executable_simulation->getWindowHeight());
+  }
+#endif
 	
 	assert( renderingutils::checkGLErrors() );
 }
