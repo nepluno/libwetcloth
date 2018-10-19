@@ -76,38 +76,47 @@ void LevelSetForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
     
     const VectorXs& vol = m_scene->getVol();
     
-    const scalar h = m_scene->getCellSize();
-    
     const scalar K = m_scene->getLiquidInfo().levelset_young_modulus;
     
-    const auto& node_solid_phi = m_scene->getNodeSolidPhi();
+    const scalar iD = m_scene->getInverseDCoeff();
     
     threadutils::for_each(0, num_elasto, [&] (int idx) {
         const int pidx = m_process_list[idx];
         const auto& node_indices_sphi = m_scene->getParticleNodesSolidPhi(pidx);
         const auto& particle_weights = m_scene->getParticleWeights(pidx);
-        const auto& particle_grads_sphi = m_scene->getParticleGradsSolidPhi(pidx);
         
-        scalar phi = 0.0;
-        Vector3sT grad_phi = Vector3s::Zero();
+        const Vector3s& pos = x.segment<3>(pidx * 4);
+        
+        scalar phi_ori = 0.0;
+        Vector3s grad_phi = Vector3s::Zero();
         
         for(int nidx = 0; nidx < node_indices_sphi.rows(); ++nidx)
         {
             const int bucket_idx = node_indices_sphi(nidx, 0);
             const int node_idx = node_indices_sphi(nidx, 1);
             
-            phi += node_solid_phi[bucket_idx](node_idx) * particle_weights(nidx, 3);
-            grad_phi += node_solid_phi[bucket_idx](node_idx) * particle_grads_sphi.row(nidx);
+            scalar phi;
+            if(node_indices_sphi(nidx, 2)) {
+                phi = solid_phi[bucket_idx](node_idx);
+            } else {
+                phi = 3.0 * m_scene->getCellSize();
+            }
+            
+            const scalar w = particle_weights(nidx, 3);
+            const Vector3s& np = node_pos[bucket_idx].segment<3>(node_idx * 3);
+            
+            phi_ori += phi * w;
+            grad_phi += phi * iD * w * (np - pos);
         }
         
         if(grad_phi.norm() > 1e-12) grad_phi.normalize();
         
-        phi -= m_l0;
+        phi_ori -= m_l0;
         
-        if(phi < 0.0) {
+        if(phi_ori < 0.0) {
             const scalar k = K * pow(vol(pidx), 1. / 3.);
             
-            gradE.segment<3>(pidx * 4) += k * phi * grad_phi;
+            gradE.segment<3>(pidx * 4) += k * phi_ori * grad_phi;
         }
     });
 }
@@ -127,40 +136,49 @@ void LevelSetForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const
     const std::vector< VectorXs >& node_pos = m_scene->getNodePosSolidPhi();
     const std::vector< VectorXs >& solid_phi = m_scene->getNodeSolidPhi();
     
-    const scalar h = m_scene->getCellSize();
-    
     const VectorXs& vol = m_scene->getVol();
     
     const scalar K = m_scene->getLiquidInfo().levelset_young_modulus;
-    
-    const auto& node_solid_phi = m_scene->getNodeSolidPhi();
+
+    const scalar iD = m_scene->getInverseDCoeff();
     
     threadutils::for_each(0, num_elasto, [&] (int idx) {
         const int pidx = m_process_list[idx];
         const auto& node_indices_sphi = m_scene->getParticleNodesSolidPhi(pidx);
         const auto& particle_weights = m_scene->getParticleWeights(pidx);
-        const auto& particle_grads_sphi = m_scene->getParticleGradsSolidPhi(pidx);
         
-        scalar phi = 0.0;
-        Vector3sT grad_phi = Vector3s::Zero();
+        scalar phi_ori = 0.0;
+        Vector3s grad_phi = Vector3s::Zero();
+        
+        const Vector3s& pos = x.segment<3>(pidx * 4);
         
         for(int nidx = 0; nidx < node_indices_sphi.rows(); ++nidx)
         {
             const int bucket_idx = node_indices_sphi(nidx, 0);
             const int node_idx = node_indices_sphi(nidx, 1);
             
-            phi += node_solid_phi[bucket_idx](node_idx) * particle_weights(nidx, 3);
-            grad_phi += node_solid_phi[bucket_idx](node_idx) * particle_grads_sphi.row(nidx);
+            scalar phi;
+            if(node_indices_sphi(nidx, 2)) {
+                phi = solid_phi[bucket_idx](node_idx);
+            } else {
+                phi = 3.0 * m_scene->getCellSize();
+            }
+            
+            const scalar w = particle_weights(nidx, 3);
+            const Vector3s& np = node_pos[bucket_idx].segment<3>(node_idx * 3);
+            
+            phi_ori += phi * w;
+            grad_phi += phi * iD * w * (np - pos);
         }
         
         if(grad_phi.norm() > 1e-12) grad_phi.normalize();
         
-        phi -= m_l0;
+        phi_ori -= m_l0;
         
-        if(phi < 0.0) {
+        if(phi_ori < 0.0) {
             const scalar k = K * pow(vol(pidx), 1. / 3.);
             
-            Matrix3s hess = k * grad_phi.transpose() * grad_phi;
+            Matrix3s hess = k * grad_phi * grad_phi.transpose();
             
             for(int s = 0; s < 3; ++s) for(int r = 0; r < 3; ++r) {
                 hessE[hessE_index + idx * 9 + s * 3 + r] = Triplets(pidx * 4 + r, pidx * 4 + s, hess(r, s));

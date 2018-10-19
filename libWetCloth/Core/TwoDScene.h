@@ -276,12 +276,6 @@ public:
     
     MatrixXs& getGaussD();
     
-    const Matrix27x3s& getGaussdFdXX(int pidx) const;
-
-    const Matrix27x3s& getGaussdFdXY(int pidx) const;
-	
-    const Matrix27x3s& getGaussdFdXZ(int pidx) const;
-	
 	int getDefaultNumNodes() const;
     
 	int getNumNodesX(int bucket_idx) const;
@@ -329,6 +323,18 @@ public:
 	const std::vector< VectorXi >& getNodeCompressedIndexZ() const;
     
     const std::vector< VectorXi >& getNodeCompressedIndexP() const;
+    
+    const std::vector< VectorXs >& getNodePosX() const;
+    
+    std::vector< VectorXs >& getNodePosX();
+    
+    const std::vector< VectorXs >& getNodePosY() const;
+    
+    std::vector< VectorXs >& getNodePosY();
+    
+    const std::vector< VectorXs >& getNodePosZ() const;
+    
+    std::vector< VectorXs >& getNodePosZ();
     
 	const VectorXs& getNodePosX(int bucket_idx) const;
 	
@@ -574,10 +580,6 @@ public:
     
     Matrix27x3i& getParticleNodesSolidPhi( int pidx );
     
-    const Matrix27x3s& getParticleGradsSolidPhi( int pidx ) const;
-    
-    Matrix27x3s& getParticleGradsSolidPhi( int pidx );
-	
 	const Matrix27x3i& getGaussNodesZ( int pidx ) const;
 	
 	Matrix27x3i& getGaussNodesZ( int pidx );
@@ -588,29 +590,9 @@ public:
 	
 	Matrix27x4s& getParticleWeights( int pidx );
     
-    const Matrix27x3s& getGaussGradsX(int pidx) const;
+    const Matrix27x3s& getGaussWeights(int pidx) const;
     
-    Matrix27x3s& getGaussGradsX(int pidx);
-    
-    const Matrix27x3s& getParticleGradsX(int pidx) const;
-    
-    Matrix27x3s& getParticleGradsX(int pidx);
-	
-	const Matrix27x3s& getGaussGradsY(int pidx) const;
-	
-	Matrix27x3s& getGaussGradsY(int pidx);
-	
-	const Matrix27x3s& getParticleGradsY(int pidx) const;
-	
-	Matrix27x3s& getParticleGradsY(int pidx);
-	
-	const Matrix27x3s& getGaussGradsZ(int pidx) const;
-	
-	Matrix27x3s& getGaussGradsZ(int pidx);
-	
-	const Matrix27x3s& getParticleGradsZ(int pidx) const;
-	
-	Matrix27x3s& getParticleGradsZ(int pidx);
+    Matrix27x3s& getGaussWeights(int pidx);
 	
 	const std::vector< VectorXi >& getPressureNeighbors() const;
 	
@@ -858,8 +840,7 @@ public:
     
     void updateDeformationGradient(scalar dt);
     void updatePlasticity(scalar dt);
-    void updateGaussdFdx();
-	
+
 	void updateTotalMass();
 
 	void setBucketInfo( const scalar& bucket_size, int num_cells, int kernel_order );
@@ -1145,24 +1126,13 @@ private:
 	std::vector< Vector27s > m_particle_weights_p;
 	std::vector< Matrix27x4s > m_particle_weights;
 	
-	std::vector< Matrix27x3s > m_particle_grads_x;
-	std::vector< Matrix27x3s > m_gauss_grads_x;
-	std::vector< Matrix27x3s > m_particle_grads_y;
-	std::vector< Matrix27x3s > m_gauss_grads_y;
-	std::vector< Matrix27x3s > m_particle_grads_z;
-	std::vector< Matrix27x3s > m_gauss_grads_z;
-	std::vector< Matrix27x3s > m_particle_grads_solid_phi;
-	
-	
+    std::vector< Matrix27x3s > m_gauss_weights;
+    
 	// bucket id -> nodes -> pairs of (particle id, id in particle neighborhoods)
 	std::vector< std::vector< std::vector< std::pair< int, int > > > > m_node_particles_x;
 	std::vector< std::vector< std::vector< std::pair< int, int > > > > m_node_particles_y;
 	std::vector< std::vector< std::vector< std::pair< int, int > > > > m_node_particles_z;
 	std::vector< std::vector< std::vector< std::pair< int, int > > > > m_node_particles_p;
-	
-    std::vector< Matrix27x3s > m_gauss_dFdx_x;
-    std::vector< Matrix27x3s > m_gauss_dFdx_y;
-    std::vector< Matrix27x3s > m_gauss_dFdx_z;
 	
 	std::vector< int > m_particle_group;
 	
