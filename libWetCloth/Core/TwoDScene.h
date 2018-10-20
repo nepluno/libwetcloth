@@ -278,15 +278,7 @@ public:
     
 	int getDefaultNumNodes() const;
     
-	int getNumNodesX(int bucket_idx) const;
-	
-	int getNumNodesY(int bucket_idx) const;
-	
-	int getNumNodesZ(int bucket_idx) const;
-	
-	int getNumNodesP(int bucket_idx) const;
-	
-	int getNumNodesSolidPhi(int bucket_idx) const;
+	int getNumNodes(int bucket_idx) const;
 	
 	inline bool isFluid(int pidx) const;
 	
@@ -315,82 +307,14 @@ public:
 	const std::vector< VectorXuc >& getNodeStateZ() const;
 	
 	std::vector< VectorXuc >& getNodeStateZ();
+    
+	const VectorXs& getNodePos(int bucket_idx) const;
 	
-	const std::vector< VectorXi >& getNodeCompressedIndexX() const;
-	
-	const std::vector< VectorXi >& getNodeCompressedIndexY() const;
-	
-	const std::vector< VectorXi >& getNodeCompressedIndexZ() const;
+	VectorXs& getNodePos(int bucket_idx);
     
-    const std::vector< VectorXi >& getNodeCompressedIndexP() const;
+    const std::vector<VectorXs>& getNodePos() const;
     
-    const std::vector< VectorXs >& getNodePosX() const;
-    
-    std::vector< VectorXs >& getNodePosX();
-    
-    const std::vector< VectorXs >& getNodePosY() const;
-    
-    std::vector< VectorXs >& getNodePosY();
-    
-    const std::vector< VectorXs >& getNodePosZ() const;
-    
-    std::vector< VectorXs >& getNodePosZ();
-    
-	const VectorXs& getNodePosX(int bucket_idx) const;
-	
-	VectorXs& getNodePosX(int bucket_idx);
-	
-	const VectorXs& getNodePosY(int bucket_idx) const;
-	
-	VectorXs& getNodePosY(int bucket_idx);
-	
-	const VectorXs& getNodePosZ(int bucket_idx) const;
-	
-	VectorXs& getNodePosZ(int bucket_idx);
-    
-    const VectorXs& getNodePosEX(int bucket_idx) const;
-    
-    VectorXs& getNodePosEX(int bucket_idx);
-    
-    const VectorXs& getNodePosEY(int bucket_idx) const;
-    
-    VectorXs& getNodePosEY(int bucket_idx);
-    
-    const VectorXs& getNodePosEZ(int bucket_idx) const;
-    
-    VectorXs& getNodePosEZ(int bucket_idx);
-	
-	const VectorXs& getNodePosP(int bucket_idx) const;
-	
-	VectorXs& getNodePosP(int bucket_idx);
-    
-    const VectorXi& getNodeIndicesP(int bucket_idx) const;
-    
-    VectorXi& getNodeIndicesP(int bucket_idx);
-	
-	const VectorXs& getNodePosSolidPhi(int bucket_idx) const;
-	
-	VectorXs& getNodePosSolidPhi(int bucket_idx);
-    
-    const std::vector<VectorXs>& getNodePosSolidPhi() const;
-    
-    std::vector<VectorXs>& getNodePosSolidPhi();
-    
-    const std::vector<VectorXi>& getNodeIndicesX() const;
-    
-    std::vector<VectorXi>& getNodeIndicesX();
-    
-    const std::vector<VectorXi>& getNodeIndicesY() const;
-    
-    std::vector<VectorXi>& getNodeIndicesY();
-    
-    const std::vector<VectorXi>& getNodeIndicesZ() const;
-    
-    std::vector<VectorXi>& getNodeIndicesZ();
-    
-    const std::vector<VectorXi>& getNodeIndicesP() const;
-    
-    std::vector<VectorXi>& getNodeIndicesP();
+    std::vector<VectorXs>& getNodePos();
     
     const std::vector<VectorXs>& getNodeSolidPhi() const;
     
@@ -556,33 +480,33 @@ public:
     
     const std::vector< VectorXi >& getNodeIndexEdgeZ() const;
     
-	const Matrix27x3i& getParticleNodesX( int pidx ) const;
+	const Matrix27x2i& getParticleNodesX( int pidx ) const;
 	
-	Matrix27x3i& getParticleNodesX( int pidx );
+	Matrix27x2i& getParticleNodesX( int pidx );
 	
-	const Matrix27x3i& getGaussNodesX( int pidx ) const;
+	const Matrix27x2i& getGaussNodesX( int pidx ) const;
 	
-	Matrix27x3i& getGaussNodesX( int pidx );
+	Matrix27x2i& getGaussNodesX( int pidx );
 	
-	const Matrix27x3i& getParticleNodesY( int pidx ) const;
+	const Matrix27x2i& getParticleNodesY( int pidx ) const;
 	
-	Matrix27x3i& getParticleNodesY( int pidx );
+	Matrix27x2i& getParticleNodesY( int pidx );
 	
-	const Matrix27x3i& getGaussNodesY( int pidx ) const;
+	const Matrix27x2i& getGaussNodesY( int pidx ) const;
 	
-	Matrix27x3i& getGaussNodesY( int pidx );
+	Matrix27x2i& getGaussNodesY( int pidx );
 	
-	const Matrix27x3i& getParticleNodesZ( int pidx ) const;
+	const Matrix27x2i& getParticleNodesZ( int pidx ) const;
 	
-	Matrix27x3i& getParticleNodesZ( int pidx );
+	Matrix27x2i& getParticleNodesZ( int pidx );
     
-    const Matrix27x3i& getParticleNodesSolidPhi( int pidx ) const;
+    const Matrix27x2i& getParticleNodesSolidPhi( int pidx ) const;
     
-    Matrix27x3i& getParticleNodesSolidPhi( int pidx );
+    Matrix27x2i& getParticleNodesSolidPhi( int pidx );
     
-	const Matrix27x3i& getGaussNodesZ( int pidx ) const;
+	const Matrix27x2i& getGaussNodesZ( int pidx ) const;
 	
-	Matrix27x3i& getGaussNodesZ( int pidx );
+	Matrix27x2i& getGaussNodesZ( int pidx );
 
     const std::vector< Matrix27x4s >& getParticleWeights() const;
 	
@@ -703,6 +627,26 @@ public:
     scalar getAttachMultiplier(int pidx) const;
 
 	scalar getCollisionMultiplier(int pidx) const;
+    
+    Vector3i getNodeHandle(int node_idx) const;
+    
+    int getNodeIndex(const Vector3i& handle) const;
+    
+    Vector3s getNodePosSolidPhi(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosX(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosY(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosZ(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosP(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosEX(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosEY(int bucket_idx, int node_idx) const;
+    
+    Vector3s getNodePosEZ(int bucket_idx, int node_idx) const;
 
 	void loadAttachForces();
 	
@@ -808,8 +752,6 @@ public:
 	void updateParticleBoundingBox();
 	void rebucketizeParticles();
 	void resampleNodes();
-	void updateElastoParticleWeights(scalar dt);
-	void updateLiquidParticleWeights(scalar dt);
 	void updateParticleWeights(scalar dt, int start, int end);
 	void updateGaussWeights(scalar dt);
 	void postProcess(scalar dt);
@@ -820,7 +762,7 @@ public:
     void updateCurvatureP();
     void updateColorP();
     void advectCurvatureP(const scalar& dt);
-    void estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos);
+    void estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos, const Vector3s& np_offset);
     void updateOptiVolume();
     void splitLiquidParticles();
     void mergeLiquidParticles();
@@ -908,15 +850,8 @@ public:
 	
 	void preAllocateNodes();
 	
-	void findNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_x, std::vector< Matrix27x3i >& particle_nodes_y, std::vector< Matrix27x3i >& particle_nodes_z );
-    
-    void findGaussNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_x, std::vector< Matrix27x3i >& particle_nodes_y, std::vector< Matrix27x3i >& particle_nodes_z );
-	
-	void findNodesPressure( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_p );
-	
-	void findSolidPhiNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_sphi );
-    
-    void findEdgeNodes( const Sorter& buckets, const VectorXs& x );
+    template<typename Callable>
+	void findNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x2i >& particle_nodes, const Vector3s& offset, Callable func );
 	
 	void generateNodes();
 	
@@ -960,39 +895,7 @@ public:
     
     const std::vector<Vector3s>& getFaceWeights() const;
     
-    scalar interpolateBucketFluidVelX(const Vector3s& pos) const;
-    
-    scalar interpolateBucketFluidVelY(const Vector3s& pos) const;
-    
-    scalar interpolateBucketFluidVelZ(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSavedFluidVelX(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSavedFluidVelY(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSavedFluidVelZ(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidVelX(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidVelY(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidVelZ(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidWeightX(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidWeightY(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidWeightZ(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidPhi(const Vector3s& pos) const;
-    
-    scalar interpolateBucketLiquidPhi(const Vector3s& pos) const;
-    
-    scalar interpolateBucketPressure(const Vector3s& pos) const;
-    
-    scalar interpolateBucketSolidPhiGrad(const Vector3s& pos, Vector3s& grad) const;
-    
-    scalar interpolateValue(const Vector3s& pos, const std::vector< VectorXs >& phi, const std::vector< VectorXi >& cpidx_phi, const Vector3s& phi_ori, const scalar& default_val);
+    scalar interpolateValue(const Vector3s& pos, const std::vector< VectorXs >& phi, const Vector3s& phi_ori, const scalar& default_val);
     
     inline Vector3s nodePosFromBucket(int bucket_idx, int raw_node_idx, const Vector3s& offset) const;
     
@@ -1029,6 +932,10 @@ public:
 	void constrainLiquidVelocity();
 	
 	void updateStrandParamViscosity(const scalar& dt);
+    
+    bool isBucketActivated(int bucket_index) const;
+    
+    const std::vector<unsigned char>& getBucketActivated() const;
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     
@@ -1075,9 +982,7 @@ private:
 	VectorXs m_fluid_vol_gauss;
 	VectorXs m_volume_fraction_gauss;
 	VectorXs m_rest_volume_fraction_gauss;
-	
-	std::vector<unsigned char> m_bucket_marked;
-	
+
     std::vector< std::vector<RayTriInfo> > m_ray_tri_gauss;
 	
     MatrixXs m_Fe_gauss; // elastic deformation gradient
@@ -1112,16 +1017,16 @@ private:
     std::vector< int > m_face_to_parameters;
     std::vector< int > m_edge_to_parameters;
 	
-	std::vector< Matrix27x3i > m_particle_nodes_x;
-	std::vector< Matrix27x3i > m_particle_nodes_y;
-	std::vector< Matrix27x3i > m_particle_nodes_z;
-	std::vector< Matrix27x3i > m_particle_nodes_solid_phi;
-	std::vector< Matrix27x3i > m_particle_nodes_p;
+	std::vector< Matrix27x2i > m_particle_nodes_x;
+	std::vector< Matrix27x2i > m_particle_nodes_y;
+	std::vector< Matrix27x2i > m_particle_nodes_z;
+	std::vector< Matrix27x2i > m_particle_nodes_solid_phi;
+	std::vector< Matrix27x2i > m_particle_nodes_p;
 	
-	std::vector< Matrix27x3i > m_gauss_nodes_x;
-	std::vector< Matrix27x3i > m_gauss_nodes_y;
-	std::vector< Matrix27x3i > m_gauss_nodes_z;
-    std::vector< Matrix27x3i > m_gauss_nodes_p;
+	std::vector< Matrix27x2i > m_gauss_nodes_x;
+	std::vector< Matrix27x2i > m_gauss_nodes_y;
+	std::vector< Matrix27x2i > m_gauss_nodes_z;
+    std::vector< Matrix27x2i > m_gauss_nodes_p;
 	
 	std::vector< Vector27s > m_particle_weights_p;
 	std::vector< Matrix27x4s > m_particle_weights;
@@ -1149,44 +1054,10 @@ private:
 	Sorter m_particle_buckets;
 	Sorter m_gauss_buckets;
 	Sorter m_particle_cells;
-	
-	std::vector< VectorXi > m_node_cpidx_x_tmp;
-	std::vector< VectorXi > m_node_cpidx_y_tmp;
-	std::vector< VectorXi > m_node_cpidx_z_tmp;
-	std::vector< VectorXi > m_node_cpidx_p_tmp;
-	std::vector< VectorXi > m_node_cpidx_solid_phi_tmp;
-	
-	std::vector< VectorXi > m_node_cpidx_ex_tmp;
-	std::vector< VectorXi > m_node_cpidx_ey_tmp;
-	std::vector< VectorXi > m_node_cpidx_ez_tmp;
-	
-	std::vector< VectorXi > m_node_cpidx_x; // bucket id -> node to compressed index
-	std::vector< VectorXi > m_node_cpidx_y; // bucket id -> node to compressed index
-	std::vector< VectorXi > m_node_cpidx_z; // bucket id -> node to compressed index
-	
-	std::vector< VectorXi > m_node_cpidx_p; // bucket id -> node to compressed index of pressure
-	
-	std::vector< VectorXi > m_node_cpidx_solid_phi; // bucket id -> node to compressed index of solid phi
-	
-    std::vector< VectorXi > m_node_cpidx_ex; // bucket id -> node to compressed index of edge nodes
-    std::vector< VectorXi > m_node_cpidx_ey; // bucket id -> node to compressed index of edge nodes
-    std::vector< VectorXi > m_node_cpidx_ez; // bucket id -> node to compressed index of edge nodes
     
-	std::vector< VectorXs > m_node_pos_x; // bucket id -> nodes pos
-	std::vector< VectorXs > m_node_pos_y; // bucket id -> nodes pos
-	std::vector< VectorXs > m_node_pos_z;
-	std::vector< VectorXs > m_node_pos_p;
-    
-    std::vector< VectorXs > m_node_pos_ex; // bucket id -> nodes pos
-    std::vector< VectorXs > m_node_pos_ey; // bucket id -> nodes pos
-    std::vector< VectorXs > m_node_pos_ez;
-    
-    std::vector< VectorXi > m_node_indices_x;
-    std::vector< VectorXi > m_node_indices_y;
-    std::vector< VectorXi > m_node_indices_z;
-    std::vector< VectorXi > m_node_indices_p;
+    std::vector< unsigned char > m_bucket_activated;
 	
-	std::vector< VectorXs > m_node_pos_solid_phi;
+	std::vector< VectorXs > m_node_pos;
     
     std::vector< VectorXs > m_node_shape_factor_x;
     std::vector< VectorXs > m_node_shape_factor_y;

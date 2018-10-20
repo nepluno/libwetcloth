@@ -56,8 +56,7 @@ using namespace robertbridson;
 namespace viscosity {
 	template<typename T>
 	T get_value
-	(const std::vector< VectorXi >& node_cpidx,
-	 const std::vector< Eigen::Matrix<T, Eigen::Dynamic, 1> >& data,
+	(const std::vector< Eigen::Matrix<T, Eigen::Dynamic, 1> >& data,
 	 const Vector3i& bucket_handle,
 	 const Vector3i& node_handle,
 	 const T& default_val,
@@ -91,14 +90,11 @@ namespace viscosity {
 		if(data[bucket_idx].size() == 0) return default_val;
 		
 		const int node_idx = cur_node_handle(2) * num_nodes * num_nodes + cur_node_handle(1) * num_nodes + cur_node_handle(0);
-		const int mapped_idx = node_cpidx[bucket_idx][node_idx];
-		if(mapped_idx == -1) return default_val;
-		
-		return data[bucket_idx][mapped_idx];
+		return data[bucket_idx][node_idx];
 	};
 	
 	bool get_node_index(
-						const std::vector< VectorXi >& node_cpidx,
+						const std::vector< unsigned char >& bucket_activated,
 						const Vector3i& bucket_handle,
 						const Vector3i& node_handle,
 						const int num_nodes,
@@ -130,20 +126,15 @@ namespace viscosity {
 		}
 		
 		const int bucket_idx = buckets.bucket_index(cur_bucket_handle);
-		if(node_cpidx[bucket_idx].size() == 0) {
+		if(!bucket_activated[bucket_idx]) {
 			bucket_node(0) = bucket_node(1) = -1;
 			return false;
 		}
 		
 		const int node_idx = cur_node_handle(2) * num_nodes * num_nodes + cur_node_handle(1) * num_nodes + cur_node_handle(0);
-		const int mapped_idx = node_cpidx[bucket_idx][node_idx];
-		if(mapped_idx == -1) {
-			bucket_node(0) = bucket_node(1) = -1;
-			return false;
-		}
-		
+
 		bucket_node(0) = bucket_idx;
-		bucket_node(1) = mapped_idx;
+		bucket_node(1) = node_idx;
 		return true;
 	};
 	
@@ -242,14 +233,6 @@ namespace viscosity {
 							int offset_nodes_z,
 							const scalar& dt  )
 	{
-		const std::vector< VectorXi >& node_cpidx_x = scene.getNodeCompressedIndexX();
-		const std::vector< VectorXi >& node_cpidx_y = scene.getNodeCompressedIndexY();
-		const std::vector< VectorXi >& node_cpidx_z = scene.getNodeCompressedIndexZ();
-		
-		const std::vector< VectorXi >& node_indices_x = scene.getNodeIndicesX();
-		const std::vector< VectorXi >& node_indices_y = scene.getNodeIndicesY();
-		const std::vector< VectorXi >& node_indices_z = scene.getNodeIndicesZ();
-		
 		const std::vector< VectorXi >& node_index_ex = scene.getNodeIndexEdgeX();
 		const std::vector< VectorXi >& node_index_ey = scene.getNodeIndexEdgeY();
 		const std::vector< VectorXi >& node_index_ez = scene.getNodeIndexEdgeZ();
@@ -296,6 +279,8 @@ namespace viscosity {
 		const int total_num_nodes_y = (int) effective_node_indices_y.size();
 		const int total_num_nodes_z = (int) effective_node_indices_z.size();
 		
+        const std::vector<unsigned char>& bucket_activated = scene.getBucketActivated();
+        
 		threadutils::for_each(0, total_num_nodes_x, [&] (int dof_idx) {
 			const Vector2i& dof_loc = effective_node_indices_x[dof_idx];
 			const int bucket_idx = dof_loc[0];
@@ -315,45 +300,45 @@ namespace viscosity {
 			const scalar vol_top = get_value_fast(node_index_ex, node_liquid_ez_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_x[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -2. * node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -2. * node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
@@ -361,14 +346,14 @@ namespace viscosity {
 			}
 			
 			if(vol_top > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -377,14 +362,14 @@ namespace viscosity {
 			}
 			
 			if(vol_bottom > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -393,14 +378,14 @@ namespace viscosity {
 			}
 			
 			if(vol_front > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -409,14 +394,14 @@ namespace viscosity {
 			}
 			
 			if(vol_back > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_back;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -444,45 +429,45 @@ namespace viscosity {
 			const scalar vol_right = get_value_fast(node_index_ey, node_liquid_ez_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_y[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -2. * node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -2. * node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
@@ -490,14 +475,14 @@ namespace viscosity {
 			}
 			
 			if(vol_right > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -506,14 +491,14 @@ namespace viscosity {
 			}
 			
 			if(vol_left > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -522,14 +507,14 @@ namespace viscosity {
 			}
 			
 			if(vol_front > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -538,14 +523,14 @@ namespace viscosity {
 			}
 			
 			if(vol_back > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_back;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -573,45 +558,45 @@ namespace viscosity {
 			const scalar vol_right = get_value_fast(node_index_ez, node_liquid_ey_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_z[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
 					rhs[index] -= -2. * node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 				if(state == NS_SOLID)
@@ -619,14 +604,14 @@ namespace viscosity {
 			}
 			
 			if(vol_right > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -635,14 +620,14 @@ namespace viscosity {
 			}
 			
 			if(vol_left > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -651,14 +636,14 @@ namespace viscosity {
 			}
 			
 			if(vol_top > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -667,14 +652,14 @@ namespace viscosity {
 			}
 			
 			if(vol_bottom > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
 						rhs[index] -= node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_SOLID)
@@ -701,15 +686,7 @@ namespace viscosity {
 									 int& offset_nodes_z,
 									 const scalar& dt )
 	{
-		const std::vector< VectorXi >& node_cpidx_x = scene.getNodeCompressedIndexX();
-		const std::vector< VectorXi >& node_cpidx_y = scene.getNodeCompressedIndexY();
-		const std::vector< VectorXi >& node_cpidx_z = scene.getNodeCompressedIndexZ();
-		
-		const std::vector< VectorXi >& node_indices_x = scene.getNodeIndicesX();
-		const std::vector< VectorXi >& node_indices_y = scene.getNodeIndicesY();
-		const std::vector< VectorXi >& node_indices_z = scene.getNodeIndicesZ();
-		
-		const std::vector< VectorXi >& node_index_ex = scene.getNodeIndexEdgeX();
+        const std::vector< VectorXi >& node_index_ex = scene.getNodeIndexEdgeX();
 		const std::vector< VectorXi >& node_index_ey = scene.getNodeIndexEdgeY();
 		const std::vector< VectorXi >& node_index_ez = scene.getNodeIndexEdgeZ();
 		
@@ -750,8 +727,6 @@ namespace viscosity {
 		
 		const scalar dx = scene.getCellSize();
 		const scalar factor = dt / (dx * dx) * scene.getLiquidInfo().viscosity / scene.getLiquidInfo().liquid_density;
-		
-		const int num_buckets = scene.getNumBuckets();
 		
 		std::vector<int> num_effective_nodes_x( buckets.size() );
 		std::vector<int> num_effective_nodes_y( buckets.size() );
@@ -995,6 +970,8 @@ namespace viscosity {
 			return node_global_indices_z[node(0)][node(1)] + offset_nodes_z;
 		};
 		
+        const std::vector<unsigned char>& bucket_activated = scene.getBucketActivated();
+        
 		// assamble X-matrix
 		threadutils::for_each(0, total_num_nodes_x, [&] (int dof_idx) {
 			const Vector2i& dof_loc = effective_node_indices_x[dof_idx];
@@ -1016,10 +993,10 @@ namespace viscosity {
 			const scalar vol_top = get_value_fast(node_index_ex, node_liquid_ez_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_x[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2 * factor * vol_right);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1029,7 +1006,7 @@ namespace viscosity {
 					rhs[index] -= -2. * node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2 * factor * vol_left);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1039,7 +1016,7 @@ namespace viscosity {
 					rhs[index] -= -2. * node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_top);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1049,7 +1026,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_bottom);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1059,7 +1036,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_front);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1069,7 +1046,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_back);
 				const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
@@ -1080,7 +1057,7 @@ namespace viscosity {
 			}
 			
 			if(vol_top > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1089,7 +1066,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1100,7 +1077,7 @@ namespace viscosity {
 			}
 			
 			if(vol_bottom > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1109,7 +1086,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1120,7 +1097,7 @@ namespace viscosity {
 			}
 			
 			if(vol_front > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1129,7 +1106,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1140,7 +1117,7 @@ namespace viscosity {
 			}
 			
 			if(vol_back > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1149,7 +1126,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_back;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1180,10 +1157,10 @@ namespace viscosity {
 			const scalar vol_right = get_value_fast(node_index_ey, node_liquid_ez_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_y[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_right);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1193,7 +1170,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_left);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1203,7 +1180,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2 * factor * vol_top);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1213,7 +1190,7 @@ namespace viscosity {
 					rhs[index] -= -2. * node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2 * factor * vol_bottom);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1223,7 +1200,7 @@ namespace viscosity {
 					rhs[index] -= -2. * node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_front);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1233,7 +1210,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_back);
 				const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
@@ -1244,7 +1221,7 @@ namespace viscosity {
 			}
 			
 			if(vol_right > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1253,7 +1230,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1264,7 +1241,7 @@ namespace viscosity {
 			}
 			
 			if(vol_left > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1273,7 +1250,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1284,7 +1261,7 @@ namespace viscosity {
 			}
 			
 			if(vol_front > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1293,7 +1270,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1304,7 +1281,7 @@ namespace viscosity {
 			}
 			
 			if(vol_back > 0.) {
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1313,7 +1290,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_back;
 				}
 				
-				if(get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1344,10 +1321,10 @@ namespace viscosity {
 			const scalar vol_right = get_value_fast(node_index_ez, node_liquid_ey_vf, bucket_idx, node_idx, 4, 3, 0.0);
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-			const Vector3i& node_handle = node_indices_z[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3i& node_handle = scene.getNodeHandle(node_idx);
 			
 			Vector2i cur_node;
-			if(vol_right > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_right > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_right);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1357,7 +1334,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_right;
 			}
 			
-			if(vol_left > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+			if(vol_left > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_left);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1367,7 +1344,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_left;
 			}
 			
-			if(vol_top > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_top > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_top);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1377,7 +1354,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_top;
 			}
 			
-			if(vol_bottom > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+			if(vol_bottom > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, factor * vol_bottom);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1387,7 +1364,7 @@ namespace viscosity {
 					rhs[index] -= -node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 			}
 			
-			if(vol_front > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_front > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2. * factor * vol_front);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1397,7 +1374,7 @@ namespace viscosity {
 					rhs[index] -= -2. * node_vel_src_z[cur_node(0)][cur_node(1)] * factor * vol_front;
 			}
 			
-			if(vol_back > 0. && get_node_index(node_cpidx_z, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
+			if(vol_back > 0. && get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle - Vector3i(0, 0, 1)), num_nodes, buckets, cur_node))
 			{
 				matrix.add_to_element(index, index, 2. * factor * vol_back);
 				const NODE_STATE state = (NODE_STATE) node_state_w[cur_node(0)][cur_node(1)];
@@ -1408,7 +1385,7 @@ namespace viscosity {
 			}
 			
 			if(vol_right > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1417,7 +1394,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_right;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1428,7 +1405,7 @@ namespace viscosity {
 			}
 			
 			if(vol_left > 0.) {
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1437,7 +1414,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_x[cur_node(0)][cur_node(1)] * factor * vol_left;
 				}
 				
-				if(get_node_index(node_cpidx_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_u[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1448,7 +1425,7 @@ namespace viscosity {
 			}
 			
 			if(vol_top > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1457,7 +1434,7 @@ namespace viscosity {
 						rhs[index] -= -node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_top;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1468,7 +1445,7 @@ namespace viscosity {
 			}
 			
 			if(vol_bottom > 0.) {
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1477,7 +1454,7 @@ namespace viscosity {
 						rhs[index] -= node_vel_src_y[cur_node(0)][cur_node(1)] * factor * vol_bottom;
 				}
 				
-				if(get_node_index(node_cpidx_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
+				if(get_node_index(bucket_activated, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), num_nodes, buckets, cur_node))
 				{
 					const NODE_STATE state = (NODE_STATE) node_state_v[cur_node(0)][cur_node(1)];
 					if(state == NS_FLUID)
@@ -1498,15 +1475,6 @@ namespace viscosity {
 									std::vector< VectorXs >& node_vel_z,
 									const scalar& dt )
 	{
-		const std::vector< VectorXi >& node_cpidx_x = scene.getNodeCompressedIndexX();
-		const std::vector< VectorXi >& node_cpidx_y = scene.getNodeCompressedIndexY();
-		const std::vector< VectorXi >& node_cpidx_z = scene.getNodeCompressedIndexZ();
-		const std::vector< VectorXi >& node_cpidx_p = scene.getNodeCompressedIndexP();
-		
-		const std::vector< VectorXi >& node_indices_x = scene.getNodeIndicesX();
-		const std::vector< VectorXi >& node_indices_y = scene.getNodeIndicesY();
-		const std::vector< VectorXi >& node_indices_z = scene.getNodeIndicesZ();
-		
 		const std::vector< VectorXi >& node_index_ex = scene.getNodeIndexEdgeX();
 		const std::vector< VectorXi >& node_index_ey = scene.getNodeIndexEdgeY();
 		const std::vector< VectorXi >& node_index_ez = scene.getNodeIndexEdgeZ();
@@ -1516,9 +1484,6 @@ namespace viscosity {
 		const std::vector< VectorXi >& node_index_p_z = scene.getNodePressureIndexZ();
 		
 		const std::vector< VectorXs >& node_liquid_c_vf = scene.getNodeLiquidVolFracCentre();
-		const std::vector< VectorXs >& node_liquid_u_vf = scene.getNodeLiquidVolFracU();
-		const std::vector< VectorXs >& node_liquid_v_vf = scene.getNodeLiquidVolFracV();
-		const std::vector< VectorXs >& node_liquid_w_vf = scene.getNodeLiquidVolFracW();
 		const std::vector< VectorXs >& node_liquid_ex_vf = scene.getNodeLiquidVolFracEX();
 		const std::vector< VectorXs >& node_liquid_ey_vf = scene.getNodeLiquidVolFracEY();
 		const std::vector< VectorXs >& node_liquid_ez_vf = scene.getNodeLiquidVolFracEZ();
@@ -1546,14 +1511,14 @@ namespace viscosity {
 		const scalar coeff = dt / (dx * dx) * scene.getLiquidInfo().viscosity / scene.getLiquidInfo().liquid_density;
 		
 		buckets.for_each_bucket([&] (int bucket_idx) {
-			const int num_node_x = node_indices_x[bucket_idx].size() / 3;
-			const int num_node_y = node_indices_y[bucket_idx].size() / 3;
-			const int num_node_z = node_indices_z[bucket_idx].size() / 3;
+            const int num_node = scene.getNumNodes(bucket_idx);
+            
+            if(!scene.isBucketActivated(bucket_idx)) return;
 			
 			const Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
 			
-			for(int i = 0; i < num_node_x; ++i) {
-				const Vector3i& node_handle = node_indices_x[bucket_idx].segment<3>(i * 3);
+			for(int i = 0; i < num_node; ++i) {
+                const Vector3i& node_handle = scene.getNodeHandle(i);
 				const scalar factor = coeff;
 				
 				const scalar vol_left = get_value_fast(node_index_p_x, node_liquid_c_vf, bucket_idx, i, 2, 0, 0.0);
@@ -1568,28 +1533,28 @@ namespace viscosity {
 				const scalar centre_vel = node_vel_src_x[bucket_idx](i);
 				scalar vel = centre_vel;
 				
-				vel += 2.0 * factor * vol_right * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += 2.0 * factor * vol_left * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_top * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_bottom * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_front * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_back * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_right * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_left * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_top * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_bottom * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_front * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_back * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
 				
-				vel += factor * vol_top * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), 0.0, num_nodes, buckets) -
-										   get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), 0.0, num_nodes, buckets));
-				vel += factor * vol_bottom * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), 0.0, num_nodes, buckets) -
-											  get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_top * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), 0.0, num_nodes, buckets) -
+										   get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 1, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_bottom * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), 0.0, num_nodes, buckets) -
+											  get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
-				vel += factor * vol_front * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), 0.0, num_nodes, buckets) -
-											 get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), 0.0, num_nodes, buckets));
-				vel += factor * vol_back * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), 0.0, num_nodes, buckets) -
-											get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_front * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), 0.0, num_nodes, buckets) -
+											 get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 1)), 0.0, num_nodes, buckets));
+				vel += factor * vol_back * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), 0.0, num_nodes, buckets) -
+											get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
 				node_vel_x[bucket_idx](i) = vel;
 			}
 			
-			for(int i = 0; i < num_node_y; ++i) {
-				const Vector3i& node_handle = node_indices_y[bucket_idx].segment<3>(i * 3);
+			for(int i = 0; i < num_node; ++i) {
+				const Vector3i& node_handle = scene.getNodeHandle(i);
 				const scalar factor = coeff;
 				
 				const scalar vol_bottom = get_value_fast(node_index_p_y, node_liquid_c_vf, bucket_idx, i, 2, 0, 0.0);
@@ -1604,28 +1569,28 @@ namespace viscosity {
 				const scalar centre_vel = node_vel_src_y[bucket_idx](i);
 				scalar vel = centre_vel;
 				
-				vel += factor * vol_right * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_left * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += 2.0 * factor * vol_top * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += 2.0 * factor * vol_bottom * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_front * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_back * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_right * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_left * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_top * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_bottom * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_front * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_back * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
 				
-				vel += factor * vol_right * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), 0.0, num_nodes, buckets) -
-											 get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), 0.0, num_nodes, buckets));
-				vel += factor * vol_left * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), 0.0, num_nodes, buckets) -
-											get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_right * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), 0.0, num_nodes, buckets) -
+											 get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, -1, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_left * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), 0.0, num_nodes, buckets) -
+											get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
-				vel += factor * vol_front * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), 0.0, num_nodes, buckets) -
-											 get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), 0.0, num_nodes, buckets));
-				vel += factor * vol_back * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), 0.0, num_nodes, buckets) -
-											get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_front * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), 0.0, num_nodes, buckets) -
+											 get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 1)), 0.0, num_nodes, buckets));
+				vel += factor * vol_back * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), 0.0, num_nodes, buckets) -
+											get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
 				node_vel_y[bucket_idx](i) = vel;
 			}
 			
-			for(int i = 0; i < num_node_z; ++i) {
-				const Vector3i& node_handle = node_indices_z[bucket_idx].segment<3>(i * 3);
+			for(int i = 0; i < num_node; ++i) {
+				const Vector3i& node_handle = scene.getNodeHandle(i);
 				const scalar factor = coeff;
 				
 				const scalar vol_back = get_value_fast(node_index_p_z, node_liquid_c_vf, bucket_idx, i, 2, 0, 0.0);
@@ -1640,22 +1605,22 @@ namespace viscosity {
 				const scalar centre_vel = node_vel_src_z[bucket_idx](i);
 				scalar vel = centre_vel;
 				
-				vel += factor * vol_right * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_left * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_top * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += factor * vol_bottom * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += 2.0 * factor * vol_front * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
-				vel += 2.0 * factor * vol_back * (get_value(node_cpidx_z, node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_right * (get_value( node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_left * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(-1, 0, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_top * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += factor * vol_bottom * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, -1, 0)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_front * (get_value(node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 1)), centre_vel, num_nodes, buckets) - centre_vel);
+				vel += 2.0 * factor * vol_back * (get_value( node_vel_src_z, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), centre_vel, num_nodes, buckets) - centre_vel);
 				
-				vel += factor * vol_right * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), 0.0, num_nodes, buckets) -
-											 get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), 0.0, num_nodes, buckets));
-				vel += factor * vol_left * (get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), 0.0, num_nodes, buckets) -
-											get_value(node_cpidx_x, node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_right * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, 0)), 0.0, num_nodes, buckets) -
+											 get_value( node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(1, 0, -1)), 0.0, num_nodes, buckets));
+				vel += factor * vol_left * (get_value(node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), 0.0, num_nodes, buckets) -
+											get_value( node_vel_src_x, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
-				vel += factor * vol_top * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), 0.0, num_nodes, buckets) -
-										   get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), 0.0, num_nodes, buckets));
-				vel += factor * vol_bottom * (get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), 0.0, num_nodes, buckets) -
-											  get_value(node_cpidx_y, node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
+				vel += factor * vol_top * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, 0)), 0.0, num_nodes, buckets) -
+										   get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 1, -1)), 0.0, num_nodes, buckets));
+				vel += factor * vol_bottom * (get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, -1)), 0.0, num_nodes, buckets) -
+											  get_value(node_vel_src_y, bucket_handle, Vector3i(node_handle + Vector3i(0, 0, 0)), 0.0, num_nodes, buckets));
 				
 				node_vel_z[bucket_idx](i) = vel;
 			}

@@ -184,77 +184,61 @@ void WetClothCore::stepSystem(const scalar &dt){
 		timing_buffer[2] += t1 - t0; // APIC Mapping & Computing the Fields (all above)
 		t0 = t1;
 		
-		if(m_scene->useBiCGSTAB())
-		{
-			// This is the comparison we do with BiCGSTAB, which usually cannot converge.
-			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
-
-			t1 = timingutils::seconds();
-			timing_buffer[3] += t1 - t0; // Velocity Prediction
-			t0 = t1;
-			
-			m_scene_stepper->solveBiCGSTAB( *m_scene, sub_dt );
-			
-			t1 = timingutils::seconds();
-			timing_buffer[4] += t1 - t0;
-			t0 = t1;
-		} else {
-			// Explicitly Integrate the Elastic and Liquid Velocity
-			m_scene_stepper->stepVelocity( *m_scene, sub_dt );
-			t1 = timingutils::seconds();
-			timing_buffer[3] += t1 - t0; // Velocity Prediction
-			t0 = t1;
-			
-			// Check Divergence if Necessary
-			if(m_scene->getLiquidInfo().check_divergence) {
-				m_info.m_initial_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-			}
-			
-			// Do Pressure Projection for the Mixture
-			m_scene_stepper->projectFine( *m_scene, sub_dt );
-			t1 = timingutils::seconds();
-			timing_buffer[4] += t1 - t0; // Pressure Projection
-			t0 = t1;
-			
-			if(m_scene->getLiquidInfo().solve_solid) {
-				// Apply Pressure Gradient to Solid
-				m_scene_stepper->applyPressureDragElasto(*m_scene, sub_dt);
-				t1 = timingutils::seconds();
-				timing_buffer[5] += t1 - t0; // Timing the Pressure Gradient Application
-				t0 = t1;
-			}
-			
-			// Check Divergence if Necessary and Comparing with the Previously
-			// Recorded Divergence to Measure the Error
-			if(m_scene->getLiquidInfo().check_divergence) {
-				m_scene_stepper->pushFluidVelocity();
-				m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
-				scalar div = m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-				m_info.m_explicit_div_accu += div;
-				m_scene_stepper->popFluidVelocity();
-			}
-			
-			if(m_scene->getLiquidInfo().solve_solid) {
-				// Implicitly Integrate the Elastic Objects
-				m_scene_stepper->stepImplicitElasto( *m_scene, sub_dt );
-				t1 = timingutils::seconds();
-				timing_buffer[5] += t1 - t0; // Solve solid velocity
-				t0 = t1;
-			}
-			
-			// Apply Pressure Gradient to Liquid
-			m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
-			t1 = timingutils::seconds();
-			timing_buffer[6] += t1 - t0; // Solve Fluid velocity
-			t0 = t1;
-
-			// Update the Current Velocity with the Solved Ones
-			m_scene_stepper->acceptVelocity(*m_scene);
-			
-			if(m_scene->getLiquidInfo().check_divergence) {
-				m_info.m_implicit_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
-			}
-		}
+        // Explicitly Integrate the Elastic and Liquid Velocity
+        m_scene_stepper->stepVelocity( *m_scene, sub_dt );
+        t1 = timingutils::seconds();
+        timing_buffer[3] += t1 - t0; // Velocity Prediction
+        t0 = t1;
+        
+        // Check Divergence if Necessary
+        if(m_scene->getLiquidInfo().check_divergence) {
+            m_info.m_initial_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+        }
+        
+        // Do Pressure Projection for the Mixture
+        m_scene_stepper->projectFine( *m_scene, sub_dt );
+        t1 = timingutils::seconds();
+        timing_buffer[4] += t1 - t0; // Pressure Projection
+        t0 = t1;
+        
+        if(m_scene->getLiquidInfo().solve_solid) {
+            // Apply Pressure Gradient to Solid
+            m_scene_stepper->applyPressureDragElasto(*m_scene, sub_dt);
+            t1 = timingutils::seconds();
+            timing_buffer[5] += t1 - t0; // Timing the Pressure Gradient Application
+            t0 = t1;
+        }
+        
+        // Check Divergence if Necessary and Comparing with the Previously
+        // Recorded Divergence to Measure the Error
+        if(m_scene->getLiquidInfo().check_divergence) {
+            m_scene_stepper->pushFluidVelocity();
+            m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
+            scalar div = m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+            m_info.m_explicit_div_accu += div;
+            m_scene_stepper->popFluidVelocity();
+        }
+        
+        if(m_scene->getLiquidInfo().solve_solid) {
+            // Implicitly Integrate the Elastic Objects
+            m_scene_stepper->stepImplicitElasto( *m_scene, sub_dt );
+            t1 = timingutils::seconds();
+            timing_buffer[5] += t1 - t0; // Solve solid velocity
+            t0 = t1;
+        }
+        
+        // Apply Pressure Gradient to Liquid
+        m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
+        t1 = timingutils::seconds();
+        timing_buffer[6] += t1 - t0; // Solve Fluid velocity
+        t0 = t1;
+        
+        // Update the Current Velocity with the Solved Ones
+        m_scene_stepper->acceptVelocity(*m_scene);
+        
+        if(m_scene->getLiquidInfo().check_divergence) {
+            m_info.m_implicit_div_accu += m_scene_stepper->computeDivergence(*m_scene) / (scalar) num_substeps;
+        }
 		
 		// Kinematic Projection of the Liquid Velocity at the Boundary (as Fail-safe)
 		m_scene->constrainLiquidVelocity();

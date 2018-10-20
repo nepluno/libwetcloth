@@ -40,6 +40,7 @@
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+#define GL_SILENCE_DEPRECATION
 
 #include "TwoDSceneRenderer.h"
 #include "TwoDimensionalDisplayController.h"
@@ -128,12 +129,10 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
     const VectorXs& vol = scene.getVol();
     const VectorXs& fvol = scene.getFluidVol();
     const VectorXs& fv = scene.getFluidV();
-    const VectorXs& vol_frac = scene.getVolumeFraction();
     
     const MatrixXi& faces = scene.getFaces();
     const MatrixXs& fe = scene.getGaussFe();
     const int num_faces = faces.rows();
-    const int num_edges = scene.getNumEdges();
     
     const std::vector< std::vector<RayTriInfo> >& intersections = scene.getIntersections();
     const int num_gauss = scene.getNumGausses();
@@ -150,7 +149,6 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         glBegin(GL_TRIANGLES);
         for(int i = 0; i < num_faces; ++i)
         {
-            const int gauss_idx = i + num_edges;
             const auto& f = faces.row(i);
             for(int r = 0; r < 3; ++r) {
                 const scalar sat = mathutils::clamp(fvol(f(r)) / std::max(1e-12, vol(f(r))), 0.0, 1.0);
@@ -165,7 +163,6 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         glBegin(GL_TRIANGLES);
         for(int i = 0; i < num_faces; ++i)
         {
-            const int gauss_idx = i + num_edges;
             const auto& f = faces.row(i);
             for(int r = 0; r < 3; ++r) {
                 const scalar sat = mathutils::clamp(fvol(f(r)) / std::max(1e-12, vol(f(r))), 0.0, 1.0);
@@ -189,8 +186,6 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         
         for( int i = 0; i < edges.rows(); ++i )
         {
-            const int gauss_idx = i;
-            
             const scalar sat0 = mathutils::clamp(fvol(edges(i, 0)) / std::max(1e-12, vol(edges(i, 0))), 0.0, 1.0);
             const scalar sat1 = mathutils::clamp(fvol(edges(i, 1)) / std::max(1e-12, vol(edges(i, 1))), 0.0, 1.0);
             
@@ -302,10 +297,9 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
             glColor4d(node_color_solid_phi(0), node_color_solid_phi(1), node_color_solid_phi(2), 0.8);
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_sphi = scene.getNodePosSolidPhi(i);
-                const int num_node_sphi = node_pos_sphi.size() / 3;
+                const int num_node_sphi = scene.getNumNodes(i);
                 for(int j = 0; j < num_node_sphi; ++j) {
-                    glVertex3dv( node_pos_sphi.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosSolidPhi(i, j).data() );
                 }
             }
             break;
@@ -314,13 +308,12 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         {
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_sphi = scene.getNodePosSolidPhi(i);
                 const VectorXs& node_sphi = scene.getNodeSolidPhi()[i];
-                const int num_node_sphi = node_pos_sphi.size() / 3;
+                const int num_node_sphi = scene.getNumNodes(i);
                 for(int j = 0; j < num_node_sphi; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_sphi[j], -3.0 * dx, 3.0 * dx);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_sphi.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosSolidPhi(i, j).data() );
                 }
             }
             break;
@@ -335,30 +328,27 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_x(0), node_color_x(1), node_color_x(2), 0.8);
-                const VectorXs& node_pos_x = scene.getNodePosX(i);
-                const int num_node_x = node_pos_x.size() / 3;
+                const int num_node_x = scene.getNumNodes(i);
                 for(int j = 0; j < num_node_x; ++j) {
-                    glVertex3dv( node_pos_x.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosX(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_y(0), node_color_y(1), node_color_y(2), 0.8);
-                const VectorXs& node_pos_y = scene.getNodePosY(i);
-                const int num_node_y = node_pos_y.size() / 3;
+                const int num_node_y = scene.getNumNodes(i);
                 for(int j = 0; j < num_node_y; ++j) {
-                    glVertex3dv( node_pos_y.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosY(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_z(0), node_color_z(1), node_color_z(2), 0.8);
-                const VectorXs& node_pos_z = scene.getNodePosZ(i);
-                const int num_node_z = node_pos_z.size() / 3;
+                const int num_node_z = scene.getNumNodes(i);
                 for(int j = 0; j < num_node_z; ++j) {
-                    glVertex3dv( node_pos_z.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosZ(i, j).data() );
                 }
             }
             break;
@@ -367,37 +357,34 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         {
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_x = scene.getNodePosX(i);
                 const VectorXs& node_solid_psi = scene.getNodePsiX()[i];
-                const int num_node_x = node_pos_x.size() / 3;
-                for(int j = 0; j < num_node_x; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_solid_psi[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_x.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosX(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_y = scene.getNodePosY(i);
                 const VectorXs& node_solid_psi = scene.getNodePsiY()[i];
-                const int num_node_y = node_pos_y.size() / 3;
-                for(int j = 0; j < num_node_y; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_solid_psi[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_y.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosY(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_z = scene.getNodePosZ(i);
                 const VectorXs& node_solid_psi = scene.getNodePsiZ()[i];
-                const int num_node_z = node_pos_z.size() / 3;
-                for(int j = 0; j < num_node_z; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_solid_psi[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_z.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosZ(i, j).data() );
                 }
             }
             break;
@@ -406,37 +393,34 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
         {
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_x = scene.getNodePosX(i);
                 const VectorXs& node_sat = scene.getNodeSaturationX()[i];
-                const int num_node_x = node_pos_x.size() / 3;
-                for(int j = 0; j < num_node_x; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_sat[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_x.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosX(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_y = scene.getNodePosY(i);
                 const VectorXs& node_sat = scene.getNodeSaturationY()[i];
-                const int num_node_y = node_pos_y.size() / 3;
-                for(int j = 0; j < num_node_y; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_sat[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_y.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosY(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
-                const VectorXs& node_pos_z = scene.getNodePosZ(i);
                 const VectorXs& node_sat = scene.getNodeSaturationZ()[i];
-                const int num_node_z = node_pos_z.size() / 3;
-                for(int j = 0; j < num_node_z; ++j) {
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_sat[j]);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_z.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosZ(i, j).data() );
                 }
             }
             break;
@@ -451,30 +435,27 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_ex(0), node_color_ex(1), node_color_ex(2), 0.8);
-                const VectorXs& node_pos_x = scene.getNodePosEX(i);
-                const int num_node_x = node_pos_x.size() / 3;
-                for(int j = 0; j < num_node_x; ++j) {
-                    glVertex3dv( node_pos_x.segment<3>(3 * j).data() );
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
+                    glVertex3dv( scene.getNodePosX(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_ey(0), node_color_ey(1), node_color_ey(2), 0.8);
-                const VectorXs& node_pos_y = scene.getNodePosEY(i);
-                const int num_node_y = node_pos_y.size() / 3;
-                for(int j = 0; j < num_node_y; ++j) {
-                    glVertex3dv( node_pos_y.segment<3>(3 * j).data() );
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
+                    glVertex3dv( scene.getNodePosY(i, j).data() );
                 }
             }
             
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_ez(0), node_color_ez(1), node_color_ez(2), 0.8);
-                const VectorXs& node_pos_z = scene.getNodePosEZ(i);
-                const int num_node_z = node_pos_z.size() / 3;
-                for(int j = 0; j < num_node_z; ++j) {
-                    glVertex3dv( node_pos_z.segment<3>(3 * j).data() );
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
+                    glVertex3dv( scene.getNodePosZ(i, j).data() );
                 }
             }
             break;
@@ -489,10 +470,9 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_p(0), node_color_p(1), node_color_p(2), 0.8);
-                const VectorXs& node_pos_p = scene.getNodePosP(i);
-                const int num_node_p = node_pos_p.size() / 3;
-                for(int j = 0; j < num_node_p; ++j) {
-                    glVertex3dv( node_pos_p.segment<3>(3 * j).data() );
+                const int num_nodes = scene.getNumNodes(i);
+                for(int j = 0; j < num_nodes; ++j) {
+                    glVertex3dv( scene.getNodePosP(i, j).data() );
                 }
             }
 
@@ -503,13 +483,12 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
             for( int i = 0; i < scene.getNumBuckets(); ++i )
             {
                 glColor4d(node_color_p(0), node_color_p(1), node_color_p(2), 0.8);
-                const VectorXs& node_pos_p = scene.getNodePosP(i);
+                const int num_nodes = scene.getNumNodes(i);
                 const VectorXs& node_phi = scene.getNodeLiquidPhi()[i];
-                const int num_node_p = node_pos_p.size() / 3;
-                for(int j = 0; j < num_node_p; ++j) {
+                for(int j = 0; j < num_nodes; ++j) {
                     Vector3s c = renderingutils::interpolateColor(node_phi[j], -3.0 * dx, 3.0 * dx);
                     glColor4d(c(0), c(1), c(2), 0.8);
-                    glVertex3dv( node_pos_p.segment<3>(3 * j).data() );
+                    glVertex3dv( scene.getNodePosP(i, j).data() );
                 }
             }
             
@@ -525,7 +504,6 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
     if(m_info.render_particles) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        const int num_fluids = scene.getNumFluidParticles();
         const std::vector<int>& fluid_indices = scene.getFluidIndices();
         glPointSize(4.0);
         glColor4d(0.0, 0.0, 1.0, 0.1);
@@ -590,7 +568,6 @@ void TwoDSceneRenderer::renderParticleSimulation( const TwoDScene& scene, const 
     
     if(m_info.render_particle_velocity) {
         glColor4d(fluid_color(0), fluid_color(1), fluid_color(2), 0.25);
-        const int num_fluid = scene.getNumFluidParticles();
         const std::vector<int>& fluid_indices = scene.getFluidIndices();
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

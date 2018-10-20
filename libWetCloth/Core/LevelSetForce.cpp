@@ -71,7 +71,6 @@ void LevelSetForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
 	assert( x.size()%4 == 0 );
     
     const int num_elasto = m_process_list.size();
-    const std::vector< VectorXs >& node_pos = m_scene->getNodePosSolidPhi();
     const std::vector< VectorXs >& solid_phi = m_scene->getNodeSolidPhi();
     
     const VectorXs& vol = m_scene->getVol();
@@ -96,14 +95,14 @@ void LevelSetForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const
             const int node_idx = node_indices_sphi(nidx, 1);
             
             scalar phi;
-            if(node_indices_sphi(nidx, 2)) {
+            if(m_scene->isBucketActivated(bucket_idx)) {
                 phi = solid_phi[bucket_idx](node_idx);
             } else {
                 phi = 3.0 * m_scene->getCellSize();
             }
             
             const scalar w = particle_weights(nidx, 3);
-            const Vector3s& np = node_pos[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = m_scene->getNodePosSolidPhi(bucket_idx, node_idx);
             
             phi_ori += phi * w;
             grad_phi += phi * iD * w * (np - pos);
@@ -133,7 +132,6 @@ void LevelSetForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const
 	assert( x.size()%4 == 0 );
     
     const int num_elasto = m_process_list.size();
-    const std::vector< VectorXs >& node_pos = m_scene->getNodePosSolidPhi();
     const std::vector< VectorXs >& solid_phi = m_scene->getNodeSolidPhi();
     
     const VectorXs& vol = m_scene->getVol();
@@ -158,14 +156,14 @@ void LevelSetForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const
             const int node_idx = node_indices_sphi(nidx, 1);
             
             scalar phi;
-            if(node_indices_sphi(nidx, 2)) {
+            if(m_scene->isBucketActivated(bucket_idx)) {
                 phi = solid_phi[bucket_idx](node_idx);
             } else {
                 phi = 3.0 * m_scene->getCellSize();
             }
             
             const scalar w = particle_weights(nidx, 3);
-            const Vector3s& np = node_pos[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = m_scene->getNodePosSolidPhi(bucket_idx, node_idx);
             
             phi_ori += phi * w;
             grad_phi += phi * iD * w * (np - pos);
@@ -210,8 +208,6 @@ int LevelSetForce::numHessX()
     const VectorXs& x = m_scene->getX();
     m_process_list.resize(0);
     m_process_list.reserve(num_elasto);
-    
-    const scalar dx = m_scene->getCellSize();
     
     for(int i = 0; i < num_elasto; ++i)
     {

@@ -67,9 +67,7 @@ public:
     virtual bool applyPressureDragFluid( TwoDScene& scene, scalar dt ) = 0;
 	
 	virtual bool acceptVelocity( TwoDScene& scene ) = 0;
-    
-    virtual bool solveBiCGSTAB( TwoDScene& scene, scalar dt ) = 0;
-    
+
 	virtual bool manifoldPropagate( TwoDScene& scene, scalar dt ) = 0;
     
     virtual bool advectSurfTension( TwoDScene& scene, scalar dt ) = 0;

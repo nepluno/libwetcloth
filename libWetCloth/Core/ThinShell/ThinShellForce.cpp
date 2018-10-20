@@ -66,7 +66,6 @@ ThinShellForce::~ThinShellForce()
 ThinShellForce::ThinShellForce(const std::shared_ptr<TwoDScene>& scene, const std::vector< Vector3i >& faces, const int& parameterIndex, int globalIndex)
 : m_scene(scene)
 {
-	const VectorXs& global_rest_area = scene->getFaceRestArea();
 	const VectorXs& rest_pos = scene->getRestPos();
 	const int num_particles = scene->getNumParticles();
 	

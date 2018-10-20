@@ -52,22 +52,6 @@
 class TwoDScene;
 
 namespace pressure {
-    void constructDivEquationBiCGSTAB(const TwoDScene& scene,
-                          std::vector< VectorXs >& node_rhs,
-                          const std::vector< VectorXs >& node_psi_fs_x,
-                          const std::vector< VectorXs >& node_psi_fs_y,
-                          const std::vector< VectorXs >& node_psi_fs_z,
-                          const std::vector< VectorXs >& node_psi_sf_x,
-                          const std::vector< VectorXs >& node_psi_sf_y,
-                          const std::vector< VectorXs >& node_psi_sf_z,
-                          const std::vector< VectorXs >& node_fluid_vel_x,
-                          const std::vector< VectorXs >& node_fluid_vel_y,
-                          const std::vector< VectorXs >& node_fluid_vel_z,
-                          const std::vector< VectorXs >& node_elasto_vel_x,
-                          const std::vector< VectorXs >& node_elasto_vel_y,
-                          const std::vector< VectorXs >& node_elasto_vel_z,
-                          const scalar& dt);
-    
     void constructNodeIncompressibleCondition(const TwoDScene& scene,
                           std::vector< VectorXs >& node_ic,
                           const std::vector< VectorXs >& node_fluid_vel_x,
@@ -76,50 +60,6 @@ namespace pressure {
                           const std::vector< VectorXs >& node_elasto_vel_x,
                           const std::vector< VectorXs >& node_elasto_vel_y,
                           const std::vector< VectorXs >& node_elasto_vel_z);
-    
-    void solveCoarseNodePressure(const TwoDScene& scene,
-                                 Array3s& pressure,
-                                 std::vector<double>& rhs,
-                                 robertbridson::SparseMatrix<scalar>& matrix,
-                                 const Array3s& psi_fs_x,
-                                 const Array3s& psi_fs_y,
-                                 const Array3s& psi_fs_z,
-                                 const Array3s& psi_sf_x,
-                                 const Array3s& psi_sf_y,
-                                 const Array3s& psi_sf_z,
-                                 const Array3s& fluid_vel_x,
-                                 const Array3s& fluid_vel_y,
-                                 const Array3s& fluid_vel_z,
-                                 const Array3s& elasto_vel_x,
-                                 const Array3s& elasto_vel_y,
-                                 const Array3s& elasto_vel_z,
-                                 const Array3s& inv_mdv_x,
-                                 const Array3s& inv_mdv_y,
-                                 const Array3s& inv_mdv_z,
-                                 const Array3s& inv_mdvs_x,
-                                 const Array3s& inv_mdvs_y,
-                                 const Array3s& inv_mdvs_z,
-                                 const scalar& dt,
-                                 const scalar& criterion,
-                                 int maxiters);
-    
-    void applyCoarsePressureGradsFluid( TwoDScene& scene,
-                                       const Array3s& pressure_vec,
-                                       Array3s& rhs_vec_x, Array3s& rhs_vec_y, Array3s& rhs_vec_z,
-                                       Array3uc& valid_x, Array3uc& valid_y, Array3uc& valid_z,
-                                       Array3s& fluid_pg_x,
-                                       Array3s& fluid_pg_y,
-                                       Array3s& fluid_pg_z,
-                                       const Array3s& inv_mdv_x, const Array3s& inv_mdv_y, const Array3s& inv_mdv_z,
-                                       const scalar& dt );
-    
-    void applyCoarsePressureToFine( TwoDScene& scene,
-                                   const Array3s& pressure_vec,
-                                   std::vector< VectorXs >& vel_x, std::vector< VectorXs >& vel_y, std::vector< VectorXs >& vel_z,
-                                   std::vector< VectorXs >& elasto_rhs_x, std::vector< VectorXs >& elasto_rhs_y, std::vector< VectorXs >& elasto_rhs_z,
-                                   const std::vector< VectorXs >& node_vol_x, const std::vector< VectorXs >& node_vol_y, const std::vector< VectorXs >& node_vol_z,
-                                   const std::vector< VectorXs >& node_vol_elasto_x, const std::vector< VectorXs >& node_vol_elasto_y, const std::vector< VectorXs >& node_vol_elasto_z,
-                                   const std::vector< VectorXs >& node_inv_mdv_x, const std::vector< VectorXs >& node_inv_mdv_y, const std::vector< VectorXs >& node_inv_mdv_z, const scalar& dt);
     
 	void multiplyPressureMatrix( const TwoDScene& scene, const std::vector< VectorXs >& node_vec, std::vector< VectorXs >& out_node_vec, const std::vector< VectorXs >& node_inv_mdv_x, const std::vector< VectorXs >& node_inv_mdv_y, const std::vector< VectorXs >& node_inv_mdv_z, const std::vector< VectorXs >& node_inv_mdvs_x, const std::vector< VectorXs >& node_inv_mdvs_y, const std::vector< VectorXs >& node_inv_mdvs_z, const scalar& dt );
     void solveNodePressure( const TwoDScene& scene,
@@ -162,8 +102,6 @@ namespace pressure {
 	
 	void applySurfTensionFluid( TwoDScene& scene, const std::vector< VectorXs >& surf_tension_vec, std::vector< VectorXs >& rhs_vec_x, std::vector< VectorXs >& rhs_vec_y, std::vector< VectorXs >& rhs_vec_z, const std::vector< VectorXs >& node_vol_x, const std::vector< VectorXs >& node_vol_y, const std::vector< VectorXs >& node_vol_z );
 	
-    void identifyValid( TwoDScene& scene );
-    
 	void applyPressureGradsFluid( TwoDScene& scene,
                                  const std::vector< VectorXs >& pressure_vec,
                                  std::vector< VectorXs >& rhs_vec_x,
@@ -173,14 +111,6 @@ namespace pressure {
                                  const std::vector< VectorXs >& node_inv_mdv_y,
                                  const std::vector< VectorXs >& node_inv_mdv_z,
                                  const scalar& dt );
-    
-    void applyPressureGradsFluidRHSBiCGSTAB( const TwoDScene& scene,
-                                 const std::vector< VectorXs >& pressure_vec,
-                                 std::vector< VectorXs >& rhs_vec_x,
-                                 std::vector< VectorXs >& rhs_vec_y,
-                                 std::vector< VectorXs >& rhs_vec_z,
-                                 const scalar& dt );
-    
 	
 	void applyPressureGradsElastoRHS(
                                      TwoDScene& scene,
@@ -204,24 +134,10 @@ namespace pressure {
                                      const std::vector< VectorXs >& node_mshdvm_hdvm_z,
                                      const scalar& dt );
     
-    void applyPressureGradsElastoRHSBiCGSTAB(
-                                     const TwoDScene& scene,
-                                     const std::vector< VectorXs >& pressure_vec,
-                                     std::vector< VectorXs >& rhs_vec_x,
-                                     std::vector< VectorXs >& rhs_vec_y,
-                                     std::vector< VectorXs >& rhs_vec_z,
-                                     const scalar& dt );
 	
-	void extrapolate( const TwoDScene& scene, std::vector< VectorXuc >& node_valid, const std::vector< VectorXi >& node_cpidx, std::vector< VectorXs >& node_vel);
-    void extrapolateCoarse( const TwoDScene& scene, Array3uc& valid_x, Array3uc& valid_y, Array3uc& valid_z, Array3s& vel_x, Array3s& vel_y, Array3s& vel_z,
-                           Array3s& fluid_pg_x,
-                           Array3s& fluid_pg_y,
-                           Array3s& fluid_pg_z
-                           );
+	void extrapolate( const TwoDScene& scene, std::vector< VectorXuc >& node_valid, std::vector< VectorXs >& node_vel);
     
 	void computePorePressureGrads(const TwoDScene& scene, std::vector< VectorXs >& rhs_vec_x, std::vector< VectorXs >& rhs_vec_y, std::vector< VectorXs >& rhs_vec_z, const std::vector< VectorXs >& node_vol_x, const std::vector< VectorXs >& node_vol_y, const std::vector< VectorXs >& node_vol_z, const scalar& dt);
-    
-    void computePorePressureGradsCoarse(const TwoDScene& scene, Array3s& rhs_arr_x, Array3s& rhs_arr_y, Array3s& rhs_arr_z, const Array3s& vol_x, const Array3s& vol_y, const Array3s& vol_z, const scalar& dt);
 };
 
 #endif

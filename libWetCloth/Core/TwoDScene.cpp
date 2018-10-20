@@ -97,42 +97,15 @@ std::ostream& operator<<(std::ostream& os, const LiquidInfo& info)
     return os;
 }
 
-template<int N>
-inline void compressParticleNodes(const std::vector< VectorXi >& node_cpidx, std::vector< Eigen::Matrix<int, N, 3> >& particle_nodes)
-{
-    const int num_part = (int) particle_nodes.size();
-    
-    threadutils::for_each(0, num_part, [&] (int pidx) {
-        auto& indices = particle_nodes[pidx];
-        
-        for(int nidx = 0; nidx < indices.rows(); ++nidx)
-        {
-            const int node_bucket_idx = indices(nidx, 0);
-            const int node_idx = indices(nidx, 1);
-            
-            assert(indices(nidx, 0) >= 0 && indices(nidx, 1) >= 0);
-            
-            auto& bucket_node_cpidx = node_cpidx[node_bucket_idx];
-            
-            if(bucket_node_cpidx[node_idx] < 0) {
-                indices(nidx, 2) = 0;
-            } else {
-                indices(nidx, 1) = bucket_node_cpidx[node_idx];
-                indices(nidx, 2) = 1;
-            }
-        }
-    });
-}
-
 TwoDScene::TwoDScene()
 : m_x()
 , m_v()
 , m_m()
 , m_fixed()
-, m_edges()
-, m_forces()
 , step_count(0)
+, m_edges()
 , m_num_colors(1)
+, m_forces()
 {
     sphere_pattern::generateSpherePattern(m_sphere_pattern);
 }
@@ -411,72 +384,72 @@ Matrix27x3s& TwoDScene::getGaussWeights(int pidx)
     return m_gauss_weights[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getParticleNodesSolidPhi( int pidx ) const
+const Matrix27x2i& TwoDScene::getParticleNodesSolidPhi( int pidx ) const
 {
     return m_particle_nodes_solid_phi[pidx];
 }
 
-Matrix27x3i& TwoDScene::getParticleNodesSolidPhi( int pidx )
+Matrix27x2i& TwoDScene::getParticleNodesSolidPhi( int pidx )
 {
     return m_particle_nodes_solid_phi[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getParticleNodesX( int pidx ) const
+const Matrix27x2i& TwoDScene::getParticleNodesX( int pidx ) const
 {
     return m_particle_nodes_x[pidx];
 }
 
-Matrix27x3i& TwoDScene::getParticleNodesX( int pidx )
+Matrix27x2i& TwoDScene::getParticleNodesX( int pidx )
 {
     return m_particle_nodes_x[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getParticleNodesY( int pidx ) const
+const Matrix27x2i& TwoDScene::getParticleNodesY( int pidx ) const
 {
     return m_particle_nodes_y[pidx];
 }
 
-Matrix27x3i& TwoDScene::getParticleNodesY( int pidx )
+Matrix27x2i& TwoDScene::getParticleNodesY( int pidx )
 {
     return m_particle_nodes_y[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getParticleNodesZ( int pidx ) const
+const Matrix27x2i& TwoDScene::getParticleNodesZ( int pidx ) const
 {
     return m_particle_nodes_z[pidx];
 }
 
-Matrix27x3i& TwoDScene::getParticleNodesZ( int pidx )
+Matrix27x2i& TwoDScene::getParticleNodesZ( int pidx )
 {
     return m_particle_nodes_z[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getGaussNodesX( int pidx ) const
+const Matrix27x2i& TwoDScene::getGaussNodesX( int pidx ) const
 {
     return m_gauss_nodes_x[pidx];
 }
 
-Matrix27x3i& TwoDScene::getGaussNodesX( int pidx )
+Matrix27x2i& TwoDScene::getGaussNodesX( int pidx )
 {
     return m_gauss_nodes_x[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getGaussNodesY( int pidx ) const
+const Matrix27x2i& TwoDScene::getGaussNodesY( int pidx ) const
 {
     return m_gauss_nodes_y[pidx];
 }
 
-Matrix27x3i& TwoDScene::getGaussNodesY( int pidx )
+Matrix27x2i& TwoDScene::getGaussNodesY( int pidx )
 {
     return m_gauss_nodes_y[pidx];
 }
 
-const Matrix27x3i& TwoDScene::getGaussNodesZ( int pidx ) const
+const Matrix27x2i& TwoDScene::getGaussNodesZ( int pidx ) const
 {
     return m_gauss_nodes_z[pidx];
 }
 
-Matrix27x3i& TwoDScene::getGaussNodesZ( int pidx )
+Matrix27x2i& TwoDScene::getGaussNodesZ( int pidx )
 {
     return m_gauss_nodes_z[pidx];
 }
@@ -486,29 +459,12 @@ int TwoDScene::getDefaultNumNodes() const
     return m_num_nodes;
 }
 
-int TwoDScene::getNumNodesX(int bucket_idx) const
+int TwoDScene::getNumNodes(int bucket_idx) const
 {
-    return m_node_pos_x[bucket_idx].size() / 3;
-}
-
-int TwoDScene::getNumNodesY(int bucket_idx) const
-{
-    return m_node_pos_y[bucket_idx].size() / 3;
-}
-
-int TwoDScene::getNumNodesZ(int bucket_idx) const
-{
-    return m_node_pos_z[bucket_idx].size() / 3;
-}
-
-int TwoDScene::getNumNodesSolidPhi(int bucket_idx) const
-{
-    return m_node_pos_solid_phi[bucket_idx].size() / 3;
-}
-
-int TwoDScene::getNumNodesP(int bucket_idx) const
-{
-    return m_node_pos_p[bucket_idx].size() / 3;
+    if(m_bucket_activated[bucket_idx])
+        return m_num_nodes * m_num_nodes * m_num_nodes;
+    else
+        return 0;
 }
 
 const std::vector< VectorXuc >& TwoDScene::getNodeStateX() const
@@ -541,126 +497,6 @@ std::vector< VectorXuc >& TwoDScene::getNodeStateZ()
     return m_node_state_w;
 }
 
-const std::vector< VectorXi >& TwoDScene::getNodeCompressedIndexX() const
-{
-    return m_node_cpidx_x;
-}
-
-const std::vector< VectorXi >& TwoDScene::getNodeCompressedIndexY() const
-{
-    return m_node_cpidx_y;
-}
-
-const std::vector< VectorXi >& TwoDScene::getNodeCompressedIndexZ() const
-{
-    return m_node_cpidx_z;
-}
-
-const std::vector< VectorXi >& TwoDScene::getNodeCompressedIndexP() const
-{
-    return m_node_cpidx_p;
-}
-
-const std::vector< VectorXs >& TwoDScene::getNodePosX() const
-{
-    return m_node_pos_x;
-}
-
-std::vector< VectorXs >& TwoDScene::getNodePosX()
-{
-    return m_node_pos_x;
-}
-
-const std::vector< VectorXs >& TwoDScene::getNodePosY() const
-{
-    return m_node_pos_y;
-}
-
-std::vector< VectorXs >& TwoDScene::getNodePosY()
-{
-    return m_node_pos_y;
-}
-
-const std::vector< VectorXs >& TwoDScene::getNodePosZ() const
-{
-    return m_node_pos_z;
-}
-
-std::vector< VectorXs >& TwoDScene::getNodePosZ()
-{
-    return m_node_pos_z;
-}
-
-const VectorXs& TwoDScene::getNodePosX(int bucket_idx) const
-{
-    return m_node_pos_x[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosX(int bucket_idx)
-{
-    return m_node_pos_x[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosY(int bucket_idx) const
-{
-    return m_node_pos_y[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosY(int bucket_idx)
-{
-    return m_node_pos_y[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosZ(int bucket_idx) const
-{
-    return m_node_pos_z[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosZ(int bucket_idx)
-{
-    return m_node_pos_z[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosP(int bucket_idx) const
-{
-    return m_node_pos_p[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosP(int bucket_idx)
-{
-    return m_node_pos_p[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosEX(int bucket_idx) const
-{
-    return m_node_pos_ex[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosEX(int bucket_idx)
-{
-    return m_node_pos_ex[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosEY(int bucket_idx) const
-{
-    return m_node_pos_ey[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosEY(int bucket_idx)
-{
-    return m_node_pos_ey[bucket_idx];
-}
-
-const VectorXs& TwoDScene::getNodePosEZ(int bucket_idx) const
-{
-    return m_node_pos_ez[bucket_idx];
-}
-
-VectorXs& TwoDScene::getNodePosEZ(int bucket_idx)
-{
-    return m_node_pos_ez[bucket_idx];
-}
-
 const std::vector<VectorXs>& TwoDScene::getNodeSolidPhi() const
 {
     return m_node_solid_phi;
@@ -671,24 +507,24 @@ std::vector<VectorXs>& TwoDScene::getNodeSolidPhi()
     return m_node_solid_phi;
 }
 
-const VectorXs& TwoDScene::getNodePosSolidPhi(int bucket_idx) const
+const VectorXs& TwoDScene::getNodePos(int bucket_idx) const
 {
-    return m_node_pos_solid_phi[bucket_idx];
+    return m_node_pos[bucket_idx];
 }
 
-VectorXs& TwoDScene::getNodePosSolidPhi(int bucket_idx)
+VectorXs& TwoDScene::getNodePos(int bucket_idx)
 {
-    return m_node_pos_solid_phi[bucket_idx];
+    return m_node_pos[bucket_idx];
 }
 
-const std::vector<VectorXs>& TwoDScene::getNodePosSolidPhi() const
+const std::vector<VectorXs>& TwoDScene::getNodePos() const
 {
-    return m_node_pos_solid_phi;
+    return m_node_pos;
 }
 
-std::vector<VectorXs>& TwoDScene::getNodePosSolidPhi()
+std::vector<VectorXs>& TwoDScene::getNodePos()
 {
-    return m_node_pos_solid_phi;
+    return m_node_pos;
 }
 
 const std::vector< VectorXs >& TwoDScene::getNodeCellSolidPhi() const
@@ -771,6 +607,11 @@ std::vector< VectorXs >& TwoDScene::getNodeFluidVelocityZ()
     return m_node_vel_fluid_z;
 }
 
+const std::vector<unsigned char>& TwoDScene::getBucketActivated() const
+{
+    return m_bucket_activated;
+}
+
 const std::vector< VectorXs >& TwoDScene::getNodeMassX() const
 {
     return m_node_mass_x;
@@ -842,7 +683,7 @@ void TwoDScene::markInsideOut()
         const int num_rows_x = indices_x.rows();
         for(int i = 0; i < num_rows_x; ++i)
         {
-            if(indices_x(i, 2)) {
+            if(m_bucket_activated[indices_x(i, 0)]) {
                 has_compressed = true;
             } else {
                 has_uncompressed = true;
@@ -853,7 +694,7 @@ void TwoDScene::markInsideOut()
         const int num_rows_y = indices_y.rows();
         for(int i = 0; i < num_rows_y; ++i)
         {
-            if(indices_y(i, 2)) {
+            if(m_bucket_activated[indices_y(i, 0)]) {
                 has_compressed = true;
             } else {
                 has_uncompressed = true;
@@ -864,7 +705,7 @@ void TwoDScene::markInsideOut()
         const int num_rows_z = indices_z.rows();
         for(int i = 0; i < num_rows_z; ++i)
         {
-            if(indices_z(i, 2)) {
+            if(m_bucket_activated[indices_z(i, 0)]) {
                 has_compressed = true;
             } else {
                 has_uncompressed = true;
@@ -1480,11 +1321,10 @@ void TwoDScene::updateIntersection()
             const int bucket_idx = m_gauss_buckets.bucket_index(ibucket);
             const int node_idx = inode(2) * m_num_nodes * m_num_nodes + inode(1) * m_num_nodes + inode(0);
             
-            const int mapped_idx = m_node_cpidx_p[bucket_idx][node_idx];
-            if(mapped_idx < 0) {
-                phis(k * 4 + j * 2 + i) = interpolateBucketLiquidPhi(pos);
+            if(!m_bucket_activated[bucket_idx]) {
+                phis(k * 4 + j * 2 + i) = 3.0 * dx;
             } else {
-                phis(k * 4 + j * 2 + i) = m_node_liquid_phi[bucket_idx][mapped_idx];
+                phis(k * 4 + j * 2 + i) = m_node_liquid_phi[bucket_idx][node_idx];
             }
         }
         
@@ -1795,8 +1635,6 @@ void TwoDScene::computedEdFe(MatrixXs &dFe){
     
     m_dFe_gauss.setZero();
     
-    assert(num_edges + num_faces + num_surfels == num_gauss);
-    
     // compute forces on yarns
     threadutils::for_each(0, num_edges, [&] (int i) {
         Matrix3s FeD = m_d_gauss.block<3,3>(i*3, 0);
@@ -1952,7 +1790,9 @@ void TwoDScene::rebucketizeParticles()
 {
     scalar dx = getCellSize();
     
-    Vector3s content_size = m_bbx_max - m_bbx_min + Vector3s::Constant(m_bucket_size * 4.0);
+    const scalar extra_border = 3.0;
+    
+    Vector3s content_size = m_bbx_max - m_bbx_min + Vector3s::Constant(m_bucket_size * extra_border * 2.0);
     
     Vector3i grid_num_cells = Vector3i(std::max(1, (int) ceil(content_size(0) / dx)),
                                        std::max(1, (int) ceil(content_size(1) / dx)),
@@ -1962,7 +1802,7 @@ void TwoDScene::rebucketizeParticles()
                                   (scalar) grid_num_cells[1] * dx,
                                   (scalar) grid_num_cells[2] * dx );
     
-    m_grid_mincorner = m_bbx_min - Vector3s::Constant(m_bucket_size * 2.0);
+    m_grid_mincorner = m_bbx_min - Vector3s::Constant(m_bucket_size * extra_border);
     m_bucket_mincorner = m_grid_mincorner;
     
     Vector3i num_buckets = Vector3i(std::max(1, (int) ceil(grid_size(0) / m_bucket_size)),
@@ -1984,6 +1824,10 @@ void TwoDScene::rebucketizeParticles()
         j = (int)floor((m_x_gauss(pidx * 4 + 1) - m_bucket_mincorner(1)) / m_bucket_size);
         k = (int)floor((m_x_gauss(pidx * 4 + 2) - m_bucket_mincorner(2)) / m_bucket_size);
     });
+    
+    const int total_buckets = m_particle_buckets.size();
+    
+    m_bucket_activated.assign(total_buckets, 0U);
 }
 
 void TwoDScene::removeEmptyParticles()
@@ -2054,50 +1898,42 @@ void TwoDScene::solidProjection(const scalar& dt)
     threadutils::for_each(num_elasto, num_parts, [&] (int pidx) {
         if(m_particle_to_surfel[pidx] >= 0) return;
         
-        if(isOutsideFluid(pidx)) {
-            Vector3s normal;
-            const scalar phi = interpolateBucketSolidPhiGrad(m_x.segment<3>(pidx * 4), normal);
-            if(phi < 0.0) {
-                m_x.segment<3>(pidx * 4) -= phi * normal;
-            }
-        } else {
-            const auto& node_indices_sphi = m_particle_nodes_solid_phi[pidx];
-            const auto& particle_weights = m_particle_weights[pidx];
+        const auto& node_indices_sphi = m_particle_nodes_solid_phi[pidx];
+        const auto& particle_weights = m_particle_weights[pidx];
+        
+        scalar phi_ori = 0.0;
+        Vector3s grad_phi = Vector3s::Zero();
+        const Vector3s& pos = m_x.segment<3>(pidx * 4);
+        
+        for(int nidx = 0; nidx < node_indices_sphi.rows(); ++nidx)
+        {
+            const int bucket_idx = node_indices_sphi(nidx, 0);
+            const int node_idx = node_indices_sphi(nidx, 1);
             
-            scalar phi_ori = 0.0;
-            Vector3s grad_phi = Vector3s::Zero();
-            const Vector3s& pos = m_x.segment<3>(pidx * 4);
-            
-            for(int nidx = 0; nidx < node_indices_sphi.rows(); ++nidx)
-            {
-                const int bucket_idx = node_indices_sphi(nidx, 0);
-                const int node_idx = node_indices_sphi(nidx, 1);
-                
-                scalar phi;
-                if(node_indices_sphi(nidx, 2)) {
-                    phi = m_node_solid_phi[bucket_idx](node_idx);
-                } else {
-                    phi = 3.0 * getCellSize();
-                }
-                
-                const scalar w = particle_weights(nidx, 3);
-                const Vector3s& np = m_node_pos_solid_phi[bucket_idx].segment<3>(node_idx * 3);
-                
-                phi_ori += phi * w;
-                grad_phi += phi * iD * w * (np - pos);
+            scalar phi;
+            if(m_bucket_activated[bucket_idx]) {
+                phi = m_node_solid_phi[bucket_idx](node_idx);
+            } else {
+                phi = 3.0 * getCellSize();
             }
             
-            if(grad_phi.norm() > 1e-20) grad_phi.normalize();
+            const scalar w = particle_weights(nidx, 3);
+            const Vector3s& np = m_node_pos[bucket_idx].segment<3>(node_idx * 3);
             
-            const Vector3s dpos = m_fluid_v.segment<3>(pidx * 4) * dt;
-            
-            scalar phi_now = phi_ori + grad_phi.dot(dpos);
-            
-            //            if(pidx < num_elasto) phi_now *= 0.1;
-            
-            if(phi_now < 0.0) {
-                m_x.segment<3>(pidx * 4) -= phi_now * grad_phi;
-            }
+            phi_ori += phi * w;
+            grad_phi += phi * iD * w * (np - pos);
+        }
+        
+        if(grad_phi.norm() > 1e-20) grad_phi.normalize();
+        
+        const Vector3s dpos = m_fluid_v.segment<3>(pidx * 4) * dt;
+        
+        scalar phi_now = phi_ori + grad_phi.dot(dpos);
+        
+        //            if(pidx < num_elasto) phi_now *= 0.1;
+        
+        if(phi_now < 0.0) {
+            m_x.segment<3>(pidx * 4) -= phi_now * grad_phi;
         }
     });
 }
@@ -2151,23 +1987,23 @@ void TwoDScene::updateSolidWeights()
     const scalar dx = getCellSize();
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         const VectorXi& bucket_node_idx_solid_phi_x = m_node_index_solid_phi_x[bucket_idx];
         const VectorXi& bucket_node_idx_solid_phi_y = m_node_index_solid_phi_y[bucket_idx];
         const VectorXi& bucket_node_idx_solid_phi_z = m_node_index_solid_phi_z[bucket_idx];
         
-        const int num_solid_phi_x = bucket_node_idx_solid_phi_x.size() / 8;
-        const int num_solid_phi_y = bucket_node_idx_solid_phi_y.size() / 8;
-        const int num_solid_phi_z = bucket_node_idx_solid_phi_z.size() / 8;
+        const int num_solid_phi = getNumNodes(bucket_idx);
         
         VectorXs& bucket_weight_x = m_node_solid_weight_x[bucket_idx];
         VectorXs& bucket_weight_y = m_node_solid_weight_y[bucket_idx];
         VectorXs& bucket_weight_z = m_node_solid_weight_z[bucket_idx];
         
-        if(bucket_weight_x.size() != num_solid_phi_x) bucket_weight_x.resize(num_solid_phi_x);
-        if(bucket_weight_y.size() != num_solid_phi_y) bucket_weight_y.resize(num_solid_phi_y);
-        if(bucket_weight_z.size() != num_solid_phi_z) bucket_weight_z.resize(num_solid_phi_z);
+        if(bucket_weight_x.size() != num_solid_phi) bucket_weight_x.resize(num_solid_phi);
+        if(bucket_weight_y.size() != num_solid_phi) bucket_weight_y.resize(num_solid_phi);
+        if(bucket_weight_z.size() != num_solid_phi) bucket_weight_z.resize(num_solid_phi);
         
-        for(int i = 0; i < num_solid_phi_x; ++i)
+        for(int i = 0; i < num_solid_phi; ++i)
         {
             const Vector8i& indices = bucket_node_idx_solid_phi_x.segment<8>(i * 8);
             scalar phi0 = 0.5 * dx;
@@ -2175,19 +2011,19 @@ void TwoDScene::updateSolidWeights()
             scalar phi2 = 0.5 * dx;
             scalar phi3 = 0.5 * dx;
             
-            if(indices[0] >= 0 && indices[1] >= 0 && indices[1] < (int) m_node_solid_phi[ indices[0] ].size())
+            if(indices[0] >= 0 && m_bucket_activated[indices[0]])
                 phi0 = m_node_solid_phi[ indices[0] ][ indices[1] ];
-            if(indices[2] >= 0 && indices[3] >= 0 && indices[3] < (int) m_node_solid_phi[ indices[2] ].size())
+            if(indices[2] >= 0 && m_bucket_activated[indices[2]])
                 phi1 = m_node_solid_phi[ indices[2] ][ indices[3] ];
-            if(indices[4] >= 0 && indices[5] >= 0 && indices[5] < (int) m_node_solid_phi[ indices[4] ].size())
+            if(indices[4] >= 0 && m_bucket_activated[indices[4]])
                 phi2 = m_node_solid_phi[ indices[4] ][ indices[5] ];
-            if(indices[6] >= 0 && indices[7] >= 0 && indices[7] < (int) m_node_solid_phi[ indices[6] ].size())
+            if(indices[6] >= 0 && m_bucket_activated[indices[6]])
                 phi3 = m_node_solid_phi[ indices[6] ][ indices[7] ];
             
             bucket_weight_x(i) = mathutils::clamp( 1.0 - mathutils::fraction_inside(phi0, phi1, phi2, phi3), 0.0, 1.0 );
         }
         
-        for(int i = 0; i < num_solid_phi_y; ++i)
+        for(int i = 0; i < num_solid_phi; ++i)
         {
             const Vector8i& indices = bucket_node_idx_solid_phi_y.segment<8>(i * 8);
             scalar phi0 = 0.5 * dx;
@@ -2195,19 +2031,19 @@ void TwoDScene::updateSolidWeights()
             scalar phi2 = 0.5 * dx;
             scalar phi3 = 0.5 * dx;
             
-            if(indices[0] >= 0 && indices[1] >= 0 && indices[1] < (int) m_node_solid_phi[ indices[0] ].size())
+            if(indices[0] >= 0 && m_bucket_activated[indices[0]])
                 phi0 = m_node_solid_phi[ indices[0] ][ indices[1] ];
-            if(indices[2] >= 0 && indices[3] >= 0 && indices[3] < (int) m_node_solid_phi[ indices[2] ].size())
+            if(indices[2] >= 0 && m_bucket_activated[indices[2]])
                 phi1 = m_node_solid_phi[ indices[2] ][ indices[3] ];
-            if(indices[4] >= 0 && indices[5] >= 0 && indices[5] < (int) m_node_solid_phi[ indices[4] ].size())
+            if(indices[4] >= 0 && m_bucket_activated[indices[4]])
                 phi2 = m_node_solid_phi[ indices[4] ][ indices[5] ];
-            if(indices[6] >= 0 && indices[7] >= 0 && indices[7] < (int) m_node_solid_phi[ indices[6] ].size())
+            if(indices[6] >= 0 && m_bucket_activated[indices[6]])
                 phi3 = m_node_solid_phi[ indices[6] ][ indices[7] ];
             
             bucket_weight_y(i) = mathutils::clamp( 1.0 - mathutils::fraction_inside(phi0, phi1, phi2, phi3), 0.0, 1.0 );
         }
         
-        for(int i = 0; i < num_solid_phi_z; ++i)
+        for(int i = 0; i < num_solid_phi; ++i)
         {
             const Vector8i& indices = bucket_node_idx_solid_phi_z.segment<8>(i * 8);
             scalar phi0 = 0.5 * dx;
@@ -2215,13 +2051,13 @@ void TwoDScene::updateSolidWeights()
             scalar phi2 = 0.5 * dx;
             scalar phi3 = 0.5 * dx;
             
-            if(indices[0] >= 0 && indices[1] >= 0 && indices[1] < (int) m_node_solid_phi[ indices[0] ].size())
+            if(indices[0] >= 0 && m_bucket_activated[indices[0]])
                 phi0 = m_node_solid_phi[ indices[0] ][ indices[1] ];
-            if(indices[2] >= 0 && indices[3] >= 0 && indices[3] < (int) m_node_solid_phi[ indices[2] ].size())
+            if(indices[2] >= 0 && m_bucket_activated[indices[2]])
                 phi1 = m_node_solid_phi[ indices[2] ][ indices[3] ];
-            if(indices[4] >= 0 && indices[5] >= 0 && indices[5] < (int) m_node_solid_phi[ indices[4] ].size())
+            if(indices[4] >= 0 && m_bucket_activated[indices[4]])
                 phi2 = m_node_solid_phi[ indices[4] ][ indices[5] ];
-            if(indices[6] >= 0 && indices[7] >= 0 && indices[7] < (int) m_node_solid_phi[ indices[6] ].size())
+            if(indices[6] >= 0 && m_bucket_activated[indices[6]])
                 phi3 = m_node_solid_phi[ indices[6] ][ indices[7] ];
             
             bucket_weight_z(i) = mathutils::clamp( 1.0 - mathutils::fraction_inside(phi0, phi1, phi2, phi3), 0.0, 1.0 );
@@ -2299,14 +2135,14 @@ void TwoDScene::correctLiquidParticles(const scalar& dt)
             const int node_idx = node_indices_sphi(nidx, 1);
             
             scalar phi;
-            if(node_indices_sphi(nidx, 2)) {
+            if(m_bucket_activated[bucket_idx]) {
                 phi = m_node_solid_phi[bucket_idx](node_idx);
             } else {
                 phi = 3.0 * getCellSize();
             }
             
             const scalar w = particle_weights(nidx, 3);
-            const Vector3s& np = m_node_pos_solid_phi[bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = m_node_pos[bucket_idx].segment<3>(node_idx * 3);
             
             phi_ori += phi * w;
             grad_phi += phi * iD * w * (np - pos);
@@ -2325,21 +2161,6 @@ void TwoDScene::correctLiquidParticles(const scalar& dt)
     });
 }
 
-void TwoDScene::updateElastoParticleWeights(scalar dt)
-{
-    const int num_elasto = getNumElastoParticles();
-    
-    updateParticleWeights(dt, 0, num_elasto);
-}
-
-void TwoDScene::updateLiquidParticleWeights(scalar dt)
-{
-    const int num_elasto = getNumElastoParticles();
-    const int num_part = getNumParticles();
-    
-    updateParticleWeights(dt, num_elasto, num_part);
-}
-
 Vector3s TwoDScene::nodePosFromBucket(int bucket_idx, int raw_node_idx, const Vector3s& offset) const
 {
     Vector3i handle = m_particle_buckets.bucket_handle(bucket_idx);
@@ -2353,56 +2174,6 @@ Vector3s TwoDScene::nodePosFromBucket(int bucket_idx, int raw_node_idx, const Ve
     return node_pos;
 }
 
-const std::vector<VectorXi>& TwoDScene::getNodeIndicesX() const
-{
-    return m_node_indices_x;
-}
-
-std::vector<VectorXi>& TwoDScene::getNodeIndicesX()
-{
-    return m_node_indices_x;
-}
-
-const std::vector<VectorXi>& TwoDScene::getNodeIndicesY() const
-{
-    return m_node_indices_y;
-}
-
-std::vector<VectorXi>& TwoDScene::getNodeIndicesY()
-{
-    return m_node_indices_y;
-}
-
-const std::vector<VectorXi>& TwoDScene::getNodeIndicesZ() const
-{
-    return m_node_indices_z;
-}
-
-std::vector<VectorXi>& TwoDScene::getNodeIndicesZ()
-{
-    return m_node_indices_z;
-}
-
-const std::vector<VectorXi>& TwoDScene::getNodeIndicesP() const
-{
-    return m_node_indices_p;
-}
-
-std::vector<VectorXi>& TwoDScene::getNodeIndicesP()
-{
-    return m_node_indices_p;
-}
-
-const VectorXi& TwoDScene::getNodeIndicesP(int bucket_idx) const
-{
-    return m_node_indices_p[bucket_idx];
-}
-
-VectorXi& TwoDScene::getNodeIndicesP(int bucket_idx)
-{
-    return m_node_indices_p[bucket_idx];
-}
-
 void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
 {
     const scalar h = getCellSize();
@@ -2410,11 +2181,11 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
     threadutils::for_each(start, end, [&] (int pidx) {
         if(m_inside[pidx] == 0) return;
         
-        const Matrix27x3i& indices_x = m_particle_nodes_x[pidx];
-        const Matrix27x3i& indices_y = m_particle_nodes_y[pidx];
-        const Matrix27x3i& indices_z = m_particle_nodes_z[pidx];
-        const Matrix27x3i& indices_sphi = m_particle_nodes_solid_phi[pidx];
-        const Matrix27x3i& indices_p = m_particle_nodes_p[pidx];
+        const Matrix27x2i& indices_x = m_particle_nodes_x[pidx];
+        const Matrix27x2i& indices_y = m_particle_nodes_y[pidx];
+        const Matrix27x2i& indices_z = m_particle_nodes_z[pidx];
+        const Matrix27x2i& indices_sphi = m_particle_nodes_solid_phi[pidx];
+        const Matrix27x2i& indices_p = m_particle_nodes_p[pidx];
         
         Vector27s& weights_p = m_particle_weights_p[pidx];
         Matrix27x4s& weights = m_particle_weights[pidx];
@@ -2427,21 +2198,12 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
             const int node_idx = indices_p(nidx, 1);
             Vector3s dx;
             
-            if(indices_p(nidx, 2)) {
-                const Vector3s& np = m_node_pos_p[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.5));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosP(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights_p(nidx) = w;
-            } else {
-                weights_p(nidx) = 0.0;
-            }
+            weights_p(nidx) = w;
         }
         
         for(int nidx = 0; nidx < indices_sphi.rows(); ++nidx)
@@ -2451,22 +2213,13 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
             
             Vector3s dx;
             
-            if(indices_sphi(nidx, 2)) {
-                const Vector3s& np = m_node_pos_solid_phi[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0., 0., 0.));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosSolidPhi(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 3) = w;
-            } else {
-                weights(nidx, 3) = 0.0;
-            }
+            weights(nidx, 3) = w;
         }
         
         for(int nidx = 0; nidx < indices_x.rows(); ++nidx)
@@ -2476,22 +2229,13 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
             
             Vector3s dx;
             
-            if(indices_x(nidx, 2)) {
-                const Vector3s& np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0., 0.5, 0.5));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosX(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 0) = w;
-            } else {
-                weights(nidx, 0) = 0.0;
-            }
+            weights(nidx, 0) = w;
         }
         
         for(int nidx = 0; nidx < indices_y.rows(); ++nidx)
@@ -2501,22 +2245,13 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
             
             Vector3s dx;
             
-            if(indices_y(nidx, 2)) {
-                const Vector3s& np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0., 0.5));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosY(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 1) = w;
-            } else {
-                weights(nidx, 1) = 0.0;
-            }
+            weights(nidx, 1) = w;
         }
         
         for(int nidx = 0; nidx < indices_z.rows(); ++nidx)
@@ -2526,22 +2261,13 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
             
             Vector3s dx;
             
-            if(indices_z(nidx, 2)) {
-                const Vector3s& np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosZ(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 2) = w;
-            } else {
-                weights(nidx, 2) = 0.0;
-            }
+            weights(nidx, 2) = w;
         }
     });
     
@@ -2558,9 +2284,9 @@ void TwoDScene::updateGaussWeights(scalar dt)
     threadutils::for_each(0, num_gauss, [&] (int pidx) {
         if(pidx >= num_soft_gauss && m_inside[ m_surfels[pidx - num_soft_gauss] ] == 0) return;
         
-        const Matrix27x3i& indices_x = m_gauss_nodes_x[pidx];
-        const Matrix27x3i& indices_y = m_gauss_nodes_y[pidx];
-        const Matrix27x3i& indices_z = m_gauss_nodes_z[pidx];
+        const Matrix27x2i& indices_x = m_gauss_nodes_x[pidx];
+        const Matrix27x2i& indices_y = m_gauss_nodes_y[pidx];
+        const Matrix27x2i& indices_z = m_gauss_nodes_z[pidx];
         
         Matrix27x3s& weights = m_gauss_weights[pidx];
         
@@ -2573,22 +2299,13 @@ void TwoDScene::updateGaussWeights(scalar dt)
             
             Vector3s dx;
             
-            if(indices_x(nidx, 2)) {
-                const Vector3s& np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0., 0.5, 0.5));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosX(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 0) = w;
-            } else {
-                weights(nidx, 0) = 0.0;
-            }
+            weights(nidx, 0) = w;
         }
         
         for(int nidx = 0; nidx < indices_y.rows(); ++nidx)
@@ -2598,22 +2315,13 @@ void TwoDScene::updateGaussWeights(scalar dt)
             
             Vector3s dx;
             
-            if(indices_y(nidx, 2)) {
-                const Vector3s& np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0., 0.5));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosY(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 1) = w;
-            } else {
-                weights(nidx, 1) = w;
-            }
+            weights(nidx, 1) = w;
         }
         
         for(int nidx = 0; nidx < indices_z.rows(); ++nidx)
@@ -2623,22 +2331,13 @@ void TwoDScene::updateGaussWeights(scalar dt)
             
             Vector3s dx;
             
-            if(indices_z(nidx, 2)) {
-                const Vector3s& np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
-                dx = (pos - np) / h;
-            } else {
-                const Vector3s np = nodePosFromBucket(node_bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.));
-                dx = (pos - np) / h;
-            }
+            const Vector3s& np = getNodePosZ(node_bucket_idx, node_idx);
+            dx = (pos - np) / h;
             
             Vector3s g;
             const scalar w = mathutils::N_kernel<2>(dx);
             
-            if(w > 1e-20) {
-                weights(nidx, 2) = w;
-            } else {
-                weights(nidx, 2) = w;
-            }
+            weights(nidx, 2) = w;
         }
     });
 }
@@ -2667,40 +2366,48 @@ void TwoDScene::buildNodeParticlePairs()
     
     // re-allocate space
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-        int num_nodes_x = getNumNodesX(bucket_idx);
+        int num_nodes = getNumNodes(bucket_idx);
+        
         auto& bucket_node_particles_x = m_node_particles_x[bucket_idx];
-        if((int) bucket_node_particles_x.size() != num_nodes_x) bucket_node_particles_x.resize( num_nodes_x );
+        if((int) bucket_node_particles_x.size() != num_nodes) bucket_node_particles_x.resize( num_nodes );
         
-        for(int i = 0; i < num_nodes_x; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
+            int osize = bucket_node_particles_x[i].size();
             bucket_node_particles_x[i].resize(0);
+            bucket_node_particles_x[i].reserve(osize);
         }
         
-        int num_nodes_y = getNumNodesY(bucket_idx);
         auto& bucket_node_particles_y = m_node_particles_y[bucket_idx];
-        if((int) bucket_node_particles_y.size() != num_nodes_y) bucket_node_particles_y.resize( num_nodes_y );
+        if((int) bucket_node_particles_y.size() != num_nodes) bucket_node_particles_y.resize( num_nodes );
         
-        for(int i = 0; i < num_nodes_y; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
+            int osize = bucket_node_particles_y[i].size();
             bucket_node_particles_y[i].resize(0);
+            bucket_node_particles_y[i].reserve(osize);
         }
         
-        int num_nodes_z = getNumNodesZ(bucket_idx);
         auto& bucket_node_particles_z = m_node_particles_z[bucket_idx];
-        if((int) bucket_node_particles_z.size() != num_nodes_z) bucket_node_particles_z.resize( num_nodes_z );
+        if((int) bucket_node_particles_z.size() != num_nodes) bucket_node_particles_z.resize( num_nodes );
         
-        for(int i = 0; i < num_nodes_z; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
+            int osize = bucket_node_particles_z[i].size();
             bucket_node_particles_z[i].resize(0);
+            bucket_node_particles_z[i].reserve(osize);
         }
         
-        int num_nodes_p = getNumNodesP(bucket_idx);
         auto& bucket_node_particles_p = m_node_particles_p[bucket_idx];
-        if((int) bucket_node_particles_p.size() != num_nodes_p) bucket_node_particles_p.resize( num_nodes_p );
+        if((int) bucket_node_particles_p.size() != num_nodes) bucket_node_particles_p.resize( num_nodes );
         
-        for(int i = 0; i < num_nodes_p; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
+            int osize = bucket_node_particles_p[i].size();
             bucket_node_particles_p[i].resize(0);
+            bucket_node_particles_p[i].reserve(osize);
         }
     });
     
     m_particle_buckets.for_each_bucket_particles_colored([&] (int pidx, int bucket_idx) {
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         auto& indices_x = getParticleNodesX(pidx);
         auto& indices_y = getParticleNodesY(pidx);
         auto& indices_z = getParticleNodesZ(pidx);
@@ -2708,48 +2415,32 @@ void TwoDScene::buildNodeParticlePairs()
         
         auto& weights = m_particle_weights[pidx];
         auto& weights_p = m_particle_weights_p[pidx];
-        
+
         for(int i = 0; i < indices_x.rows(); ++i)
         {
-            if(!indices_x(i, 2)) {
-                continue;
-            }
-            
             if(weights(i, 0) > 0.0) {
-                m_node_particles_x[ indices_x(i, 0) ][ indices_x(i, 1) ].push_back( std::pair<int, int>( pidx, i ) );
+                m_node_particles_x[ indices_x(i, 0) ][ indices_x(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_y.rows(); ++i)
         {
-            if(!indices_y(i, 2)) {
-                continue;
-            }
-            
             if(weights(i, 1) > 0.0) {
-                m_node_particles_y[ indices_y(i, 0) ][ indices_y(i, 1) ].push_back( std::pair<int, int>( pidx, i ) );
+                m_node_particles_y[ indices_y(i, 0) ][ indices_y(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_z.rows(); ++i)
         {
-            if(!indices_z(i, 2)) {
-                continue;
-            }
-            
             if(weights(i, 2) > 0.0) {
-                m_node_particles_z[ indices_z(i, 0) ][ indices_z(i, 1) ].push_back( std::pair<int, int>( pidx, i ) );
+                m_node_particles_z[ indices_z(i, 0) ][ indices_z(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_p.rows(); ++i)
         {
-            if(!indices_p(i, 2)) {
-                continue;
-            }
-            
             if(weights_p(i) > 0.0) {
-                m_node_particles_p[ indices_p(i, 0) ][ indices_p(i, 1) ].push_back( std::pair<int, int>( pidx, i ) );
+                m_node_particles_p[ indices_p(i, 0) ][ indices_p(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
     }, 3);
@@ -3083,8 +2774,8 @@ void TwoDScene::extendLiquidPhi()
                 VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
                 if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
                 
-                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
-                
+                const Vector3s& np = getNodePosP( indices(i, 0), indices(i, 1) );
+
                 scalar sqr_d = dx * 3.0;
                 Vector3s cp;
                 igl::point_simplex_squared_distance<3>(np, m_x_reshaped, m_edges, gidx, sqr_d, cp);
@@ -3107,7 +2798,7 @@ void TwoDScene::extendLiquidPhi()
                 VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
                 if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
                 
-                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                const Vector3s& np = getNodePosP( indices(i, 0), indices(i, 1) );
                 
                 scalar sqr_d = dx * 3.0;
                 Vector3s cp;
@@ -3595,7 +3286,7 @@ void TwoDScene::advectCurvatureP(const scalar& dt)
                 VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
                 if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
                 
-                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                const Vector3s& np = getNodePosP( indices(i, 0), indices(i, 1) );
                 
                 scalar sqr_d = dx * 3.0;
                 Vector3s cp;
@@ -3619,7 +3310,7 @@ void TwoDScene::advectCurvatureP(const scalar& dt)
                 VectorXs& phis = m_node_combined_phi[ indices(i, 0) ];
                 if(indices(i, 1) < 0 || indices(i, 1) >= phis.size()) continue;
                 
-                const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+                const Vector3s& np = getNodePosP( indices(i, 0), indices(i, 1) );
                 
                 scalar sqr_d = dx * 3.0;
                 Vector3s cp;
@@ -3655,10 +3346,11 @@ void TwoDScene::updateLiquidPhi(scalar dt)
     const scalar dx = getCellSize();
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_phi = m_node_pos_p[bucket_idx].size() / 3;
-        m_node_liquid_phi[bucket_idx].resize( num_phi );
+        const int num_nodes = getNumNodes(bucket_idx);
+        
+        m_node_liquid_phi[bucket_idx].resize( num_nodes );
         m_node_liquid_phi[bucket_idx].setConstant(3.0 * m_bucket_size);
-        m_node_pressure[bucket_idx].resize( num_phi );
+        m_node_pressure[bucket_idx].resize( num_nodes );
         m_node_pressure[bucket_idx].setZero();
     });
     
@@ -3674,12 +3366,12 @@ void TwoDScene::updateLiquidPhi(scalar dt)
         const Vector3s& pos = m_x.segment<3>(pidx * 4);// + m_fluid_v.segment<3>(pidx * 4) * dt;
         
         for(int i = 0; i < indices.rows(); ++i) {
-            if(!indices(i, 2)) continue;
+            if(!m_bucket_activated[indices(i, 0)]) continue;
             
             VectorXs& phis = m_node_liquid_phi[ indices(i, 0) ];
             assert(indices(i, 1) >= 0 && indices(i, 1) < phis.size());
             
-            const Vector3s& np = m_node_pos_p[ indices(i, 0) ].segment<3>( indices(i, 1) * 3 );
+            const Vector3s& np = getNodePosP(indices(i, 0), indices(i, 1));
             
             const scalar phi = (pos - np).norm() - std::max(dx * 0.883644, m_radius(pidx * 2 + 0));
             
@@ -3699,7 +3391,7 @@ void TwoDScene::updateLiquidPhi(scalar dt)
         const int num_pressure = bucket_liquid_phi.size();
         
         for(int i = 0; i < num_pressure; ++i) {
-            const Vector3s& np = m_node_pos_p[ bucket_idx ].segment<3>( i * 3 );
+            const Vector3s& np = getNodePosP(bucket_idx, i);
             
             Vector3s vel;
             const scalar sphi = computePhiVel(np, vel, solid_sel);
@@ -3711,13 +3403,13 @@ void TwoDScene::updateLiquidPhi(scalar dt)
     // update variables for viscosity computation
     if(m_liquid_info.compute_viscosity)
     {
-        estimateVolumeFractions(m_node_liquid_c_vf, m_node_pos_p);
-        estimateVolumeFractions(m_node_liquid_u_vf, m_node_pos_x);
-        estimateVolumeFractions(m_node_liquid_v_vf, m_node_pos_y);
-        estimateVolumeFractions(m_node_liquid_w_vf, m_node_pos_z);
-        estimateVolumeFractions(m_node_liquid_ex_vf, m_node_pos_ex);
-        estimateVolumeFractions(m_node_liquid_ey_vf, m_node_pos_ey);
-        estimateVolumeFractions(m_node_liquid_ez_vf, m_node_pos_ez);
+        estimateVolumeFractions(m_node_liquid_c_vf, m_node_pos, Vector3s(0.5, 0.5, 0.5));
+        estimateVolumeFractions(m_node_liquid_u_vf, m_node_pos, Vector3s(0.0, 0.5, 0.5));
+        estimateVolumeFractions(m_node_liquid_v_vf, m_node_pos, Vector3s(0.5, 0.0, 0.5));
+        estimateVolumeFractions(m_node_liquid_w_vf, m_node_pos, Vector3s(0.5, 0.5, 0.0));
+        estimateVolumeFractions(m_node_liquid_ex_vf, m_node_pos, Vector3s(0.5, 0.0, 0.0));
+        estimateVolumeFractions(m_node_liquid_ey_vf, m_node_pos, Vector3s(0.0, 0.5, 0.0));
+        estimateVolumeFractions(m_node_liquid_ez_vf, m_node_pos, Vector3s(0.0, 0.0, 0.5));
     }
     
     if(m_liquid_info.use_surf_tension)
@@ -3758,11 +3450,9 @@ void TwoDScene::renormalizeLiquidPhi()
     });
     
     auto sweep_func = [this] (const VectorXi& pp_neighbors,
-                              const VectorXi& bucket_cpidx,
                               const VectorXi& bucket_color,
                               VectorXs& bucket_phi,
-                              int raw_node_idx) {
-        const int node_idx = bucket_cpidx[raw_node_idx];
+                              int node_idx) {
         if(node_idx < 0 || node_idx >= bucket_color.size() || bucket_color[node_idx]) return;
         
         const Vector2i& p_left = pp_neighbors.segment<2>( node_idx * 36 + 0 );
@@ -3841,14 +3531,13 @@ void TwoDScene::renormalizeLiquidPhi()
             
             const auto& pp_neighbors = m_node_pp_neighbors[bucket_idx];
             const auto& bucket_color = m_node_color_p[bucket_idx];
-            const auto& bucket_cpidx = m_node_cpidx_p[bucket_idx];
             
             if(bucket_color.size() == 0) return;
             
             for (int k = kStart; k != kEnd; k += kIncr) for (int j = jStart; j != jEnd; j += jIncr) for (int i = iStart; i != iEnd; i += iIncr)
             {
                 const int raw_node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
-                sweep_func(pp_neighbors, bucket_cpidx, bucket_color, bucket_phi, raw_node_idx);
+                sweep_func(pp_neighbors, bucket_color, bucket_phi, raw_node_idx);
             }
         });
     }
@@ -3868,7 +3557,7 @@ void TwoDScene::renormalizeLiquidPhi()
     });
 }
 
-void TwoDScene::estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos)
+void TwoDScene::estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos, const Vector3s& np_offset)
 {
     const scalar dx = getCellSize();
     const Vector3s ori = m_grid_mincorner + Vector3s(0.5 * dx, 0.5 * dx, 0.5 * dx);
@@ -3877,24 +3566,24 @@ void TwoDScene::estimateVolumeFractions(std::vector< VectorXs >& volumes, const 
         
         for(int i = 0; i < num_nodes; ++i) {
             
-            const Vector3s& centre = node_pos[bucket_idx].segment<3>(i * 3);
+            const Vector3s& centre = node_pos[bucket_idx].segment<3>(i * 3) + np_offset;
             
             scalar offset = 0.5 * dx;
-            scalar phi000 = interpolateValue(Vector3s(centre + Vector3s(-offset, -offset, -offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi001 = interpolateValue(Vector3s(centre + Vector3s(-offset, -offset, +offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi010 = interpolateValue(Vector3s(centre + Vector3s(-offset, +offset, -offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi011 = interpolateValue(Vector3s(centre + Vector3s(-offset, +offset, +offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi100 = interpolateValue(Vector3s(centre + Vector3s(+offset, -offset, -offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi101 = interpolateValue(Vector3s(centre + Vector3s(+offset, -offset, +offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi110 = interpolateValue(Vector3s(centre + Vector3s(+offset, +offset, -offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
-            scalar phi111 = interpolateValue(Vector3s(centre + Vector3s(+offset, +offset, +offset)), m_node_liquid_phi, m_node_cpidx_p, ori, dx);
+            scalar phi000 = interpolateValue(Vector3s(centre + Vector3s(-offset, -offset, -offset)), m_node_liquid_phi, ori, dx);
+            scalar phi001 = interpolateValue(Vector3s(centre + Vector3s(-offset, -offset, +offset)), m_node_liquid_phi, ori, dx);
+            scalar phi010 = interpolateValue(Vector3s(centre + Vector3s(-offset, +offset, -offset)), m_node_liquid_phi, ori, dx);
+            scalar phi011 = interpolateValue(Vector3s(centre + Vector3s(-offset, +offset, +offset)), m_node_liquid_phi, ori, dx);
+            scalar phi100 = interpolateValue(Vector3s(centre + Vector3s(+offset, -offset, -offset)), m_node_liquid_phi, ori, dx);
+            scalar phi101 = interpolateValue(Vector3s(centre + Vector3s(+offset, -offset, +offset)), m_node_liquid_phi, ori, dx);
+            scalar phi110 = interpolateValue(Vector3s(centre + Vector3s(+offset, +offset, -offset)), m_node_liquid_phi, ori, dx);
+            scalar phi111 = interpolateValue(Vector3s(centre + Vector3s(+offset, +offset, +offset)), m_node_liquid_phi, ori, dx);
             
             volumes[bucket_idx][i] = volume_fraction(phi000, phi100, phi010, phi110, phi001, phi101, phi011, phi111);
         }
     });
 }
 
-scalar TwoDScene::interpolateValue(const Vector3s& pos, const std::vector< VectorXs >& phi, const std::vector< VectorXi >& cpidx_phi, const Vector3s& phi_ori, const scalar& default_val)
+scalar TwoDScene::interpolateValue(const Vector3s& pos, const std::vector< VectorXs >& phi, const Vector3s& phi_ori, const scalar& default_val)
 {
     const scalar dx = getCellSize();
     Vector3s grid_pos = pos - phi_ori;
@@ -3919,9 +3608,9 @@ scalar TwoDScene::interpolateValue(const Vector3s& pos, const std::vector< Vecto
         }
         
         const int bucket_idx = m_particle_buckets.bucket_index(bucket_handle);
-        if(phi[bucket_idx].size() == 0) {
+        if(!m_bucket_activated[bucket_idx]) {
             buf[local_idx] = default_val;
-            continue;
+            continue;            
         }
         
         Vector3i node_handle = Vector3i(query_idx(0) - bucket_handle(0) * m_num_nodes,
@@ -3929,13 +3618,8 @@ scalar TwoDScene::interpolateValue(const Vector3s& pos, const std::vector< Vecto
                                         query_idx(2) - bucket_handle(2) * m_num_nodes);
         
         const int node_idx = node_handle(2) * m_num_nodes * m_num_nodes + node_handle(1) * m_num_nodes + node_handle(0);
-        const int mapped_idx = cpidx_phi[bucket_idx][node_idx];
-        if(mapped_idx == -1) {
-            buf[local_idx] = default_val;
-            continue;
-        }
-        
-        buf[local_idx] = phi[bucket_idx][mapped_idx];
+
+        buf[local_idx] = phi[bucket_idx][node_idx];
     }
     
     Vector3s frac = Vector3s(base_pos(0) - (scalar) base_idx(0),
@@ -3981,35 +3665,7 @@ void TwoDScene::preAllocateNodes()
     // mark buckets as active
     const int num_buckets = m_particle_buckets.size();
     
-    m_node_cpidx_x.resize(num_buckets);
-    m_node_cpidx_y.resize(num_buckets);
-    m_node_cpidx_z.resize(num_buckets);
-    m_node_cpidx_p.resize(num_buckets);
-    m_node_cpidx_solid_phi.resize(num_buckets);
-    
-    if(m_liquid_info.compute_viscosity) {
-        m_node_cpidx_ex.resize(num_buckets);
-        m_node_cpidx_ey.resize(num_buckets);
-        m_node_cpidx_ez.resize(num_buckets);
-    }
-    
-    m_node_pos_x.resize(num_buckets);
-    m_node_pos_y.resize(num_buckets);
-    m_node_pos_z.resize(num_buckets);
-    m_node_pos_p.resize(num_buckets);
-    
-    if(m_liquid_info.compute_viscosity) {
-        m_node_pos_ex.resize(num_buckets);
-        m_node_pos_ey.resize(num_buckets);
-        m_node_pos_ez.resize(num_buckets);
-    }
-    
-    m_node_indices_x.resize(num_buckets);
-    m_node_indices_y.resize(num_buckets);
-    m_node_indices_z.resize(num_buckets);
-    m_node_indices_p.resize(num_buckets);
-    
-    m_node_pos_solid_phi.resize(num_buckets);
+    m_node_pos.resize(num_buckets);
     
     m_node_pressure_neighbors.resize(num_buckets);
     m_node_pp_neighbors.resize(num_buckets);
@@ -4026,53 +3682,10 @@ void TwoDScene::preAllocateNodes()
         m_node_index_edge_y.resize(num_buckets);
         m_node_index_edge_z.resize(num_buckets);
     }
-    
-    int nsystem_size = m_num_nodes * m_num_nodes * m_num_nodes;
-    
-    // allocate space for cpidx
-    threadutils::for_each(0, num_buckets, [&] (int bucket_idx) {
-        auto& bucket_node_cpidx_x = m_node_cpidx_x[bucket_idx];
-        auto& bucket_node_cpidx_y = m_node_cpidx_y[bucket_idx];
-        auto& bucket_node_cpidx_z = m_node_cpidx_z[bucket_idx];
-        
-        auto& bucket_node_cpidx_p = m_node_cpidx_p[bucket_idx];
-        auto& bucket_node_cpidx_sphi = m_node_cpidx_solid_phi[bucket_idx];
-        
-        bucket_node_cpidx_x.resize( nsystem_size );
-        bucket_node_cpidx_y.resize( nsystem_size );
-        bucket_node_cpidx_z.resize( nsystem_size );
-        bucket_node_cpidx_p.resize( nsystem_size );
-        bucket_node_cpidx_sphi.resize( nsystem_size );
-        
-        bucket_node_cpidx_x.setConstant(-1);
-        bucket_node_cpidx_y.setConstant(-1);
-        bucket_node_cpidx_z.setConstant(-1);
-        bucket_node_cpidx_sphi.setConstant(-1);
-        bucket_node_cpidx_p.setConstant(-1);
-    });
-    
-    if(m_liquid_info.compute_viscosity) {
-        m_node_pos_ex.resize(num_buckets);
-        m_node_pos_ey.resize(num_buckets);
-        m_node_pos_ez.resize(num_buckets);
-        
-        threadutils::for_each(0, num_buckets, [&] (int bucket_idx) {
-            auto& bucket_node_cpidx_ex = m_node_cpidx_ex[bucket_idx];
-            auto& bucket_node_cpidx_ey = m_node_cpidx_ey[bucket_idx];
-            auto& bucket_node_cpidx_ez = m_node_cpidx_ez[bucket_idx];
-            
-            bucket_node_cpidx_ex.resize( nsystem_size );
-            bucket_node_cpidx_ey.resize( nsystem_size );
-            bucket_node_cpidx_ez.resize( nsystem_size );
-            
-            bucket_node_cpidx_ex.setConstant(-1);
-            bucket_node_cpidx_ey.setConstant(-1);
-            bucket_node_cpidx_ez.setConstant(-1);
-        });
-    }
 }
 
-void TwoDScene::findSolidPhiNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_sphi )
+template<typename Callable>
+void TwoDScene::findNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x2i >& particle_nodes, const Vector3s& offset, Callable func )
 {
     const scalar dx = getCellSize();
     
@@ -4082,10 +3695,10 @@ void TwoDScene::findSolidPhiNodes( const Sorter& buckets, const VectorXs& x, std
         
         Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
                                               (scalar) bucket_handle(1) * m_bucket_size,
-                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
+                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner + offset * dx;
         
         buckets.get_bucket(bucket_idx, [&] (int pidx) {
-            Matrix27x3i& indices = particle_nodes_sphi[pidx];
+            Matrix27x2i& indices = particle_nodes[pidx];
             
             Vector3s local_pos = (x.segment<3>(pidx * 4) - cell_local_corner) / dx;
             Vector3i ilocal_pos = Vector3i( (int) floor(local_pos(0)), (int) floor(local_pos(1)), (int) floor(local_pos(2)) );
@@ -4099,9 +3712,9 @@ void TwoDScene::findSolidPhiNodes( const Sorter& buckets, const VectorXs& x, std
             const int jhigh = jlow + 2;
             const int ihigh = ilow + 2;
             
-            bool hasNewNode = isSoft(pidx) || m_classifier[pidx] == PC_S;
+            bool hasNewNode = func(pidx);
             
-            for(int k = klow - m_num_armor; k <= khigh + m_num_armor; ++k) for(int j = jlow - m_num_armor; j <= jhigh + m_num_armor; ++j) for(int i = ilow - m_num_armor; i <= ihigh + m_num_armor; ++i)
+            for(int k = klow; k <= khigh; ++k) for(int j = jlow; j <= jhigh; ++j) for(int i = ilow; i <= ihigh; ++i)
             {
                 Vector3i cell_local_idx = ilocal_pos + Vector3i(i, j, k);
                 Vector3i node_bucket_handle = bucket_handle;
@@ -4121,601 +3734,112 @@ void TwoDScene::findSolidPhiNodes( const Sorter& buckets, const VectorXs& x, std
                 }
                 
                 int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_sphi = m_node_cpidx_solid_phi[node_bucket_idx];
-                assert(bucket_node_cpidx_sphi.size() > 0);
+                if(hasNewNode) {
+                    m_bucket_activated[node_bucket_idx] = 1U;
+                }
                 
                 int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
                 cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
                 
-                if(k >= klow && k <= khigh && j >= jlow && j <= jhigh && i >= ilow && i <= ihigh) {
-                    int nidx = (k - klow) * (3 * 3) + (j - jlow) * 3 + (i - ilow);
-                    indices(nidx, 0) = node_bucket_idx;
-                    indices(nidx, 1) = cell_idx;
-                    indices(nidx, 2) = 0;
-                }
-                
-                // mark phi node
-                if(hasNewNode) {
-                    bucket_node_cpidx_sphi[cell_idx] = 0;
-                }
+                int nidx = (k - klow) * (3 * 3) + (j - jlow) * 3 + (i - ilow);
+                indices(nidx, 0) = node_bucket_idx;
+                indices(nidx, 1) = cell_idx;
             }
         });
     });
 }
 
-void TwoDScene::findNodesPressure( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_p )
+Vector3i TwoDScene::getNodeHandle(int node_idx) const
 {
-    const scalar dx = getCellSize();
+    int iz = node_idx / (m_num_nodes * m_num_nodes);
+    node_idx -= iz * m_num_nodes * m_num_nodes;
+    int iy = node_idx / m_num_nodes;
+    int ix = node_idx - iy * m_num_nodes;
     
-    // make connection for particles
-    buckets.for_each_bucket_colored([&] (int bucket_idx) {
-        Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-        
-        Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
-                                              (scalar) bucket_handle(1) * m_bucket_size,
-                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
-        
-        Vector3s cell_local_corner_p = cell_local_corner + Vector3s(0.5, 0.5, 0.5) * dx;
-        
-        buckets.get_bucket(bucket_idx, [&] (int pidx) {
-            auto& indices_p = particle_nodes_p[pidx];
-            
-            Vector3s local_pos_p = (x.segment<3>(pidx * 4) - cell_local_corner_p) / dx;
-            Vector3i ilocal_pos_p = Vector3i( (int) floor(local_pos_p(0)), (int) floor(local_pos_p(1)), (int) floor(local_pos_p(2)) );
-            
-            Vector3s local_frac_p = mathutils::frac<scalar, 3, 1>(local_pos_p);
-            
-            const int klowp = (local_frac_p(2) > 0.5 ? 0 : -1);
-            const int jlowp = (local_frac_p(1) > 0.5 ? 0 : -1);
-            const int ilowp = (local_frac_p(0) > 0.5 ? 0 : -1);
-            const int khighp = klowp + 2;
-            const int jhighp = jlowp + 2;
-            const int ihighp = ilowp + 2;
-            
-            bool hasNewNode = isSoft(pidx) || m_classifier[pidx] == PC_S;
-            
-            for(int k = klowp - m_num_armor; k <= khighp + m_num_armor; ++k) for(int j = jlowp - m_num_armor; j <= jhighp + m_num_armor; ++j) for(int i = ilowp - m_num_armor; i <= ihighp + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_p + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                if(k >= klowp && k <= khighp && j >= jlowp && j <= jhighp && i >= ilowp && i <= ihighp) {
-                    int nidx = (k - klowp) * (3 * 3) + (j - jlowp) * 3 + (i - ilowp);
-                    
-                    indices_p(nidx, 0) = node_bucket_idx;
-                    indices_p(nidx, 1) = cell_idx;
-                    indices_p(nidx, 2) = 0;
-                }
-                
-                if(hasNewNode) {
-                    m_node_cpidx_p[node_bucket_idx][cell_idx] = 0;
-                }
-                
-                assert(cell_idx >= 0 && cell_idx < m_num_nodes * m_num_nodes * m_num_nodes);
-            }
-        });
-    });
+    return Vector3i(ix, iy, iz);
 }
 
-void TwoDScene::findEdgeNodes( const Sorter& buckets, const VectorXs& x )
+int TwoDScene::getNodeIndex(const Vector3i& handle) const
 {
-    const scalar dx = getCellSize();
-    
-    // make connection for particles
-    buckets.for_each_bucket_colored([&] (int bucket_idx) {
-        Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-        
-        Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
-                                              (scalar) bucket_handle(1) * m_bucket_size,
-                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
-        
-        Vector3s cell_local_corner_ex = cell_local_corner + Vector3s(0.5, 0.0, 0.0) * dx;
-        Vector3s cell_local_corner_ey = cell_local_corner + Vector3s(0.0, 0.5, 0.0) * dx;
-        Vector3s cell_local_corner_ez = cell_local_corner + Vector3s(0.0, 0.0, 0.5) * dx;
-        
-        buckets.get_bucket(bucket_idx, [&] (int pidx) {
-            Vector3s local_pos_x = (x.segment<3>(pidx * 4) - cell_local_corner_ex) / dx;
-            Vector3i ilocal_pos_x = Vector3i( (int) floor(local_pos_x(0)), (int) floor(local_pos_x(1)), (int) floor(local_pos_x(2)) );
-            Vector3s local_pos_y = (x.segment<3>(pidx * 4) - cell_local_corner_ey) / dx;
-            Vector3i ilocal_pos_y = Vector3i( (int) floor(local_pos_y(0)), (int) floor(local_pos_y(1)), (int) floor(local_pos_y(2)) );
-            Vector3s local_pos_z = (x.segment<3>(pidx * 4) - cell_local_corner_ez) / dx;
-            Vector3i ilocal_pos_z = Vector3i( (int) floor(local_pos_z(0)), (int) floor(local_pos_z(1)), (int) floor(local_pos_z(2)) );
-            
-            Vector3s local_frac_x = mathutils::frac<scalar, 3, 1>(local_pos_x);
-            Vector3s local_frac_y = mathutils::frac<scalar, 3, 1>(local_pos_y);
-            Vector3s local_frac_z = mathutils::frac<scalar, 3, 1>(local_pos_z);
-            
-            const int klowx = local_frac_x(2) > 0.5 ? 0 : -1;
-            const int jlowx = local_frac_x(1) > 0.5 ? 0 : -1;
-            const int ilowx = local_frac_x(0) > 0.5 ? 0 : -1;
-            const int khighx = klowx + 2;
-            const int jhighx = jlowx + 2;
-            const int ihighx = ilowx + 2;
-            
-            bool hasNewNode = isSoft(pidx) || m_classifier[pidx] == PC_S;
-            
-            for(int k = klowx - m_num_armor; k <= khighx + 1 + m_num_armor; ++k) for(int j = jlowx - m_num_armor; j <= jhighx + 1 + m_num_armor; ++j) for(int i = ilowx - m_num_armor; i <= ihighx + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_x + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_ex = m_node_cpidx_ex[node_bucket_idx];
-                assert(bucket_node_cpidx_ex.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark phi node
-                if(hasNewNode) {
-                    bucket_node_cpidx_ex[cell_idx] = 0;
-                }
-            }
-            
-            const int klowy = local_frac_y(2) > 0.5 ? 0 : -1;
-            const int jlowy = local_frac_y(1) > 0.5 ? 0 : -1;
-            const int ilowy = local_frac_y(0) > 0.5 ? 0 : -1;
-            const int khighy = klowy + 2;
-            const int jhighy = jlowy + 2;
-            const int ihighy = ilowy + 2;
-            
-            for(int k = klowy - m_num_armor; k <= khighy + 1 + m_num_armor; ++k) for(int j = jlowy - m_num_armor; j <= jhighy + m_num_armor; ++j) for(int i = ilowy - m_num_armor; i <= ihighy + 1 + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_y + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_ey = m_node_cpidx_ey[node_bucket_idx];
-                assert(bucket_node_cpidx_ey.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark phi node
-                if(hasNewNode) {
-                    bucket_node_cpidx_ey[cell_idx] = 0;
-                }
-            }
-            
-            const int klowz = local_frac_z(2) > 0.5 ? 0 : -1;
-            const int jlowz = local_frac_z(1) > 0.5 ? 0 : -1;
-            const int ilowz = local_frac_z(0) > 0.5 ? 0 : -1;
-            const int khighz = klowz + 2;
-            const int jhighz = jlowz + 2;
-            const int ihighz = ilowz + 2;
-            
-            for(int k = klowz - m_num_armor; k <= khighz + m_num_armor; ++k) for(int j = jlowz - m_num_armor; j <= jhighz + 1 + m_num_armor; ++j) for(int i = ilowz - m_num_armor; i <= ihighz + 1 + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_z + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_ez = m_node_cpidx_ez[node_bucket_idx];
-                assert(bucket_node_cpidx_ez.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark phi node
-                if(hasNewNode) {
-                    bucket_node_cpidx_ez[cell_idx] = 0;
-                }
-            }
-        });
-    });
+    return handle(2) * m_num_nodes * m_num_nodes + handle(1) * m_num_nodes + m_num_nodes;
 }
 
-void TwoDScene::findNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_x, std::vector< Matrix27x3i >& particle_nodes_y, std::vector< Matrix27x3i >& particle_nodes_z )
+Vector3s TwoDScene::getNodePosSolidPhi(int bucket_idx, int node_idx) const
 {
-    const scalar dx = getCellSize();
-    
-    // make connection for particles
-    buckets.for_each_bucket_colored([&] (int bucket_idx) {
-        Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-        
-        Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
-                                              (scalar) bucket_handle(1) * m_bucket_size,
-                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
-        
-        Vector3s cell_local_corner_x = cell_local_corner + Vector3s(0.0, 0.5, 0.5) * dx;
-        Vector3s cell_local_corner_y = cell_local_corner + Vector3s(0.5, 0.0, 0.5) * dx;
-        Vector3s cell_local_corner_z = cell_local_corner + Vector3s(0.5, 0.5, 0.0) * dx;
-        
-        buckets.get_bucket(bucket_idx, [&] (int pidx) {
-            Matrix27x3i& indices_x = particle_nodes_x[pidx];
-            Matrix27x3i& indices_y = particle_nodes_y[pidx];
-            Matrix27x3i& indices_z = particle_nodes_z[pidx];
-            
-            Vector3s local_pos_x = (x.segment<3>(pidx * 4) - cell_local_corner_x) / dx;
-            Vector3i ilocal_pos_x = Vector3i( (int) floor(local_pos_x(0)), (int) floor(local_pos_x(1)), (int) floor(local_pos_x(2)) );
-            Vector3s local_pos_y = (x.segment<3>(pidx * 4) - cell_local_corner_y) / dx;
-            Vector3i ilocal_pos_y = Vector3i( (int) floor(local_pos_y(0)), (int) floor(local_pos_y(1)), (int) floor(local_pos_y(2)) );
-            Vector3s local_pos_z = (x.segment<3>(pidx * 4) - cell_local_corner_z) / dx;
-            Vector3i ilocal_pos_z = Vector3i( (int) floor(local_pos_z(0)), (int) floor(local_pos_z(1)), (int) floor(local_pos_z(2)) );
-            
-            Vector3s local_frac_x = mathutils::frac<scalar, 3, 1>(local_pos_x);
-            Vector3s local_frac_y = mathutils::frac<scalar, 3, 1>(local_pos_y);
-            Vector3s local_frac_z = mathutils::frac<scalar, 3, 1>(local_pos_z);
-            
-            const int klowx = local_frac_x(2) > 0.5 ? 0 : -1;
-            const int jlowx = local_frac_x(1) > 0.5 ? 0 : -1;
-            const int ilowx = local_frac_x(0) > 0.5 ? 0 : -1;
-            const int khighx = klowx + 2;
-            const int jhighx = jlowx + 2;
-            const int ihighx = ilowx + 2;
-            
-            bool hasNewNode = isSoft(pidx) || m_classifier[pidx] == PC_S;
-            
-            for(int k = klowx - m_num_armor; k <= khighx + m_num_armor; ++k) for(int j = jlowx - m_num_armor; j <= jhighx + m_num_armor; ++j) for(int i = ilowx - m_num_armor; i <= ihighx + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_x + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_x = m_node_cpidx_x[node_bucket_idx];
-                assert(bucket_node_cpidx_x.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_x[cell_idx] = 0;
-                }
-                
-                if(k >= klowx && k <= khighx && j >= jlowx && j <= jhighx && i >= ilowx && i <= ihighx) {
-                    int nidx = (k - klowx) * (3 * 3) + (j - jlowx) * 3 + (i - ilowx);
-                    indices_x(nidx, 0) = node_bucket_idx;
-                    indices_x(nidx, 1) = cell_idx;
-                    indices_x(nidx, 2) = 0;
-                }
-            }
-            
-            const int klowy = local_frac_y(2) > 0.5 ? 0 : -1;
-            const int jlowy = local_frac_y(1) > 0.5 ? 0 : -1;
-            const int ilowy = local_frac_y(0) > 0.5 ? 0 : -1;
-            const int khighy = klowy + 2;
-            const int jhighy = jlowy + 2;
-            const int ihighy = ilowy + 2;
-            
-            for(int k = klowy - m_num_armor; k <= khighy + m_num_armor; ++k) for(int j = jlowy - m_num_armor; j <= jhighy + m_num_armor; ++j) for(int i = ilowy - m_num_armor; i <= ihighy + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_y + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_y = m_node_cpidx_y[node_bucket_idx];
-                assert(bucket_node_cpidx_y.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_y[cell_idx] = 0;
-                }
-                
-                if(k >= klowy && k <= khighy && j >= jlowy && j <= jhighy && i >= ilowy && i <= ihighy) {
-                    int nidx = (k - klowy) * (3 * 3) + (j - jlowy) * 3 + (i - ilowy);
-                    
-                    indices_y(nidx, 0) = node_bucket_idx;
-                    indices_y(nidx, 1) = cell_idx;
-                    indices_y(nidx, 2) = 0;
-                }
-            }
-            
-            const int klowz = local_frac_z(2) > 0.5 ? 0 : -1;
-            const int jlowz = local_frac_z(1) > 0.5 ? 0 : -1;
-            const int ilowz = local_frac_z(0) > 0.5 ? 0 : -1;
-            const int khighz = klowz + 2;
-            const int jhighz = jlowz + 2;
-            const int ihighz = ilowz + 2;
-            
-            for(int k = klowz - m_num_armor; k <= khighz + m_num_armor; ++k) for(int j = jlowz - m_num_armor; j <= jhighz + m_num_armor; ++j) for(int i = ilowz - m_num_armor; i <= ihighz + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_z + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_z = m_node_cpidx_z[node_bucket_idx];
-                assert(bucket_node_cpidx_z.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_z[cell_idx] = 0;
-                }
-                
-                if(k >= klowz && k <= khighz && j >= jlowz && j <= jhighz && i >= ilowz && i <= ihighz) {
-                    int nidx = (k - klowz) * (3 * 3) + (j - jlowz) * 3 + (i - ilowz);
-                    
-                    indices_z(nidx, 0) = node_bucket_idx;
-                    indices_z(nidx, 1) = cell_idx;
-                    indices_z(nidx, 2) = 0;
-                }
-            }
-        });
-    });
+    if(m_bucket_activated[bucket_idx])
+       return m_node_pos[bucket_idx].segment<3>(node_idx * 3);
+    else
+       return nodePosFromBucket(bucket_idx, node_idx, Vector3s::Zero());
 }
 
-void TwoDScene::findGaussNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x3i >& particle_nodes_x, std::vector< Matrix27x3i >& particle_nodes_y, std::vector< Matrix27x3i >& particle_nodes_z )
+Vector3s TwoDScene::getNodePosX(int bucket_idx, int node_idx) const
 {
-    const scalar dx = getCellSize();
-    
-    // make connection for particles
-    buckets.for_each_bucket_colored([&] (int bucket_idx) {
-        Vector3i bucket_handle = buckets.bucket_handle(bucket_idx);
-        
-        Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
-                                              (scalar) bucket_handle(1) * m_bucket_size,
-                                              (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
-        
-        Vector3s cell_local_corner_x = cell_local_corner + Vector3s(0.0, 0.5, 0.5) * dx;
-        Vector3s cell_local_corner_y = cell_local_corner + Vector3s(0.5, 0.0, 0.5) * dx;
-        Vector3s cell_local_corner_z = cell_local_corner + Vector3s(0.5, 0.5, 0.0) * dx;
-        
-        buckets.get_bucket(bucket_idx, [&] (int pidx) {
-            Matrix27x3i& indices_x = particle_nodes_x[pidx];
-            Matrix27x3i& indices_y = particle_nodes_y[pidx];
-            Matrix27x3i& indices_z = particle_nodes_z[pidx];
-            
-            Vector3s local_pos_x = (x.segment<3>(pidx * 4) - cell_local_corner_x) / dx;
-            Vector3i ilocal_pos_x = Vector3i( (int) floor(local_pos_x(0)), (int) floor(local_pos_x(1)), (int) floor(local_pos_x(2)) );
-            Vector3s local_pos_y = (x.segment<3>(pidx * 4) - cell_local_corner_y) / dx;
-            Vector3i ilocal_pos_y = Vector3i( (int) floor(local_pos_y(0)), (int) floor(local_pos_y(1)), (int) floor(local_pos_y(2)) );
-            Vector3s local_pos_z = (x.segment<3>(pidx * 4) - cell_local_corner_z) / dx;
-            Vector3i ilocal_pos_z = Vector3i( (int) floor(local_pos_z(0)), (int) floor(local_pos_z(1)), (int) floor(local_pos_z(2)) );
-            
-            Vector3s local_frac_x = mathutils::frac<scalar, 3, 1>(local_pos_x);
-            Vector3s local_frac_y = mathutils::frac<scalar, 3, 1>(local_pos_y);
-            Vector3s local_frac_z = mathutils::frac<scalar, 3, 1>(local_pos_z);
-            
-            const int klowx = local_frac_x(2) > 0.5 ? 0 : -1;
-            const int jlowx = local_frac_x(1) > 0.5 ? 0 : -1;
-            const int ilowx = local_frac_x(0) > 0.5 ? 0 : -1;
-            const int khighx = klowx + 2;
-            const int jhighx = jlowx + 2;
-            const int ihighx = ilowx + 2;
-            
-            bool hasNewNode = pidx < getNumFaces() + getNumEdges();
-            
-            for(int k = klowx - m_num_armor; k <= khighx + m_num_armor; ++k) for(int j = jlowx - m_num_armor; j <= jhighx + m_num_armor; ++j) for(int i = ilowx - m_num_armor; i <= ihighx + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_x + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_x = m_node_cpidx_x[node_bucket_idx];
-                assert(bucket_node_cpidx_x.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_x[cell_idx] = 0;
-                }
-                
-                if(k >= klowx && k <= khighx && j >= jlowx && j <= jhighx && i >= ilowx && i <= ihighx) {
-                    int nidx = (k - klowx) * (3 * 3) + (j - jlowx) * 3 + (i - ilowx);
-                    indices_x(nidx, 0) = node_bucket_idx;
-                    indices_x(nidx, 1) = cell_idx;
-                    indices_x(nidx, 2) = 0;
-                }
-            }
-            
-            const int klowy = local_frac_y(2) > 0.5 ? 0 : -1;
-            const int jlowy = local_frac_y(1) > 0.5 ? 0 : -1;
-            const int ilowy = local_frac_y(0) > 0.5 ? 0 : -1;
-            const int khighy = klowy + 2;
-            const int jhighy = jlowy + 2;
-            const int ihighy = ilowy + 2;
-            
-            for(int k = klowy - m_num_armor; k <= khighy + m_num_armor; ++k) for(int j = jlowy - m_num_armor; j <= jhighy + m_num_armor; ++j) for(int i = ilowy - m_num_armor; i <= ihighy + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_y + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_y = m_node_cpidx_y[node_bucket_idx];
-                assert(bucket_node_cpidx_y.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_y[cell_idx] = 0;
-                }
-                
-                if(k >= klowy && k <= khighy && j >= jlowy && j <= jhighy && i >= ilowy && i <= ihighy) {
-                    int nidx = (k - klowy) * (3 * 3) + (j - jlowy) * 3 + (i - ilowy);
-                    
-                    indices_y(nidx, 0) = node_bucket_idx;
-                    indices_y(nidx, 1) = cell_idx;
-                    indices_y(nidx, 2) = 0;
-                }
-            }
-            
-            const int klowz = local_frac_z(2) > 0.5 ? 0 : -1;
-            const int jlowz = local_frac_z(1) > 0.5 ? 0 : -1;
-            const int ilowz = local_frac_z(0) > 0.5 ? 0 : -1;
-            const int khighz = klowz + 2;
-            const int jhighz = jlowz + 2;
-            const int ihighz = ilowz + 2;
-            
-            for(int k = klowz - m_num_armor; k <= khighz + m_num_armor; ++k) for(int j = jlowz - m_num_armor; j <= jhighz + m_num_armor; ++j) for(int i = ilowz - m_num_armor; i <= ihighz + m_num_armor; ++i)
-            {
-                Vector3i cell_local_idx = ilocal_pos_z + Vector3i(i, j, k);
-                Vector3i node_bucket_handle = bucket_handle;
-                
-                for(int r = 0; r < 3; ++r) {
-                    while(cell_local_idx(r) < 0) {
-                        node_bucket_handle(r)--;
-                        cell_local_idx(r) += m_num_nodes;
-                    }
-                    while(cell_local_idx(r) >= m_num_nodes) {
-                        node_bucket_handle(r)++;
-                        cell_local_idx(r) -= m_num_nodes;
-                    }
-                    
-                    assert( cell_local_idx(r) >= 0 && cell_local_idx(r) < m_num_nodes );
-                    assert( node_bucket_handle(r) >= 0 && node_bucket_handle(r) < m_particle_buckets.dim_size(r));
-                }
-                
-                int node_bucket_idx = buckets.bucket_index(node_bucket_handle);
-                auto& bucket_node_cpidx_z = m_node_cpidx_z[node_bucket_idx];
-                assert(bucket_node_cpidx_z.size() > 0);
-                
-                int cell_idx = cell_local_idx(2) * m_num_nodes * m_num_nodes +
-                cell_local_idx(1) * m_num_nodes + cell_local_idx(0);
-                
-                // mark regular node
-                if(hasNewNode) {
-                    bucket_node_cpidx_z[cell_idx] = 0;
-                }
-                
-                if(k >= klowz && k <= khighz && j >= jlowz && j <= jhighz && i >= ilowz && i <= ihighz) {
-                    int nidx = (k - klowz) * (3 * 3) + (j - jlowz) * 3 + (i - ilowz);
-                    
-                    indices_z(nidx, 0) = node_bucket_idx;
-                    indices_z(nidx, 1) = cell_idx;
-                    indices_z(nidx, 2) = 0;
-                }
-            }
-        });
-    });
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.0, 0.5, 0.5) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.0, 0.5, 0.5));
+    }
+}
+
+Vector3s TwoDScene::getNodePosY(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.5, 0.0, 0.5) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.5, 0.0, 0.5));
+    }
+}
+
+Vector3s TwoDScene::getNodePosZ(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.5, 0.5, 0.0) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.0));
+    }
+}
+
+Vector3s TwoDScene::getNodePosP(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.5, 0.5, 0.5) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.5, 0.5, 0.5));
+    }
+}
+
+Vector3s TwoDScene::getNodePosEX(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.5, 0.0, 0.0) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.5, 0.0, 0.0));
+    }
+}
+
+Vector3s TwoDScene::getNodePosEY(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.0, 0.5, 0.0) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.0, 0.5, 0.0));
+    }
+}
+
+Vector3s TwoDScene::getNodePosEZ(int bucket_idx, int node_idx) const
+{
+    if(m_bucket_activated[bucket_idx]) {
+        const scalar dx = getCellSize();
+        return m_node_pos[bucket_idx].segment<3>(node_idx * 3) + Vector3s(0.0, 0.0, 0.5) * dx;
+    } else {
+        return nodePosFromBucket(bucket_idx, node_idx, Vector3s(0.0, 0.0, 0.5));
+    }
 }
 
 void TwoDScene::generateNodes()
@@ -4723,271 +3847,62 @@ void TwoDScene::generateNodes()
     const scalar dx = getCellSize();
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        // ignore inactivated buckets
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
         
         Vector3s cell_local_corner = Vector3s((scalar) bucket_handle(0) * m_bucket_size,
                                               (scalar) bucket_handle(1) * m_bucket_size,
                                               (scalar) bucket_handle(2) * m_bucket_size) + m_grid_mincorner;
         
-        Vector3s cell_local_corner_x = cell_local_corner + Vector3s(0.0, 0.5, 0.5) * dx;
-        Vector3s cell_local_corner_y = cell_local_corner + Vector3s(0.5, 0.0, 0.5) * dx;
-        Vector3s cell_local_corner_z = cell_local_corner + Vector3s(0.5, 0.5, 0.0) * dx;
-        Vector3s cell_local_corner_p = cell_local_corner + Vector3s(0.5, 0.5, 0.5) * dx;
-        Vector3s cell_local_corner_ex = cell_local_corner + Vector3s(0.5, 0.0, 0.0) * dx;
-        Vector3s cell_local_corner_ey = cell_local_corner + Vector3s(0.0, 0.5, 0.0) * dx;
-        Vector3s cell_local_corner_ez = cell_local_corner + Vector3s(0.0, 0.0, 0.5) * dx;
+
+        // otherwise generate nodes to fill the bucket
+        const int count = m_num_nodes * m_num_nodes * m_num_nodes;
+        if((int) m_node_pos[bucket_idx].size() != count * 3)
+            m_node_pos[bucket_idx].resize(count * 3);
+
+        VectorXs& bucket_node_pos = m_node_pos[bucket_idx];
         
-        auto& bucket_node_cpidx_x = m_node_cpidx_x[bucket_idx];
-        auto& bucket_node_cpidx_y = m_node_cpidx_y[bucket_idx];
-        auto& bucket_node_cpidx_z = m_node_cpidx_z[bucket_idx];
-        auto& bucket_node_cpidx_sphi = m_node_cpidx_solid_phi[bucket_idx];
-        auto& bucket_node_cpidx_p = m_node_cpidx_p[bucket_idx];
-        auto& bucket_node_cpidx_ex = m_node_cpidx_ex[bucket_idx];
-        auto& bucket_node_cpidx_ey = m_node_cpidx_ey[bucket_idx];
-        auto& bucket_node_cpidx_ez = m_node_cpidx_ez[bucket_idx];
-        
-        const bool generate_x = bucket_node_cpidx_x.size() > 0;
-        const bool generate_y = bucket_node_cpidx_y.size() > 0;
-        const bool generate_z = bucket_node_cpidx_z.size() > 0;
-        const bool generate_sphi = bucket_node_cpidx_sphi.size() > 0;
-        const bool generate_p = bucket_node_cpidx_p.size() > 0;
-        
-        const bool generate_ex = m_liquid_info.compute_viscosity && bucket_node_cpidx_ex.size() > 0;
-        const bool generate_ey = m_liquid_info.compute_viscosity && bucket_node_cpidx_ey.size() > 0;
-        const bool generate_ez = m_liquid_info.compute_viscosity && bucket_node_cpidx_ez.size() > 0;
-        
-        if(!generate_x) {
-            m_node_pos_x[bucket_idx].resize(0);
-            m_node_indices_x[bucket_idx].resize(0);
+        for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
+        {
+            int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
+            bucket_node_pos.segment<3>(node_idx * 3) = cell_local_corner + Vector3s(i, j, k) * dx;
         }
         
-        if(!generate_y) {
-            m_node_pos_y[bucket_idx].resize(0);
-            m_node_indices_y[bucket_idx].resize(0);
-        }
+        VectorXi& bucket_node_idxp_x = m_node_index_pressure_x[bucket_idx];
+        VectorXi& bucket_node_idx_solid_phi_x = m_node_index_solid_phi_x[bucket_idx];
+        bucket_node_idxp_x.resize( count * 4 );
+        bucket_node_idxp_x.setConstant(-1);
+        bucket_node_idx_solid_phi_x.resize( count * 8 );
+        bucket_node_idx_solid_phi_x.setConstant(-1);
         
-        if(!generate_z) {
-            m_node_pos_z[bucket_idx].resize(0);
-            m_node_indices_z[bucket_idx].resize(0);
-        }
+        VectorXi& bucket_node_idxp_y = m_node_index_pressure_y[bucket_idx];
+        VectorXi& bucket_node_idx_solid_phi_y = m_node_index_solid_phi_y[bucket_idx];
+        bucket_node_idxp_y.resize( count * 4 );
+        bucket_node_idxp_y.setConstant(-1);
+        bucket_node_idx_solid_phi_y.resize( count * 8 );
+        bucket_node_idx_solid_phi_y.setConstant(-1);
         
-        if(!generate_sphi) {
-            m_node_pos_solid_phi[bucket_idx].resize(0);
-        }
-        
-        if(!generate_p) {
-            m_node_pos_p[bucket_idx].resize(0);
-            m_node_indices_p[bucket_idx].resize(0);
-        }
+        VectorXi& bucket_node_idxp_z = m_node_index_pressure_z[bucket_idx];
+        VectorXi& bucket_node_idx_solid_phi_z = m_node_index_solid_phi_z[bucket_idx];
+        bucket_node_idxp_z.resize( count * 4 );
+        bucket_node_idxp_z.setConstant(-1);
+        bucket_node_idx_solid_phi_z.resize( count * 8 );
+        bucket_node_idx_solid_phi_z.setConstant(-1);
         
         if(m_liquid_info.compute_viscosity) {
-            if(!generate_ex) {
-                m_node_pos_ex[bucket_idx].resize(0);
-            }
+            VectorXi& bucket_node_idx_ex = m_node_index_edge_x[bucket_idx];
+            bucket_node_idx_ex.resize( count * 8 );
+            bucket_node_idx_ex.setConstant(-1);
             
-            if(!generate_ey) {
-                m_node_pos_ey[bucket_idx].resize(0);
-            }
+            VectorXi& bucket_node_idx_ey = m_node_index_edge_y[bucket_idx];
+            bucket_node_idx_ey.resize( count * 8 );
+            bucket_node_idx_ey.setConstant(-1);
             
-            if(!generate_ez) {
-                m_node_pos_ez[bucket_idx].resize(0);
-            }
-        }
-        
-        if(!(generate_x || generate_y || generate_z || generate_sphi || generate_p || generate_ex || generate_ey || generate_ez)) {
-            return;
-        }
-        
-        int count_x = 0;
-        int count_y = 0;
-        int count_z = 0;
-        int count_sphi = 0;
-        int count_p = 0;
-        int count_ex = 0;
-        int count_ey = 0;
-        int count_ez = 0;
-        
-        for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
-        {
-            int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
-            if(generate_x && bucket_node_cpidx_x[node_idx] != -1) {
-                bucket_node_cpidx_x[node_idx] = count_x;
-                ++count_x;
-            }
-            if(generate_y && bucket_node_cpidx_y[node_idx] != -1) {
-                bucket_node_cpidx_y[node_idx] = count_y;
-                ++count_y;
-            }
-            if(generate_z && bucket_node_cpidx_z[node_idx] != -1) {
-                bucket_node_cpidx_z[node_idx] = count_z;
-                ++count_z;
-            }
-            if(generate_sphi && bucket_node_cpidx_sphi[node_idx] != -1) {
-                bucket_node_cpidx_sphi[node_idx] = count_sphi;
-                ++count_sphi;
-            }
-            if(generate_p && bucket_node_cpidx_p[node_idx] != -1) {
-                bucket_node_cpidx_p[node_idx] = count_p;
-                ++count_p;
-            }
-            if(generate_ex && bucket_node_cpidx_ex[node_idx] != -1) {
-                bucket_node_cpidx_ex[node_idx] = count_ex;
-                ++count_ex;
-            }
-            if(generate_ey && bucket_node_cpidx_ey[node_idx] != -1) {
-                bucket_node_cpidx_ey[node_idx] = count_ey;
-                ++count_ey;
-            }
-            if(generate_ez && bucket_node_cpidx_ez[node_idx] != -1) {
-                bucket_node_cpidx_ez[node_idx] = count_ez;
-                ++count_ez;
-            }
-        }
-        
-        if(generate_x) {
-            VectorXs& bucket_node_pos_x = m_node_pos_x[bucket_idx];
-            VectorXi& bucket_node_indices_x = m_node_indices_x[bucket_idx];
-            bucket_node_pos_x.resize( count_x * 3 );
-            bucket_node_indices_x.resize( count_x * 3 );
-        }
-        
-        if(generate_y) {
-            VectorXs& bucket_node_pos_y = m_node_pos_y[bucket_idx];
-            VectorXi& bucket_node_indices_y = m_node_indices_y[bucket_idx];
-            bucket_node_pos_y.resize( count_y * 3 );
-            bucket_node_indices_y.resize( count_y * 3 );
-        }
-        
-        if(generate_z) {
-            VectorXs& bucket_node_pos_z = m_node_pos_z[bucket_idx];
-            VectorXi& bucket_node_indices_z = m_node_indices_z[bucket_idx];
-            bucket_node_pos_z.resize( count_z * 3 );
-            bucket_node_indices_z.resize( count_z * 3 );
-        }
-        
-        if(generate_sphi) {
-            VectorXs& bucket_node_pos_sphi = m_node_pos_solid_phi[bucket_idx];
-            bucket_node_pos_sphi.resize( count_sphi * 3 );
-        }
-        
-        if(generate_p) {
-            VectorXs& bucket_node_pos_p = m_node_pos_p[bucket_idx];
-            VectorXi& bucket_node_indices_p = m_node_indices_p[bucket_idx];
-            bucket_node_pos_p.resize( count_p * 3 );
-            bucket_node_indices_p.resize( count_p * 3 );
-        }
-        
-        if(generate_ex) {
-            VectorXs& bucket_node_pos_ex = m_node_pos_ex[bucket_idx];
-            bucket_node_pos_ex.resize( count_ex * 3 );
-        }
-        
-        if(generate_ey) {
-            VectorXs& bucket_node_pos_ey = m_node_pos_ey[bucket_idx];
-            bucket_node_pos_ey.resize( count_ey * 3 );
-        }
-        
-        if(generate_ez) {
-            VectorXs& bucket_node_pos_ez = m_node_pos_ez[bucket_idx];
-            bucket_node_pos_ez.resize( count_ez * 3 );
-        }
-        
-        for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
-        {
-            int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
-            if(generate_x && bucket_node_cpidx_x[node_idx] != -1) {
-                VectorXs& bucket_node_pos_x = m_node_pos_x[bucket_idx];
-                VectorXi& bucket_node_indices_x = m_node_indices_x[bucket_idx];
-                bucket_node_pos_x.segment<3>(bucket_node_cpidx_x[node_idx] * 3)
-                = cell_local_corner_x + Vector3s(i, j, k) * dx;
-                bucket_node_indices_x.segment<3>(bucket_node_cpidx_x[node_idx] * 3) = Vector3i(i, j, k);
-            }
-            if(generate_y && bucket_node_cpidx_y[node_idx] != -1) {
-                VectorXs& bucket_node_pos_y = m_node_pos_y[bucket_idx];
-                VectorXi& bucket_node_indices_y = m_node_indices_y[bucket_idx];
-                bucket_node_pos_y.segment<3>(bucket_node_cpidx_y[node_idx] * 3)
-                = cell_local_corner_y + Vector3s(i, j, k) * dx;
-                bucket_node_indices_y.segment<3>(bucket_node_cpidx_y[node_idx] * 3) = Vector3i(i, j, k);
-            }
-            if(generate_z && bucket_node_cpidx_z[node_idx] != -1) {
-                VectorXs& bucket_node_pos_z = m_node_pos_z[bucket_idx];
-                VectorXi& bucket_node_indices_z = m_node_indices_z[bucket_idx];
-                bucket_node_pos_z.segment<3>(bucket_node_cpidx_z[node_idx] * 3)
-                = cell_local_corner_z + Vector3s(i, j, k) * dx;
-                bucket_node_indices_z.segment<3>(bucket_node_cpidx_z[node_idx] * 3) = Vector3i(i, j, k);
-            }
-            if(generate_sphi && bucket_node_cpidx_sphi[node_idx] != -1) {
-                VectorXs& bucket_node_pos_sphi = m_node_pos_solid_phi[bucket_idx];
-                bucket_node_pos_sphi.segment<3>(bucket_node_cpidx_sphi[node_idx] * 3)
-                = cell_local_corner + Vector3s(i, j, k) * dx;
-            }
-            if(generate_p && bucket_node_cpidx_p[node_idx] != -1) {
-                VectorXs& bucket_node_pos_p = m_node_pos_p[bucket_idx];
-                VectorXi& bucket_node_indices_p = m_node_indices_p[bucket_idx];
-                bucket_node_pos_p.segment<3>(bucket_node_cpidx_p[node_idx] * 3)
-                = cell_local_corner_p + Vector3s(i, j, k) * dx;
-                bucket_node_indices_p.segment<3>(bucket_node_cpidx_p[node_idx] * 3) = Vector3i(i, j, k);
-            }
-            if(generate_ex && bucket_node_cpidx_ex[node_idx] != -1) {
-                VectorXs& bucket_node_pos_ex = m_node_pos_ex[bucket_idx];
-                bucket_node_pos_ex.segment<3>(bucket_node_cpidx_ex[node_idx] * 3)
-                = cell_local_corner_ex + Vector3s(i, j, k) * dx;
-            }
-            if(generate_ey && bucket_node_cpidx_ey[node_idx] != -1) {
-                VectorXs& bucket_node_pos_ey = m_node_pos_ey[bucket_idx];
-                bucket_node_pos_ey.segment<3>(bucket_node_cpidx_ey[node_idx] * 3)
-                = cell_local_corner_ey + Vector3s(i, j, k) * dx;
-            }
-            if(generate_ez && bucket_node_cpidx_ez[node_idx] != -1) {
-                VectorXs& bucket_node_pos_ez = m_node_pos_ez[bucket_idx];
-                bucket_node_pos_ez.segment<3>(bucket_node_cpidx_ez[node_idx] * 3)
-                = cell_local_corner_ez + Vector3s(i, j, k) * dx;
-            }
-        }
-        
-        if(count_x > 0) {
-            VectorXi& bucket_node_idxp_x = m_node_index_pressure_x[bucket_idx];
-            VectorXi& bucket_node_idx_solid_phi_x = m_node_index_solid_phi_x[bucket_idx];
-            bucket_node_idxp_x.resize( count_x * 4 );
-            bucket_node_idxp_x.setConstant(-1);
-            bucket_node_idx_solid_phi_x.resize( count_x * 8 );
-            bucket_node_idx_solid_phi_x.setConstant(-1);
-            
-            if(m_liquid_info.compute_viscosity) {
-                VectorXi& bucket_node_idx_ex = m_node_index_edge_x[bucket_idx];
-                bucket_node_idx_ex.resize( count_x * 8 );
-                bucket_node_idx_ex.setConstant(-1);
-            }
-        }
-        
-        if(count_y > 0) {
-            VectorXi& bucket_node_idxp_y = m_node_index_pressure_y[bucket_idx];
-            VectorXi& bucket_node_idx_solid_phi_y = m_node_index_solid_phi_y[bucket_idx];
-            bucket_node_idxp_y.resize( count_y * 4 );
-            bucket_node_idxp_y.setConstant(-1);
-            bucket_node_idx_solid_phi_y.resize( count_y * 8 );
-            bucket_node_idx_solid_phi_y.setConstant(-1);
-            
-            if(m_liquid_info.compute_viscosity) {
-                VectorXi& bucket_node_idx_ey = m_node_index_edge_y[bucket_idx];
-                bucket_node_idx_ey.resize( count_y * 8 );
-                bucket_node_idx_ey.setConstant(-1);
-            }
-        }
-        
-        if(count_z > 0) {
-            VectorXi& bucket_node_idxp_z = m_node_index_pressure_z[bucket_idx];
-            VectorXi& bucket_node_idx_solid_phi_z = m_node_index_solid_phi_z[bucket_idx];
-            bucket_node_idxp_z.resize( count_z * 4 );
-            bucket_node_idxp_z.setConstant(-1);
-            bucket_node_idx_solid_phi_z.resize( count_z * 8 );
-            bucket_node_idx_solid_phi_z.setConstant(-1);
-            
-            if(m_liquid_info.compute_viscosity) {
-                VectorXi& bucket_node_idx_ez = m_node_index_edge_z[bucket_idx];
-                bucket_node_idx_ez.resize( count_z * 8 );
-                bucket_node_idx_ez.setConstant(-1);
-            }
+            VectorXi& bucket_node_idx_ez = m_node_index_edge_z[bucket_idx];
+            bucket_node_idx_ez.resize( count * 8 );
+            bucket_node_idx_ez.setConstant(-1);
         }
     });
 }
@@ -5295,212 +4210,189 @@ void TwoDScene::connectEdgeNodes()
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
         Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
         
-        auto& bucket_node_cpidx_x = m_node_cpidx_x[bucket_idx];
-        auto& bucket_node_cpidx_y = m_node_cpidx_y[bucket_idx];
-        auto& bucket_node_cpidx_z = m_node_cpidx_z[bucket_idx];
-        
         VectorXi& bucket_node_idx_ex = m_node_index_edge_x[bucket_idx];
         VectorXi& bucket_node_idx_ey = m_node_index_edge_y[bucket_idx];
         VectorXi& bucket_node_idx_ez = m_node_index_edge_z[bucket_idx];
+        
+        if(!m_bucket_activated[bucket_idx]) return;
         
         for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
         {
             int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
             
-            if(bucket_node_cpidx_x.size() > 0 && bucket_node_cpidx_x[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_x[node_idx];
+            // back, front (edge-y)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ey_local_idx = Vector3i(i, j, k + r);
                 
-                // back, front (edge-y)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ey_local_idx = Vector3i(i, j, k + r);
-                    
-                    if(ey_local_idx(2) >= m_num_nodes) {
-                        node_bucket_handle(2)++;
-                        ey_local_idx(2) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 0) = -1;
-                        bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 1) = -1;
-                    } else {
-                        const int ey_idx = ey_local_idx(2) * m_num_nodes * m_num_nodes + ey_local_idx(1) * m_num_nodes + ey_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ey[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 0) = -1;
-                            bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ey_idx = m_node_cpidx_ey[nb_bucket_idx][ey_idx];
-                            
-                            bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 0) = (mapped_ey_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ex(mapped_idx * 8 + r * 2 + 1) = mapped_ey_idx;
-                        }
-                    }
+                if(ey_local_idx(2) >= m_num_nodes) {
+                    node_bucket_handle(2)++;
+                    ey_local_idx(2) -= m_num_nodes;
                 }
                 
-                // bottom, top (edge-z)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ez_local_idx = Vector3i(i, j + r, k);
-                    
-                    if(ez_local_idx(1) >= m_num_nodes) {
-                        node_bucket_handle(1)++;
-                        ez_local_idx(1) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                        bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ex(node_idx * 8 + r * 2 + 0) = -1;
+                    bucket_node_idx_ex(node_idx * 8 + r * 2 + 1) = -1;
+                } else {
+                    const int ey_idx = ey_local_idx(2) * m_num_nodes * m_num_nodes + ey_local_idx(1) * m_num_nodes + ey_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ex(node_idx * 8 + r * 2 + 0) = -1;
+                        bucket_node_idx_ex(node_idx * 8 + r * 2 + 1) = -1;
                     } else {
-                        const int ez_idx = ez_local_idx(2) * m_num_nodes * m_num_nodes + ez_local_idx(1) * m_num_nodes + ez_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ez[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                            bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ez_idx = m_node_cpidx_ez[nb_bucket_idx][ez_idx];
-                            
-                            bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 0) = (mapped_ez_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ex(mapped_idx * 8 + 4 + r * 2 + 1) = mapped_ez_idx;
-                        }
+                        bucket_node_idx_ex(node_idx * 8 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ex(node_idx * 8 + r * 2 + 1) = ey_idx;
                     }
                 }
             }
             
-            if(bucket_node_cpidx_y.size() > 0 && bucket_node_cpidx_y[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_y[node_idx];
+            // bottom, top (edge-z)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ez_local_idx = Vector3i(i, j + r, k);
                 
-                // back, front (edge-x)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ex_local_idx = Vector3i(i, j, k + r);
-                    
-                    if(ex_local_idx(2) >= m_num_nodes) {
-                        node_bucket_handle(2)++;
-                        ex_local_idx(2) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 0) = -1;
-                        bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 1) = -1;
-                    } else {
-                        const int ex_idx = ex_local_idx(2) * m_num_nodes * m_num_nodes + ex_local_idx(1) * m_num_nodes + ex_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ex[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 0) = -1;
-                            bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ex_idx = m_node_cpidx_ex[nb_bucket_idx][ex_idx];
-                            
-                            bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 0) = (mapped_ex_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ey(mapped_idx * 8 + r * 2 + 1) = mapped_ex_idx;
-                        }
-                    }
+                if(ez_local_idx(1) >= m_num_nodes) {
+                    node_bucket_handle(1)++;
+                    ez_local_idx(1) -= m_num_nodes;
                 }
                 
-                // left, right (edge-z)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ez_local_idx = Vector3i(i + r, j, k);
-                    
-                    if(ez_local_idx(0) >= m_num_nodes) {
-                        node_bucket_handle(0)++;
-                        ez_local_idx(0) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                        bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                    bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 1) = -1;
+                } else {
+                    const int ez_idx = ez_local_idx(2) * m_num_nodes * m_num_nodes + ez_local_idx(1) * m_num_nodes + ez_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                        bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 1) = -1;
                     } else {
-                        const int ez_idx = ez_local_idx(2) * m_num_nodes * m_num_nodes + ez_local_idx(1) * m_num_nodes + ez_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ez[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                            bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ez_idx = m_node_cpidx_ez[nb_bucket_idx][ez_idx];
-                            
-                            bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 0) = (mapped_ez_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ey(mapped_idx * 8 + 4 + r * 2 + 1) = mapped_ez_idx;
-                        }
+                        bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ex(node_idx * 8 + 4 + r * 2 + 1) = ez_idx;
                     }
                 }
             }
             
-            if(bucket_node_cpidx_z.size() > 0 && bucket_node_cpidx_z[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_z[node_idx];
+            // back, front (edge-x)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ex_local_idx = Vector3i(i, j, k + r);
                 
-                // bottom, top (edge-x)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ex_local_idx = Vector3i(i, j + r, k);
-                    
-                    if(ex_local_idx(1) >= m_num_nodes) {
-                        node_bucket_handle(1)++;
-                        ex_local_idx(1) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 0) = -1;
-                        bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 1) = -1;
-                    } else {
-                        const int ex_idx = ex_local_idx(2) * m_num_nodes * m_num_nodes + ex_local_idx(1) * m_num_nodes + ex_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ex[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 0) = -1;
-                            bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ex_idx = m_node_cpidx_ex[nb_bucket_idx][ex_idx];
-                            
-                            bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 0) = (mapped_ex_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ez(mapped_idx * 8 + r * 2 + 1) = mapped_ex_idx;
-                        }
-                    }
+                if(ex_local_idx(2) >= m_num_nodes) {
+                    node_bucket_handle(2)++;
+                    ex_local_idx(2) -= m_num_nodes;
                 }
                 
-                // left, right (edge-y)
-                for(int r = 0; r < 2; ++r) {
-                    Vector3i node_bucket_handle = bucket_handle;
-                    Vector3i ey_local_idx = Vector3i(i + r, j, k);
-                    
-                    if(ey_local_idx(0) >= m_num_nodes) {
-                        node_bucket_handle(0)++;
-                        ey_local_idx(0) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                        bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ey(node_idx * 8 + r * 2 + 0) = -1;
+                    bucket_node_idx_ey(node_idx * 8 + r * 2 + 1) = -1;
+                } else {
+                    const int ex_idx = ex_local_idx(2) * m_num_nodes * m_num_nodes + ex_local_idx(1) * m_num_nodes + ex_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ey(node_idx * 8 + r * 2 + 0) = -1;
+                        bucket_node_idx_ey(node_idx * 8 + r * 2 + 1) = -1;
                     } else {
-                        const int ey_idx = ey_local_idx(2) * m_num_nodes * m_num_nodes + ey_local_idx(1) * m_num_nodes + ey_local_idx(0);
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
-                        if(m_node_cpidx_ey[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 0) = -1;
-                            bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 1) = -1;
-                        } else {
-                            int mapped_ey_idx = m_node_cpidx_ey[nb_bucket_idx][ey_idx];
-                            
-                            bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 0) = (mapped_ey_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_ez(mapped_idx * 8 + 4 + r * 2 + 1) = mapped_ey_idx;
-                        }
+                        bucket_node_idx_ey(node_idx * 8 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ey(node_idx * 8 + r * 2 + 1) = ex_idx;
+                    }
+                }
+            }
+            
+            // left, right (edge-z)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ez_local_idx = Vector3i(i + r, j, k);
+                
+                if(ez_local_idx(0) >= m_num_nodes) {
+                    node_bucket_handle(0)++;
+                    ez_local_idx(0) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                    bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 1) = -1;
+                } else {
+                    const int ez_idx = ez_local_idx(2) * m_num_nodes * m_num_nodes + ez_local_idx(1) * m_num_nodes + ez_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                        bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 1) = -1;
+                    } else {
+                        bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ey(node_idx * 8 + 4 + r * 2 + 1) = ez_idx;
+                    }
+                }
+            }
+            
+            // bottom, top (edge-x)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ex_local_idx = Vector3i(i, j + r, k);
+                
+                if(ex_local_idx(1) >= m_num_nodes) {
+                    node_bucket_handle(1)++;
+                    ex_local_idx(1) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ez(node_idx * 8 + r * 2 + 0) = -1;
+                    bucket_node_idx_ez(node_idx * 8 + r * 2 + 1) = -1;
+                } else {
+                    const int ex_idx = ex_local_idx(2) * m_num_nodes * m_num_nodes + ex_local_idx(1) * m_num_nodes + ex_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ez(node_idx * 8 + r * 2 + 0) = -1;
+                        bucket_node_idx_ez(node_idx * 8 + r * 2 + 1) = -1;
+                    } else {
+                        bucket_node_idx_ez(node_idx * 8 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ez(node_idx * 8 + r * 2 + 1) = ex_idx;
+                    }
+                }
+            }
+            
+            // left, right (edge-y)
+            for(int r = 0; r < 2; ++r) {
+                Vector3i node_bucket_handle = bucket_handle;
+                Vector3i ey_local_idx = Vector3i(i + r, j, k);
+                
+                if(ey_local_idx(0) >= m_num_nodes) {
+                    node_bucket_handle(0)++;
+                    ey_local_idx(0) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle(0) < 0 || node_bucket_handle(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle(1) < 0 || node_bucket_handle(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle(2) < 0 || node_bucket_handle(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                    bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 1) = -1;
+                } else {
+                    const int ey_idx = ey_local_idx(2) * m_num_nodes * m_num_nodes + ey_local_idx(1) * m_num_nodes + ey_local_idx(0);
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle);
+                    
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 0) = -1;
+                        bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 1) = -1;
+                    } else {
+                        bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_ez(node_idx * 8 + 4 + r * 2 + 1) = ey_idx;
                     }
                 }
             }
@@ -5513,138 +4405,120 @@ void TwoDScene::connectSolidPhiNodes()
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
         Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
         
-        auto& bucket_node_cpidx_x = m_node_cpidx_x[bucket_idx];
-        auto& bucket_node_cpidx_y = m_node_cpidx_y[bucket_idx];
-        auto& bucket_node_cpidx_z = m_node_cpidx_z[bucket_idx];
-        
         VectorXi& bucket_node_idx_solid_phi_x = m_node_index_solid_phi_x[bucket_idx];
         VectorXi& bucket_node_idx_solid_phi_y = m_node_index_solid_phi_y[bucket_idx];
         VectorXi& bucket_node_idx_solid_phi_z = m_node_index_solid_phi_z[bucket_idx];
+        
+        if(!m_bucket_activated[bucket_idx]) return;
         
         for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
         {
             int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
             
-            if(bucket_node_cpidx_x.size() > 0 && bucket_node_cpidx_x[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_x[node_idx];
+            for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
+                Vector3i node_bucket_handle_x = bucket_handle;
                 
-                for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
-                    Vector3i node_bucket_handle_x = bucket_handle;
+                Vector3i sphi_local_idx = Vector3i(i, j + s, k + r);
+                
+                if(sphi_local_idx(1) >= m_num_nodes) {
+                    node_bucket_handle_x(1)++;
+                    sphi_local_idx(1) -= m_num_nodes;
+                }
+                
+                if(sphi_local_idx(2) >= m_num_nodes) {
+                    node_bucket_handle_x(2)++;
+                    sphi_local_idx(2) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle_x(0) < 0 || node_bucket_handle_x(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle_x(1) < 0 || node_bucket_handle_x(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle_x(2) < 0 || node_bucket_handle_x(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                    bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                } else {
+                    const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
+                    sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
                     
-                    Vector3i sphi_local_idx = Vector3i(i, j + s, k + r);
-                    
-                    if(sphi_local_idx(1) >= m_num_nodes) {
-                        node_bucket_handle_x(1)++;
-                        sphi_local_idx(1) -= m_num_nodes;
-                    }
-                    
-                    if(sphi_local_idx(2) >= m_num_nodes) {
-                        node_bucket_handle_x(2)++;
-                        sphi_local_idx(2) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle_x(0) < 0 || node_bucket_handle_x(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle_x(1) < 0 || node_bucket_handle_x(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle_x(2) < 0 || node_bucket_handle_x(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                        bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_x);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                        bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
                     } else {
-                        const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
-                        sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
-                        
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_x);
-                        if(m_node_cpidx_solid_phi[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                            bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
-                        } else {
-                            int mapped_sphi_idx = m_node_cpidx_solid_phi[nb_bucket_idx][sphi_idx];
-                            
-                            bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = (mapped_sphi_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_solid_phi_x(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = mapped_sphi_idx;
-                        }
+                        bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_solid_phi_x(node_idx * 8 + (r * 2 + s) * 2 + 1) = sphi_idx;
                     }
                 }
             }
             
-            if(bucket_node_cpidx_y.size() > 0 && bucket_node_cpidx_y[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_y[node_idx];
-                for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
-                    Vector3i node_bucket_handle_y = bucket_handle;
+            for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
+                Vector3i node_bucket_handle_y = bucket_handle;
+                
+                Vector3i sphi_local_idx = Vector3i(i + r, j, k + s);
+                
+                if(sphi_local_idx(0) >= m_num_nodes) {
+                    node_bucket_handle_y(0)++;
+                    sphi_local_idx(0) -= m_num_nodes;
+                }
+                
+                if(sphi_local_idx(2) >= m_num_nodes) {
+                    node_bucket_handle_y(2)++;
+                    sphi_local_idx(2) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle_y(0) < 0 || node_bucket_handle_y(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle_y(1) < 0 || node_bucket_handle_y(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle_y(2) < 0 || node_bucket_handle_y(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                    bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                } else {
+                    const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
+                    sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
                     
-                    Vector3i sphi_local_idx = Vector3i(i + r, j, k + s);
-                    
-                    if(sphi_local_idx(0) >= m_num_nodes) {
-                        node_bucket_handle_y(0)++;
-                        sphi_local_idx(0) -= m_num_nodes;
-                    }
-                    
-                    if(sphi_local_idx(2) >= m_num_nodes) {
-                        node_bucket_handle_y(2)++;
-                        sphi_local_idx(2) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle_y(0) < 0 || node_bucket_handle_y(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle_y(1) < 0 || node_bucket_handle_y(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle_y(2) < 0 || node_bucket_handle_y(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                        bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_y);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                        bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
                     } else {
-                        const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
-                        sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
-                        
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_y);
-                        if(m_node_cpidx_solid_phi[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                            bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
-                        } else {
-                            int mapped_sphi_idx = m_node_cpidx_solid_phi[nb_bucket_idx][sphi_idx];
-                            
-                            bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = (mapped_sphi_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_solid_phi_y(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = mapped_sphi_idx;
-                        }
+                        bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_solid_phi_y(node_idx * 8 + (r * 2 + s) * 2 + 1) = sphi_idx;
                     }
                 }
             }
             
-            if(bucket_node_cpidx_z.size() > 0 && bucket_node_cpidx_z[node_idx] != -1) {
-                const int mapped_idx = bucket_node_cpidx_z[node_idx];
-                for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
-                    Vector3i node_bucket_handle_z = bucket_handle;
+            for(int r = 0; r < 2; ++r) for(int s = 0; s < 2; ++s) {
+                Vector3i node_bucket_handle_z = bucket_handle;
+                
+                Vector3i sphi_local_idx = Vector3i(i + r, j + s, k);
+                
+                if(sphi_local_idx(0) >= m_num_nodes) {
+                    node_bucket_handle_z(0)++;
+                    sphi_local_idx(0) -= m_num_nodes;
+                }
+                
+                if(sphi_local_idx(1) >= m_num_nodes) {
+                    node_bucket_handle_z(1)++;
+                    sphi_local_idx(1) -= m_num_nodes;
+                }
+                
+                if( node_bucket_handle_z(0) < 0 || node_bucket_handle_z(0) >= m_particle_buckets.dim_size(0) ||
+                   node_bucket_handle_z(1) < 0 || node_bucket_handle_z(1) >= m_particle_buckets.dim_size(1) ||
+                   node_bucket_handle_z(2) < 0 || node_bucket_handle_z(2) >= m_particle_buckets.dim_size(2)
+                   ) {
+                    bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                    bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                } else {
+                    const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
+                    sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
                     
-                    Vector3i sphi_local_idx = Vector3i(i + r, j + s, k);
-                    
-                    if(sphi_local_idx(0) >= m_num_nodes) {
-                        node_bucket_handle_z(0)++;
-                        sphi_local_idx(0) -= m_num_nodes;
-                    }
-                    
-                    if(sphi_local_idx(1) >= m_num_nodes) {
-                        node_bucket_handle_z(1)++;
-                        sphi_local_idx(1) -= m_num_nodes;
-                    }
-                    
-                    if( node_bucket_handle_z(0) < 0 || node_bucket_handle_z(0) >= m_particle_buckets.dim_size(0) ||
-                       node_bucket_handle_z(1) < 0 || node_bucket_handle_z(1) >= m_particle_buckets.dim_size(1) ||
-                       node_bucket_handle_z(2) < 0 || node_bucket_handle_z(2) >= m_particle_buckets.dim_size(2)
-                       ) {
-                        bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                        bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
+                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_z);
+                    if(!m_bucket_activated[nb_bucket_idx]) {
+                        bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
+                        bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
                     } else {
-                        const int sphi_idx = sphi_local_idx(2) * m_num_nodes * m_num_nodes +
-                        sphi_local_idx(1) * m_num_nodes + sphi_local_idx(0);
-                        
-                        int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_z);
-                        if(m_node_cpidx_solid_phi[nb_bucket_idx].size() == 0) {
-                            bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = -1;
-                            bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = -1;
-                        } else {
-                            int mapped_sphi_idx = m_node_cpidx_solid_phi[nb_bucket_idx][sphi_idx];
-                            
-                            bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 0) = (mapped_sphi_idx == -1) ? -1 : nb_bucket_idx;
-                            bucket_node_idx_solid_phi_z(mapped_idx * 8 + (r * 2 + s) * 2 + 1) = mapped_sphi_idx;
-                        }
+                        bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 0) = nb_bucket_idx;
+                        bucket_node_idx_solid_phi_z(node_idx * 8 + (r * 2 + s) * 2 + 1) = sphi_idx;
                     }
                 }
             }
@@ -5677,149 +4551,132 @@ void TwoDScene::connectPressureNodes()
     
     m_particle_buckets.for_each_bucket_colored([&] (int bucket_idx) {
         Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
+        if(!m_bucket_activated[bucket_idx]) return;
         
-        auto& bucket_node_cpidx_p = m_node_cpidx_p[bucket_idx];
         VectorXi& bucket_node_pressure_neighbors = m_node_pressure_neighbors[bucket_idx];
         VectorXi& bucket_node_pp_neighbors = m_node_pp_neighbors[bucket_idx];
         
-        const int count_p = m_node_pos_p[bucket_idx].size() / 3;
+        const int count_p = getNumNodes(bucket_idx);
         bucket_node_pressure_neighbors.resize( count_p * 6 * 2 );
         bucket_node_pp_neighbors.resize(count_p * 18 * 2);
         
         bucket_node_pressure_neighbors.setConstant(-1);
         bucket_node_pp_neighbors.setConstant(-1);
         
-        if(bucket_node_cpidx_p.size() == 0) return;
-        
         for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i)
         {
             int node_idx = k * m_num_nodes * m_num_nodes + j * m_num_nodes + i;
-            if(bucket_node_cpidx_p[node_idx] != -1) {
-                int pressure_node_idx = bucket_node_cpidx_p[node_idx];
+            
+            for(int r = 0; r < 18; ++r)
+            {
+                Vector3i node_bucket_handle_p = bucket_handle;
+                Vector3i mac_local_idx = Vector3i(i, j, k) + ppdir[r];
                 
-                for(int r = 0; r < 18; ++r)
-                {
-                    Vector3i node_bucket_handle_p = bucket_handle;
-                    Vector3i mac_local_idx = Vector3i(i, j, k) + ppdir[r];
-                    
-                    for(int s = 0; s < 3; ++s) {
-                        if(mac_local_idx(s) >= m_num_nodes) {
-                            node_bucket_handle_p(s)++;
-                            mac_local_idx(s) -= m_num_nodes;
-                        } else if(mac_local_idx(s) < 0) {
-                            node_bucket_handle_p(s)--;
-                            mac_local_idx(s) += m_num_nodes;
-                        }
+                for(int s = 0; s < 3; ++s) {
+                    if(mac_local_idx(s) >= m_num_nodes) {
+                        node_bucket_handle_p(s)++;
+                        mac_local_idx(s) -= m_num_nodes;
+                    } else if(mac_local_idx(s) < 0) {
+                        node_bucket_handle_p(s)--;
+                        mac_local_idx(s) += m_num_nodes;
                     }
-                    
-                    if(!m_particle_buckets.has_bucket(node_bucket_handle_p)) continue;
-                    
-                    const int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_p);
-                    
-                    const auto& nb_node_cpidx_p = m_node_cpidx_p[nb_bucket_idx];
-                    
-                    if(!nb_node_cpidx_p.size()) continue;
-                    
-                    const int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
-                    mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
-                    
-                    const int mapped_mac_idx = nb_node_cpidx_p[mac_idx];
-                    
-                    if(mapped_mac_idx < 0) continue;
-                    
-                    bucket_node_pp_neighbors[pressure_node_idx * 36 + r * 2 + 0] = nb_bucket_idx;
-                    bucket_node_pp_neighbors[pressure_node_idx * 36 + r * 2 + 1] = mapped_mac_idx;
                 }
                 
-                for(int r = 0; r < 2; ++r)
-                {
-                    Vector3i node_bucket_handle_x = bucket_handle;
-                    
-                    Vector3i mac_local_idx = Vector3i(i + r, j, k);
-                    
-                    if(mac_local_idx(0) >= m_num_nodes) {
-                        node_bucket_handle_x(0)++;
-                        mac_local_idx(0) -= m_num_nodes;
-                    }
-                    
-                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_x);
-                    
-                    const auto& nb_node_cpidx_x = m_node_cpidx_x[nb_bucket_idx];
-                    
-                    const int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
-                    mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
-                    
-                    const int mapped_mac_idx = nb_node_cpidx_x[mac_idx];
-                    
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + r * 2 + 0] = nb_bucket_idx;
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + r * 2 + 1] = mapped_mac_idx;
-                    
-                    if(mapped_mac_idx < 0) continue;
-                    
-                    VectorXi& nb_node_idxp = m_node_index_pressure_x[nb_bucket_idx];
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 1] = pressure_node_idx;
+                if(!m_particle_buckets.has_bucket(node_bucket_handle_p)) continue;
+                
+                const int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_p);
+                
+                if(!m_bucket_activated[nb_bucket_idx]) continue;
+                
+                const int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
+                mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
+                
+                bucket_node_pp_neighbors[node_idx * 36 + r * 2 + 0] = nb_bucket_idx;
+                bucket_node_pp_neighbors[node_idx * 36 + r * 2 + 1] = mac_idx;
+            }
+            
+            for(int r = 0; r < 2; ++r)
+            {
+                Vector3i node_bucket_handle_x = bucket_handle;
+                
+                Vector3i mac_local_idx = Vector3i(i + r, j, k);
+                
+                if(mac_local_idx(0) >= m_num_nodes) {
+                    node_bucket_handle_x(0)++;
+                    mac_local_idx(0) -= m_num_nodes;
                 }
                 
-                for(int r = 0; r < 2; ++r)
-                {
-                    Vector3i node_bucket_handle_y = bucket_handle;
-                    
-                    Vector3i mac_local_idx = Vector3i(i, j + r, k);
-                    
-                    if(mac_local_idx(1) >= m_num_nodes) {
-                        node_bucket_handle_y(1)++;
-                        mac_local_idx(1) -= m_num_nodes;
-                    }
-                    
-                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_y);
-                    
-                    const auto& nb_node_cpidx_y = m_node_cpidx_y[nb_bucket_idx];
-                    
-                    int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
-                    mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
-                    
-                    const int mapped_mac_idx = nb_node_cpidx_y[mac_idx];
-                    
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + 4 + r * 2 + 0] = nb_bucket_idx;
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + 4 + r * 2 + 1] = mapped_mac_idx;
-                    
-                    if(mapped_mac_idx < 0) continue;
-                    
-                    VectorXi& nb_node_idxp = m_node_index_pressure_y[nb_bucket_idx];
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 1] = pressure_node_idx;
+                if(!m_particle_buckets.has_bucket(node_bucket_handle_x)) continue;
+                
+                int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_x);
+                
+                if(!m_bucket_activated[nb_bucket_idx]) continue;
+                
+                const int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
+                mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
+                
+                bucket_node_pressure_neighbors[node_idx * 12 + r * 2 + 0] = nb_bucket_idx;
+                bucket_node_pressure_neighbors[node_idx * 12 + r * 2 + 1] = mac_idx;
+                
+                VectorXi& nb_node_idxp = m_node_index_pressure_x[nb_bucket_idx];
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 1] = node_idx;
+            }
+            
+            for(int r = 0; r < 2; ++r)
+            {
+                Vector3i node_bucket_handle_y = bucket_handle;
+                
+                Vector3i mac_local_idx = Vector3i(i, j + r, k);
+                
+                if(mac_local_idx(1) >= m_num_nodes) {
+                    node_bucket_handle_y(1)++;
+                    mac_local_idx(1) -= m_num_nodes;
                 }
                 
-                for(int r = 0; r < 2; ++r)
-                {
-                    Vector3i node_bucket_handle_z = bucket_handle;
-                    
-                    Vector3i mac_local_idx = Vector3i(i, j, k + r);
-                    
-                    if(mac_local_idx(2) >= m_num_nodes) {
-                        node_bucket_handle_z(2)++;
-                        mac_local_idx(2) -= m_num_nodes;
-                    }
-                    
-                    int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_z);
-                    
-                    const auto& nb_node_cpidx_z = m_node_cpidx_z[nb_bucket_idx];
-                    
-                    int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
-                    mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
-                    
-                    const int mapped_mac_idx = nb_node_cpidx_z[mac_idx];
-                    
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + 8 + r * 2 + 0] = nb_bucket_idx;
-                    bucket_node_pressure_neighbors[pressure_node_idx * 12 + 8 + r * 2 + 1] = mapped_mac_idx;
-                    
-                    if(mapped_mac_idx < 0) continue;
-                    
-                    VectorXi& nb_node_idxp = m_node_index_pressure_z[nb_bucket_idx];
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
-                    nb_node_idxp[mapped_mac_idx * 4 + (1 - r) * 2 + 1] = pressure_node_idx;
+                if(!m_particle_buckets.has_bucket(node_bucket_handle_y)) continue;
+                
+                int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_y);
+                
+                if(!m_bucket_activated[nb_bucket_idx]) continue;
+                
+                int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
+                mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
+                
+                bucket_node_pressure_neighbors[node_idx * 12 + 4 + r * 2 + 0] = nb_bucket_idx;
+                bucket_node_pressure_neighbors[node_idx * 12 + 4 + r * 2 + 1] = mac_idx;
+                
+                VectorXi& nb_node_idxp = m_node_index_pressure_y[nb_bucket_idx];
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 1] = node_idx;
+            }
+            
+            for(int r = 0; r < 2; ++r)
+            {
+                Vector3i node_bucket_handle_z = bucket_handle;
+                
+                Vector3i mac_local_idx = Vector3i(i, j, k + r);
+                
+                if(mac_local_idx(2) >= m_num_nodes) {
+                    node_bucket_handle_z(2)++;
+                    mac_local_idx(2) -= m_num_nodes;
                 }
+                
+                if(!m_particle_buckets.has_bucket(node_bucket_handle_z)) continue;
+                
+                int nb_bucket_idx = m_particle_buckets.bucket_index(node_bucket_handle_z);
+                
+                if(!m_bucket_activated[nb_bucket_idx]) continue;
+                
+                int mac_idx = mac_local_idx(2) * m_num_nodes * m_num_nodes +
+                mac_local_idx(1) * m_num_nodes + mac_local_idx(0);
+                
+                bucket_node_pressure_neighbors[node_idx * 12 + 8 + r * 2 + 0] = nb_bucket_idx;
+                bucket_node_pressure_neighbors[node_idx * 12 + 8 + r * 2 + 1] = mac_idx;
+                
+                VectorXi& nb_node_idxp = m_node_index_pressure_z[nb_bucket_idx];
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 0] = bucket_idx;
+                nb_node_idxp[mac_idx * 4 + (1 - r) * 2 + 1] = node_idx;
             }
         }
     });
@@ -5882,104 +4739,102 @@ void TwoDScene::postAllocateNodes()
     if((int) m_node_liquid_valid_z.size() != num_buckets) m_node_liquid_valid_z.resize(num_buckets);
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_nodes_x = m_node_pos_x[bucket_idx].size() / 3;
-        const int num_nodes_y = m_node_pos_y[bucket_idx].size() / 3;
-        const int num_nodes_z = m_node_pos_z[bucket_idx].size() / 3;
+        const int num_nodes = getNumNodes(bucket_idx);
         
-        if(m_node_mass_x[bucket_idx].size() != num_nodes_x)
-            m_node_mass_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_vel_x[bucket_idx].size() != num_nodes_x)
-            m_node_vel_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_vol_x[bucket_idx].size() != num_nodes_x)
-            m_node_vol_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_sat_x[bucket_idx].size() != num_nodes_x)
-            m_node_sat_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_psi_x[bucket_idx].size() != num_nodes_x)
-            m_node_psi_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_shape_factor_x[bucket_idx].size() != num_nodes_x)
-            m_node_shape_factor_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_raw_weight_x[bucket_idx].size() != num_nodes_x)
-            m_node_raw_weight_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_orientation_x[bucket_idx].size() != num_nodes_x * 3)
-            m_node_orientation_x[bucket_idx].resize(num_nodes_x * 3);
+        if(m_node_mass_x[bucket_idx].size() != num_nodes)
+            m_node_mass_x[bucket_idx].resize(num_nodes);
+        if(m_node_vel_x[bucket_idx].size() != num_nodes)
+            m_node_vel_x[bucket_idx].resize(num_nodes);
+        if(m_node_vol_x[bucket_idx].size() != num_nodes)
+            m_node_vol_x[bucket_idx].resize(num_nodes);
+        if(m_node_sat_x[bucket_idx].size() != num_nodes)
+            m_node_sat_x[bucket_idx].resize(num_nodes);
+        if(m_node_psi_x[bucket_idx].size() != num_nodes)
+            m_node_psi_x[bucket_idx].resize(num_nodes);
+        if(m_node_shape_factor_x[bucket_idx].size() != num_nodes)
+            m_node_shape_factor_x[bucket_idx].resize(num_nodes);
+        if(m_node_raw_weight_x[bucket_idx].size() != num_nodes)
+            m_node_raw_weight_x[bucket_idx].resize(num_nodes);
+        if(m_node_orientation_x[bucket_idx].size() != num_nodes * 3)
+            m_node_orientation_x[bucket_idx].resize(num_nodes * 3);
         
-        if(m_node_mass_y[bucket_idx].size() != num_nodes_y)
-            m_node_mass_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_vel_y[bucket_idx].size() != num_nodes_y)
-            m_node_vel_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_vol_y[bucket_idx].size() != num_nodes_y)
-            m_node_vol_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_sat_y[bucket_idx].size() != num_nodes_y)
-            m_node_sat_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_psi_y[bucket_idx].size() != num_nodes_y)
-            m_node_psi_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_shape_factor_y[bucket_idx].size() != num_nodes_y)
-            m_node_shape_factor_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_raw_weight_y[bucket_idx].size() != num_nodes_y)
-            m_node_raw_weight_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_orientation_y[bucket_idx].size() != num_nodes_y * 3)
-            m_node_orientation_y[bucket_idx].resize(num_nodes_y * 3);
+        if(m_node_mass_y[bucket_idx].size() != num_nodes)
+            m_node_mass_y[bucket_idx].resize(num_nodes);
+        if(m_node_vel_y[bucket_idx].size() != num_nodes)
+            m_node_vel_y[bucket_idx].resize(num_nodes);
+        if(m_node_vol_y[bucket_idx].size() != num_nodes)
+            m_node_vol_y[bucket_idx].resize(num_nodes);
+        if(m_node_sat_y[bucket_idx].size() != num_nodes)
+            m_node_sat_y[bucket_idx].resize(num_nodes);
+        if(m_node_psi_y[bucket_idx].size() != num_nodes)
+            m_node_psi_y[bucket_idx].resize(num_nodes);
+        if(m_node_shape_factor_y[bucket_idx].size() != num_nodes)
+            m_node_shape_factor_y[bucket_idx].resize(num_nodes);
+        if(m_node_raw_weight_y[bucket_idx].size() != num_nodes)
+            m_node_raw_weight_y[bucket_idx].resize(num_nodes);
+        if(m_node_orientation_y[bucket_idx].size() != num_nodes * 3)
+            m_node_orientation_y[bucket_idx].resize(num_nodes * 3);
         
-        if(m_node_mass_z[bucket_idx].size() != num_nodes_z)
-            m_node_mass_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_vel_z[bucket_idx].size() != num_nodes_z)
-            m_node_vel_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_vol_z[bucket_idx].size() != num_nodes_z)
-            m_node_vol_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_sat_z[bucket_idx].size() != num_nodes_z)
-            m_node_sat_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_psi_z[bucket_idx].size() != num_nodes_z)
-            m_node_psi_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_shape_factor_z[bucket_idx].size() != num_nodes_z)
-            m_node_shape_factor_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_raw_weight_z[bucket_idx].size() != num_nodes_z)
-            m_node_raw_weight_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_orientation_z[bucket_idx].size() != num_nodes_z * 3)
-            m_node_orientation_z[bucket_idx].resize(num_nodes_z * 3);
+        if(m_node_mass_z[bucket_idx].size() != num_nodes)
+            m_node_mass_z[bucket_idx].resize(num_nodes);
+        if(m_node_vel_z[bucket_idx].size() != num_nodes)
+            m_node_vel_z[bucket_idx].resize(num_nodes);
+        if(m_node_vol_z[bucket_idx].size() != num_nodes)
+            m_node_vol_z[bucket_idx].resize(num_nodes);
+        if(m_node_sat_z[bucket_idx].size() != num_nodes)
+            m_node_sat_z[bucket_idx].resize(num_nodes);
+        if(m_node_psi_z[bucket_idx].size() != num_nodes)
+            m_node_psi_z[bucket_idx].resize(num_nodes);
+        if(m_node_shape_factor_z[bucket_idx].size() != num_nodes)
+            m_node_shape_factor_z[bucket_idx].resize(num_nodes);
+        if(m_node_raw_weight_z[bucket_idx].size() != num_nodes)
+            m_node_raw_weight_z[bucket_idx].resize(num_nodes);
+        if(m_node_orientation_z[bucket_idx].size() != num_nodes * 3)
+            m_node_orientation_z[bucket_idx].resize(num_nodes * 3);
         
-        if(m_node_mass_fluid_x[bucket_idx].size() != num_nodes_x)
-            m_node_mass_fluid_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_vel_fluid_x[bucket_idx].size() != num_nodes_x)
-            m_node_vel_fluid_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_vol_fluid_x[bucket_idx].size() != num_nodes_x)
-            m_node_vol_fluid_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_vol_pure_fluid_x[bucket_idx].size() != num_nodes_x)
-            m_node_vol_pure_fluid_x[bucket_idx].resize(num_nodes_x);
+        if(m_node_mass_fluid_x[bucket_idx].size() != num_nodes)
+            m_node_mass_fluid_x[bucket_idx].resize(num_nodes);
+        if(m_node_vel_fluid_x[bucket_idx].size() != num_nodes)
+            m_node_vel_fluid_x[bucket_idx].resize(num_nodes);
+        if(m_node_vol_fluid_x[bucket_idx].size() != num_nodes)
+            m_node_vol_fluid_x[bucket_idx].resize(num_nodes);
+        if(m_node_vol_pure_fluid_x[bucket_idx].size() != num_nodes)
+            m_node_vol_pure_fluid_x[bucket_idx].resize(num_nodes);
         
-        if(m_node_mass_fluid_y[bucket_idx].size() != num_nodes_y)
-            m_node_mass_fluid_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_vel_fluid_y[bucket_idx].size() != num_nodes_y)
-            m_node_vel_fluid_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_vol_fluid_y[bucket_idx].size() != num_nodes_y)
-            m_node_vol_fluid_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_vol_pure_fluid_y[bucket_idx].size() != num_nodes_y)
-            m_node_vol_pure_fluid_y[bucket_idx].resize(num_nodes_y);
+        if(m_node_mass_fluid_y[bucket_idx].size() != num_nodes)
+            m_node_mass_fluid_y[bucket_idx].resize(num_nodes);
+        if(m_node_vel_fluid_y[bucket_idx].size() != num_nodes)
+            m_node_vel_fluid_y[bucket_idx].resize(num_nodes);
+        if(m_node_vol_fluid_y[bucket_idx].size() != num_nodes)
+            m_node_vol_fluid_y[bucket_idx].resize(num_nodes);
+        if(m_node_vol_pure_fluid_y[bucket_idx].size() != num_nodes)
+            m_node_vol_pure_fluid_y[bucket_idx].resize(num_nodes);
         
-        if(m_node_mass_fluid_z[bucket_idx].size() != num_nodes_z)
-            m_node_mass_fluid_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_vel_fluid_z[bucket_idx].size() != num_nodes_z)
-            m_node_vel_fluid_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_vol_fluid_z[bucket_idx].size() != num_nodes_z)
-            m_node_vol_fluid_z[bucket_idx].resize(num_nodes_z);
-        if(m_node_vol_pure_fluid_z[bucket_idx].size() != num_nodes_z)
-            m_node_vol_pure_fluid_z[bucket_idx].resize(num_nodes_z);
+        if(m_node_mass_fluid_z[bucket_idx].size() != num_nodes)
+            m_node_mass_fluid_z[bucket_idx].resize(num_nodes);
+        if(m_node_vel_fluid_z[bucket_idx].size() != num_nodes)
+            m_node_vel_fluid_z[bucket_idx].resize(num_nodes);
+        if(m_node_vol_fluid_z[bucket_idx].size() != num_nodes)
+            m_node_vol_fluid_z[bucket_idx].resize(num_nodes);
+        if(m_node_vol_pure_fluid_z[bucket_idx].size() != num_nodes)
+            m_node_vol_pure_fluid_z[bucket_idx].resize(num_nodes);
         
-        if(m_node_solid_phi[bucket_idx].size() != m_node_pos_solid_phi[bucket_idx].size() / 3)
-            m_node_solid_phi[bucket_idx].resize(m_node_pos_solid_phi[bucket_idx].size() / 3);
+        if(m_node_solid_phi[bucket_idx].size() != num_nodes)
+            m_node_solid_phi[bucket_idx].resize(num_nodes);
         
-        if(m_node_solid_vel_x[bucket_idx].size() != num_nodes_x)
-            m_node_solid_vel_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_solid_vel_y[bucket_idx].size() != num_nodes_y)
-            m_node_solid_vel_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_solid_vel_z[bucket_idx].size() != num_nodes_z)
-            m_node_solid_vel_z[bucket_idx].resize(num_nodes_z);
+        if(m_node_solid_vel_x[bucket_idx].size() != num_nodes)
+            m_node_solid_vel_x[bucket_idx].resize(num_nodes);
+        if(m_node_solid_vel_y[bucket_idx].size() != num_nodes)
+            m_node_solid_vel_y[bucket_idx].resize(num_nodes);
+        if(m_node_solid_vel_z[bucket_idx].size() != num_nodes)
+            m_node_solid_vel_z[bucket_idx].resize(num_nodes);
         
-        if(m_node_liquid_valid_x[bucket_idx].size() != num_nodes_x)
-            m_node_liquid_valid_x[bucket_idx].resize(num_nodes_x);
-        if(m_node_liquid_valid_y[bucket_idx].size() != num_nodes_y)
-            m_node_liquid_valid_y[bucket_idx].resize(num_nodes_y);
-        if(m_node_liquid_valid_z[bucket_idx].size() != num_nodes_z)
-            m_node_liquid_valid_z[bucket_idx].resize(num_nodes_z);
+        if(m_node_liquid_valid_x[bucket_idx].size() != num_nodes)
+            m_node_liquid_valid_x[bucket_idx].resize(num_nodes);
+        if(m_node_liquid_valid_y[bucket_idx].size() != num_nodes)
+            m_node_liquid_valid_y[bucket_idx].resize(num_nodes);
+        if(m_node_liquid_valid_z[bucket_idx].size() != num_nodes)
+            m_node_liquid_valid_z[bucket_idx].resize(num_nodes);
     });
     
     if(m_liquid_info.compute_viscosity) {
@@ -5999,42 +4854,34 @@ void TwoDScene::postAllocateNodes()
         if((int) m_node_state_w.size() != num_buckets) m_node_state_w.resize(num_buckets);
         
         m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-            const int num_nodes_p = m_node_pos_p[bucket_idx].size() / 3;
+            const int num_nodes = getNumNodes(bucket_idx);
             
-            const int num_nodes_x = m_node_pos_x[bucket_idx].size() / 3;
-            const int num_nodes_y = m_node_pos_y[bucket_idx].size() / 3;
-            const int num_nodes_z = m_node_pos_z[bucket_idx].size() / 3;
+            if(m_node_cell_solid_phi[bucket_idx].size() != num_nodes)
+                m_node_cell_solid_phi[bucket_idx].resize(num_nodes);
             
-            const int num_nodes_ex = m_node_pos_ex[bucket_idx].size() / 3;
-            const int num_nodes_ey = m_node_pos_ey[bucket_idx].size() / 3;
-            const int num_nodes_ez = m_node_pos_ez[bucket_idx].size() / 3;
+            if(m_node_liquid_c_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_c_vf[bucket_idx].resize(num_nodes);
             
-            if(m_node_cell_solid_phi[bucket_idx].size() != num_nodes_p)
-                m_node_cell_solid_phi[bucket_idx].resize(num_nodes_p);
+            if(m_node_liquid_u_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_u_vf[bucket_idx].resize(num_nodes);
+            if(m_node_liquid_v_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_v_vf[bucket_idx].resize(num_nodes);
+            if(m_node_liquid_w_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_w_vf[bucket_idx].resize(num_nodes);
             
-            if(m_node_liquid_c_vf[bucket_idx].size() != num_nodes_p)
-                m_node_liquid_c_vf[bucket_idx].resize(num_nodes_p);
+            if(m_node_state_u[bucket_idx].size() != num_nodes)
+                m_node_state_u[bucket_idx].resize(num_nodes);
+            if(m_node_state_v[bucket_idx].size() != num_nodes)
+                m_node_state_v[bucket_idx].resize(num_nodes);
+            if(m_node_state_w[bucket_idx].size() != num_nodes)
+                m_node_state_w[bucket_idx].resize(num_nodes);
             
-            if(m_node_liquid_u_vf[bucket_idx].size() != num_nodes_x)
-                m_node_liquid_u_vf[bucket_idx].resize(num_nodes_x);
-            if(m_node_liquid_v_vf[bucket_idx].size() != num_nodes_y)
-                m_node_liquid_v_vf[bucket_idx].resize(num_nodes_y);
-            if(m_node_liquid_w_vf[bucket_idx].size() != num_nodes_z)
-                m_node_liquid_w_vf[bucket_idx].resize(num_nodes_z);
-            
-            if(m_node_state_u[bucket_idx].size() != num_nodes_x)
-                m_node_state_u[bucket_idx].resize(num_nodes_x);
-            if(m_node_state_v[bucket_idx].size() != num_nodes_y)
-                m_node_state_v[bucket_idx].resize(num_nodes_y);
-            if(m_node_state_w[bucket_idx].size() != num_nodes_z)
-                m_node_state_w[bucket_idx].resize(num_nodes_z);
-            
-            if(m_node_liquid_ex_vf[bucket_idx].size() != num_nodes_ex)
-                m_node_liquid_ex_vf[bucket_idx].resize(num_nodes_ex);
-            if(m_node_liquid_ey_vf[bucket_idx].size() != num_nodes_ey)
-                m_node_liquid_ey_vf[bucket_idx].resize(num_nodes_ey);
-            if(m_node_liquid_ez_vf[bucket_idx].size() != num_nodes_ez)
-                m_node_liquid_ez_vf[bucket_idx].resize(num_nodes_ez);
+            if(m_node_liquid_ex_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_ex_vf[bucket_idx].resize(num_nodes);
+            if(m_node_liquid_ey_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_ey_vf[bucket_idx].resize(num_nodes);
+            if(m_node_liquid_ez_vf[bucket_idx].size() != num_nodes)
+                m_node_liquid_ez_vf[bucket_idx].resize(num_nodes);
         });
     }
 }
@@ -6071,94 +4918,10 @@ const std::vector< VectorXs >& TwoDScene::getNodeShapeFactorZ() const
 
 void TwoDScene::expandFluidNodesMarked(int layers)
 {
-    auto get_node_index = [this] (const Vector3i& bucket_handle,
-                                  const Vector3i& node_handle,
-                                  Vector2i& bucket_node) -> bool
-    {
-        Vector3i cur_bucket_handle = bucket_handle;
-        Vector3i cur_node_handle = node_handle;
-        
-        // check boundary
-        for(int r = 0; r < 3; ++r) {
-            while(cur_node_handle(r) < 0) {
-                cur_node_handle(r) += m_num_nodes;
-                --cur_bucket_handle(r);
-            }
-            
-            while(cur_node_handle(r) >= m_num_nodes) {
-                cur_node_handle(r) -= m_num_nodes;
-                ++cur_bucket_handle(r);
-            }
-        }
-        
-        if(cur_bucket_handle(0) < 0 || cur_bucket_handle(0) >= m_particle_buckets.ni ||
-           cur_bucket_handle(1) < 0 || cur_bucket_handle(1) >= m_particle_buckets.nj ||
-           cur_bucket_handle(2) < 0 || cur_bucket_handle(2) >= m_particle_buckets.nk )
-        {
-            bucket_node(0) = bucket_node(1) = -1;
-            return false;
-        }
-        
-        const int bucket_idx = m_particle_buckets.bucket_index(cur_bucket_handle);
-        const int node_idx = cur_node_handle(2) * m_num_nodes * m_num_nodes + cur_node_handle(1) * m_num_nodes + cur_node_handle(0);
-        
-        bucket_node(0) = bucket_idx;
-        bucket_node(1) = node_idx;
-        
-        return true;
-    };
-    
-    const Vector3i offsets[] = {
-        Vector3i(-1, -1, -1), Vector3i(-1, -1, 0), Vector3i(-1, -1, 1),
-        Vector3i(-1, 0, -1), Vector3i(-1, 0, 0), Vector3i(-1, 0, 1),
-        Vector3i(-1, 1, -1), Vector3i(-1, 1, 0), Vector3i(-1, 1, 1),
-        Vector3i(0, -1, -1), Vector3i(0, -1, 0), Vector3i(0, -1, 1),
-        Vector3i(0, 0, -1), Vector3i(0, 0, 1),
-        Vector3i(0, 1, -1), Vector3i(0, 1, 0), Vector3i(0, 1, 1),
-        Vector3i(1, -1, -1), Vector3i(1, -1, 0), Vector3i(1, -1, 1),
-        Vector3i(1, 0, -1), Vector3i(1, 0, 0), Vector3i(1, 0, 1),
-        Vector3i(1, 1, -1), Vector3i(1, 1, 0), Vector3i(1, 1, 1)
-    };
-    
-    auto mark_from_neighbor = [&] (const std::vector< VectorXi >& node_cpidx_in,
-                                   std::vector< VectorXi >& node_cpidx,
-                                   const int bucket_idx, const Vector3i& node_handle) {
-        const Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
-        int node_idx = node_handle(2) * m_num_nodes * m_num_nodes + node_handle(1) * m_num_nodes + node_handle(0);
-        if(node_cpidx_in[bucket_idx][node_idx] < 0) {
-            bool found_activated = false;
-            for(const Vector3i& off : offsets) {
-                Vector2i bucket_node;
-                if(get_node_index(bucket_handle, Vector3i(node_handle + off), bucket_node)) {
-                    if(node_cpidx_in[ bucket_node(0) ][ bucket_node(1) ] >= 0) {
-                        found_activated = true;
-                        break;
-                    }
-                }
-            }
-            
-            if(found_activated) {
-                node_cpidx[bucket_idx][node_idx] = 0;
-            }
-        }
-    };
-    
-    m_bucket_marked.assign(getNumBuckets(), 0U);
-    
-    auto mark_bucket = [&] (const std::vector< VectorXi >& cpidx, int bucket_idx) {
-        if(m_bucket_marked[bucket_idx]) return;
-        
-        const int num_nodes = cpidx[bucket_idx].size();
-        for(int i = 0; i < num_nodes; ++i) {
-            if(cpidx[bucket_idx][i] >= 0) {
-                m_bucket_marked[bucket_idx] = 1U;
-                return;
-            }
-        }
-    };
-    
-    auto check_bucket = [&] (const Vector3i& bucket_handle) {
+    auto check_bucket = [&] (const Vector3i& bucket_handle, const std::vector<unsigned char>& activated) {
         for(int t = -1; t <= 1; ++t) for(int s = -1; s <= 1; ++s) for(int r = -1; r <= 1; ++r) {
+            if(t == 0 && s == 0 && r == 0) continue;
+            
             Vector3i cur_bucket_handle = bucket_handle + Vector3i(r, s, t);
             if(cur_bucket_handle(0) < 0 || cur_bucket_handle(0) >= m_particle_buckets.ni ||
                cur_bucket_handle(1) < 0 || cur_bucket_handle(1) >= m_particle_buckets.nj ||
@@ -6168,7 +4931,7 @@ void TwoDScene::expandFluidNodesMarked(int layers)
             }
             
             const int nbidx = m_particle_buckets.bucket_index(cur_bucket_handle);
-            if(m_bucket_marked[nbidx]) {
+            if(activated[nbidx]) {
                 return true;
             }
         }
@@ -6178,51 +4941,16 @@ void TwoDScene::expandFluidNodesMarked(int layers)
     
     for(int iLayer = 0; iLayer < layers; ++iLayer)
     {
-        m_node_cpidx_x_tmp = m_node_cpidx_x;
-        m_node_cpidx_y_tmp = m_node_cpidx_y;
-        m_node_cpidx_z_tmp = m_node_cpidx_z;
-        m_node_cpidx_p_tmp = m_node_cpidx_p;
-        m_node_cpidx_solid_phi_tmp = m_node_cpidx_solid_phi;
-        
-        m_node_cpidx_ex_tmp = m_node_cpidx_ex;
-        m_node_cpidx_ey_tmp = m_node_cpidx_ey;
-        m_node_cpidx_ez_tmp = m_node_cpidx_ez;
+        std::vector<unsigned char> activated_backup = m_bucket_activated;
         
         m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-            mark_bucket(m_node_cpidx_x_tmp, bucket_idx);
-            mark_bucket(m_node_cpidx_y_tmp, bucket_idx);
-            mark_bucket(m_node_cpidx_z_tmp, bucket_idx);
-            mark_bucket(m_node_cpidx_p_tmp, bucket_idx);
-            mark_bucket(m_node_cpidx_solid_phi_tmp, bucket_idx);
-            
-            if(m_liquid_info.compute_viscosity) {
-                mark_bucket(m_node_cpidx_ex_tmp, bucket_idx);
-                mark_bucket(m_node_cpidx_ey_tmp, bucket_idx);
-                mark_bucket(m_node_cpidx_ez_tmp, bucket_idx);
-            }
-        });
-        
-        m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-            // for each node, loop through each neighbor node
             const Vector3i bucket_handle = m_particle_buckets.bucket_handle(bucket_idx);
             
-            if(!check_bucket(bucket_handle)) return;
+            // ignore bucket already activated or no neighbor bucket activated
+            if(activated_backup[bucket_idx] || !check_bucket(bucket_handle, activated_backup)) return;
             
-            for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i) {
-                mark_from_neighbor(m_node_cpidx_x_tmp, m_node_cpidx_x, bucket_idx, Vector3i(i, j, k));
-                mark_from_neighbor(m_node_cpidx_y_tmp, m_node_cpidx_y, bucket_idx, Vector3i(i, j, k));
-                mark_from_neighbor(m_node_cpidx_z_tmp, m_node_cpidx_z, bucket_idx, Vector3i(i, j, k));
-                mark_from_neighbor(m_node_cpidx_p_tmp, m_node_cpidx_p, bucket_idx, Vector3i(i, j, k));
-                mark_from_neighbor(m_node_cpidx_solid_phi_tmp, m_node_cpidx_solid_phi, bucket_idx, Vector3i(i, j, k));
-            }
-            
-            if(m_liquid_info.compute_viscosity) {
-                for(int k = 0; k < m_num_nodes; ++k) for(int j = 0; j < m_num_nodes; ++j) for(int i = 0; i < m_num_nodes; ++i) {
-                    mark_from_neighbor(m_node_cpidx_ex_tmp, m_node_cpidx_ex, bucket_idx, Vector3i(i, j, k));
-                    mark_from_neighbor(m_node_cpidx_ey_tmp, m_node_cpidx_ey, bucket_idx, Vector3i(i, j, k));
-                    mark_from_neighbor(m_node_cpidx_ez_tmp, m_node_cpidx_ez, bucket_idx, Vector3i(i, j, k));
-                }
-            }
+            // Activate bucket that has activated neighbor buckets.
+            m_bucket_activated[bucket_idx] = true;
         });
     }
 }
@@ -6231,27 +4959,27 @@ void TwoDScene::resampleNodes()
 {
     preAllocateNodes();
     
-    findNodes(m_particle_buckets, m_x, m_particle_nodes_x, m_particle_nodes_y, m_particle_nodes_z);
-    findSolidPhiNodes(m_particle_buckets, m_x, m_particle_nodes_solid_phi);
-    findNodesPressure(m_particle_buckets, m_x, m_particle_nodes_p);
+    auto particle_node_criteria = [this] (int pidx) -> bool { return isSoft(pidx); };
+    
+    findNodes(m_particle_buckets, m_x, m_particle_nodes_x, Vector3s(0.0, 0.5, 0.5), particle_node_criteria);
+    findNodes(m_particle_buckets, m_x, m_particle_nodes_y, Vector3s(0.5, 0.0, 0.5), particle_node_criteria);
+    findNodes(m_particle_buckets, m_x, m_particle_nodes_z, Vector3s(0.5, 0.5, 0.0), particle_node_criteria);
+    findNodes(m_particle_buckets, m_x, m_particle_nodes_solid_phi, Vector3s(0.0, 0.0, 0.0), particle_node_criteria);
+    findNodes(m_particle_buckets, m_x, m_particle_nodes_p, Vector3s(0.5, 0.5, 0.5), particle_node_criteria);
+    
+    auto gauss_node_criteria = [this] (int pidx) -> bool { return pidx < getNumEdges() + getNumFaces(); };
+    
+    findNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_x, Vector3s(0.0, 0.5, 0.5), gauss_node_criteria);
+    findNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_y, Vector3s(0.5, 0.0, 0.5), gauss_node_criteria);
+    findNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_z, Vector3s(0.5, 0.5, 0.0), gauss_node_criteria);
     
     if(useSurfTension()) {
-        findNodesPressure(m_gauss_buckets, m_x_gauss, m_gauss_nodes_p);
+        findNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_p, Vector3s(0.5, 0.5, 0.5), gauss_node_criteria);
     }
     
-    if(m_liquid_info.compute_viscosity) {
-        findEdgeNodes(m_particle_buckets, m_x);
-    }
-    
-    findGaussNodes(m_gauss_buckets, m_x_gauss, m_gauss_nodes_x, m_gauss_nodes_y, m_gauss_nodes_z);
-    
-    if(getNumFluidParticles() > 0) {
-        if(m_liquid_info.compute_viscosity || m_liquid_info.use_surf_tension)
-            expandFluidNodesMarked(2);
-        else
-            expandFluidNodesMarked(1);
-    }
-    // generate nodes
+    expandFluidNodesMarked(1);
+
+    // generate nodes in all activated buckets
     generateNodes();
     
     connectSolidPhiNodes();
@@ -6261,21 +4989,6 @@ void TwoDScene::resampleNodes()
     if(m_liquid_info.compute_viscosity) {
         // connect edge node to MAC nodes
         connectEdgeNodes();
-    }
-    
-    // change index to compressed index
-    compressParticleNodes<27>(m_node_cpidx_x, m_particle_nodes_x);
-    compressParticleNodes<27>(m_node_cpidx_y, m_particle_nodes_y);
-    compressParticleNodes<27>(m_node_cpidx_z, m_particle_nodes_z);
-    compressParticleNodes<27>(m_node_cpidx_solid_phi, m_particle_nodes_solid_phi);
-    compressParticleNodes<27>(m_node_cpidx_p, m_particle_nodes_p);
-    
-    compressParticleNodes<27>(m_node_cpidx_x, m_gauss_nodes_x);
-    compressParticleNodes<27>(m_node_cpidx_y, m_gauss_nodes_y);
-    compressParticleNodes<27>(m_node_cpidx_z, m_gauss_nodes_z);
-    
-    if(useSurfTension()) {
-        compressParticleNodes<27>(m_node_cpidx_p, m_gauss_nodes_p);
     }
     
     markInsideOut();
@@ -6781,10 +5494,10 @@ void TwoDScene::updateDeformationGradient(scalar dt){
         for(int i = 0; i < indices_x.rows(); i++){
             const int node_bucket_idx = indices_x(i, 0);
             const int node_idx = indices_x(i, 1);
-            if(!indices_x(i, 2)) continue; // this shouldn't be touched
+            if(!m_bucket_activated[node_bucket_idx]) continue; // this shouldn't be touched
             
             const scalar& nv = m_node_vel_x[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosX(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(0, 0) += nv * weights(i, 0) * (np - pos).transpose() * invD;
             //      std::cout << "xi: " << i << ", " << g_grad_x.row(i) << std::endl;
         }
@@ -6792,10 +5505,10 @@ void TwoDScene::updateDeformationGradient(scalar dt){
         for(int i = 0; i < indices_y.rows(); i++){
             const int node_bucket_idx = indices_y(i, 0);
             const int node_idx = indices_y(i, 1);
-            if(!indices_y(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_y[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosY(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(1, 0) += nv * weights(i, 1) * (np - pos).transpose() * invD;
             //      std::cout << "yi: " << i << ", " << g_grad_y.row(i) << std::endl;
         }
@@ -6803,10 +5516,10 @@ void TwoDScene::updateDeformationGradient(scalar dt){
         for(int i = 0; i < indices_z.rows(); i++){
             const int node_bucket_idx = indices_z(i, 0);
             const int node_idx = indices_z(i, 1);
-            if(!indices_z(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_z[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosZ(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(2, 0) += nv * weights(i, 2) * (np - pos).transpose() * invD;
             //      std::cout << "zi: " << i << ", " << g_grad_z.row(i) << std::endl;
         }
@@ -6859,30 +5572,30 @@ void TwoDScene::updateDeformationGradient(scalar dt){
         for(int i = 0; i < indices_x.rows(); i++){
             const int node_bucket_idx = indices_x(i, 0);
             const int node_idx = indices_x(i, 1);
-            if(!indices_x(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_x[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosX(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(0, 0) += nv * weights(i, 0) * (np - pos).transpose() * invD;
         }
         
         for(int i = 0; i < indices_y.rows(); i++){
             const int node_bucket_idx = indices_y(i, 0);
             const int node_idx = indices_y(i, 1);
-            if(!indices_y(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_y[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosY(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(1, 0) += nv * weights(i, 1) * (np - pos).transpose() * invD;
         }
         
         for(int i = 0; i < indices_z.rows(); i++){
             const int node_bucket_idx = indices_z(i, 0);
             const int node_idx = indices_z(i, 1);
-            if(!indices_z(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_z[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosZ(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(2, 0) += nv * weights(i, 2) * (np - pos).transpose() * invD;
         }
         
@@ -6942,30 +5655,30 @@ void TwoDScene::updateDeformationGradient(scalar dt){
         for(int i = 0; i < indices_x.rows(); i++){
             const int node_bucket_idx = indices_x(i, 0);
             const int node_idx = indices_x(i, 1);
-            if(!indices_x(i, 2)) continue; // ignore collision from coarse grid since no elasto will be there
+            if(!m_bucket_activated[node_bucket_idx]) continue; // ignore collision from coarse grid since no elasto will be there
             
             const scalar& nv = m_node_vel_x[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosX(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(0, 0) += nv * weights(i, 0) * (np - pos).transpose() * invD;
         }
         
         for(int i = 0; i < indices_y.rows(); i++){
             const int node_bucket_idx = indices_y(i, 0);
             const int node_idx = indices_y(i, 1);
-            if(!indices_y(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_y[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosY(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(1, 0) += nv * weights(i, 1) * (np - pos).transpose() * invD;
         }
         
         for(int i = 0; i < indices_z.rows(); i++){
             const int node_bucket_idx = indices_z(i, 0);
             const int node_idx = indices_z(i, 1);
-            if(!indices_z(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             const scalar& nv = m_node_vel_z[node_bucket_idx](node_idx);
-            Vector3s np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+            Vector3s np = getNodePosZ(node_bucket_idx, node_idx);
             gradx_hat.block<1, 3>(2, 0) += nv * weights(i, 2) * (np - pos).transpose() * invD;
         }
         
@@ -7040,7 +5753,7 @@ void TwoDScene::updatePorePressureNodes()
     m_node_pore_pressure_p.resize(num_buckets);
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_nodes_p = getNumNodesP(bucket_idx);
+        const int num_nodes_p = getNumNodes(bucket_idx);
         
         m_node_pore_pressure_p[bucket_idx].resize(num_nodes_p);
         for(int i = 0; i < num_nodes_p; ++i)
@@ -7061,7 +5774,7 @@ void TwoDScene::mapParticleSaturationPsiNodes()
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
         const auto& bucket_node_particles_p = m_node_particles_p[bucket_idx];
-        const int num_nodes_p = getNumNodesP(bucket_idx);
+        const int num_nodes_p = getNumNodes(bucket_idx);
         
         m_node_sat_p[bucket_idx].resize(num_nodes_p);
         m_node_psi_p[bucket_idx].resize(num_nodes_p);
@@ -7355,6 +6068,8 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
     const scalar old_sum_vol = m_fluid_vol.sum();
     // put fluid onto nodes
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         m_node_vol_pure_fluid_x[bucket_idx].setZero();
         m_node_vol_pure_fluid_y[bucket_idx].setZero();
         m_node_vol_pure_fluid_z[bucket_idx].setZero();
@@ -7367,11 +6082,9 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
         const auto& bucket_node_particles_y = m_node_particles_y[bucket_idx];
         const auto& bucket_node_particles_z = m_node_particles_z[bucket_idx];
         
-        const int num_nodes_x = getNumNodesX(bucket_idx);
-        const int num_nodes_y = getNumNodesY(bucket_idx);
-        const int num_nodes_z = getNumNodesZ(bucket_idx);
+        const int num_nodes = getNumNodes(bucket_idx);
         
-        for(int i = 0; i < num_nodes_x; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_x = bucket_node_particles_x[i];
             
@@ -7394,7 +6107,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             m_node_raw_weight_x[bucket_idx](i) = raw_weight;
         }
         
-        for(int i = 0; i < num_nodes_y; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_y = bucket_node_particles_y[i];
             
@@ -7417,7 +6130,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             m_node_raw_weight_y[bucket_idx](i) = raw_weight;
         }
         
-        for(int i = 0; i < num_nodes_z; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_z = bucket_node_particles_z[i];
             
@@ -7467,7 +6180,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_x(i, 0);
             const int node_idx = indices_x(i, 1);
             
-            if(!indices_x(i, 2)) continue; // shouldn't touch this since elasto are all connected with fine grid
+            if(!m_bucket_activated[node_bucket_idx]) continue; // shouldn't touch this since elasto are all connected with fine grid
             
             fvol += m_node_vol_pure_fluid_x[node_bucket_idx](node_idx) * weights(i, 0);
         }
@@ -7477,7 +6190,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_y(i, 0);
             const int node_idx = indices_y(i, 1);
             
-            if(!indices_y(i, 2)) continue; // shouldn't touch this since elasto are all connected with fine grid
+            if(!m_bucket_activated[node_bucket_idx]) continue; // shouldn't touch this since elasto are all connected with fine grid
             
             fvol += m_node_vol_pure_fluid_y[node_bucket_idx](node_idx) * weights(i, 1);
         }
@@ -7487,7 +6200,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_z(i, 0);
             const int node_idx = indices_z(i, 1);
             
-            if(!indices_z(i, 2)) continue; // shouldn't touch this since elasto are all connected with fine grid
+            if(!m_bucket_activated[node_bucket_idx]) continue; // shouldn't touch this since elasto are all connected with fine grid
             
             fvol += m_node_vol_pure_fluid_z[node_bucket_idx](node_idx) * weights(i, 2);
         }
@@ -7512,15 +6225,15 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
     });
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         const auto& bucket_node_particles_x = m_node_particles_x[bucket_idx];
         const auto& bucket_node_particles_y = m_node_particles_y[bucket_idx];
         const auto& bucket_node_particles_z = m_node_particles_z[bucket_idx];
         
-        const int num_nodes_x = getNumNodesX(bucket_idx);
-        const int num_nodes_y = getNumNodesY(bucket_idx);
-        const int num_nodes_z = getNumNodesZ(bucket_idx);
+        const int num_nodes = getNumNodes(bucket_idx);
         
-        for(int i = 0; i < num_nodes_x; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_x = bucket_node_particles_x[i];
             
@@ -7543,7 +6256,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             m_node_vol_pure_fluid_x[bucket_idx](i) = std::max(0.0, m_node_vol_pure_fluid_x[bucket_idx](i) - vol_fluid_captured);
         }
         
-        for(int i = 0; i < num_nodes_y; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_y = bucket_node_particles_y[i];
             
@@ -7566,7 +6279,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             m_node_vol_pure_fluid_y[bucket_idx](i) = std::max(0.0, m_node_vol_pure_fluid_y[bucket_idx](i) - vol_fluid_captured);
         }
         
-        for(int i = 0; i < num_nodes_z; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_z = bucket_node_particles_z[i];
             
@@ -7608,7 +6321,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_x(i, 0);
             const int node_idx = indices_x(i, 1);
             
-            if(!indices_x(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             fvol += m_node_vol_pure_fluid_x[node_bucket_idx](node_idx) * weights(i, 0);
             raw_weight += m_node_raw_weight_x[node_bucket_idx](node_idx) * weights(i, 0);
@@ -7619,7 +6332,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_y(i, 0);
             const int node_idx = indices_y(i, 1);
             
-            if(!indices_y(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             fvol += m_node_vol_pure_fluid_y[node_bucket_idx](node_idx) * weights(i, 1);
             raw_weight += m_node_raw_weight_y[node_bucket_idx](node_idx) * weights(i, 1);
@@ -7630,7 +6343,7 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
             const int node_bucket_idx = indices_z(i, 0);
             const int node_idx = indices_z(i, 1);
             
-            if(!indices_z(i, 2)) continue;
+            if(!m_bucket_activated[node_bucket_idx]) continue;
             
             fvol += m_node_vol_pure_fluid_z[node_bucket_idx](node_idx) * weights(i, 2);
             raw_weight += m_node_raw_weight_z[node_bucket_idx](node_idx) * weights(i, 2);
@@ -7665,6 +6378,8 @@ void TwoDScene::mapParticleNodesAPIC()
     const scalar dV = dx * dx * dx;
     //    std::cout << "FVb: " << m_fluid_v << std::endl;
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
+        if(!m_bucket_activated[bucket_idx]) return;
+        
         m_node_mass_x[bucket_idx].setZero();
         m_node_vel_x[bucket_idx].setZero();
         m_node_vol_x[bucket_idx].setZero();
@@ -7702,14 +6417,12 @@ void TwoDScene::mapParticleNodesAPIC()
         const auto& bucket_node_particles_y = m_node_particles_y[bucket_idx];
         const auto& bucket_node_particles_z = m_node_particles_z[bucket_idx];
         
-        const int num_nodes_x = getNumNodesX(bucket_idx);
-        const int num_nodes_y = getNumNodesY(bucket_idx);
-        const int num_nodes_z = getNumNodesZ(bucket_idx);
+        const int num_nodes = getNumNodes(bucket_idx);
         
-        for(int i = 0; i < num_nodes_x; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_x = bucket_node_particles_x[i];
-            const Vector3s& np = m_node_pos_x[bucket_idx].segment<3>(i * 3);
+            const Vector3s& np = getNodePosX(bucket_idx, i);
             
             scalar p = 0.0;
             scalar mass = 0.0;
@@ -7791,10 +6504,10 @@ void TwoDScene::mapParticleNodesAPIC()
         assert(!std::isnan(m_node_mass_fluid_x[bucket_idx].sum()));
         assert(!std::isnan(m_node_vol_fluid_x[bucket_idx].sum()));
         
-        for(int i = 0; i < num_nodes_y; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_y = bucket_node_particles_y[i];
-            const Vector3s& np = m_node_pos_y[bucket_idx].segment<3>(i * 3);
+            const Vector3s& np = getNodePosY(bucket_idx, i);
             
             scalar p = 0.0;
             scalar mass = 0.0;
@@ -7876,10 +6589,10 @@ void TwoDScene::mapParticleNodesAPIC()
         assert(!std::isnan(m_node_mass_fluid_y[bucket_idx].sum()));
         assert(!std::isnan(m_node_vol_fluid_y[bucket_idx].sum()));
         
-        for(int i = 0; i < num_nodes_z; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             const auto& node_particles_z = bucket_node_particles_z[i];
-            const Vector3s& np = m_node_pos_z[bucket_idx].segment<3>(i * 3);
+            const Vector3s& np = getNodePosZ(bucket_idx, i);
             
             scalar p = 0.0;
             scalar mass = 0.0;
@@ -7968,88 +6681,6 @@ bool TwoDScene::isFluid(int pidx) const
     return pidx >= getNumElastoParticles();
 }
 
-scalar TwoDScene::interpolateBucketPressure(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketLiquidPhi(const Vector3s& pos) const
-{
-    return 3.0 * getCellSize();
-}
-
-scalar TwoDScene::interpolateBucketSolidPhiGrad(const Vector3s& pos, Vector3s& grad) const
-{
-    grad.setZero();
-    return 3.0 * getCellSize();
-}
-
-scalar TwoDScene::interpolateBucketSolidPhi(const Vector3s& pos) const
-{
-    return 3.0 * getCellSize();
-}
-
-scalar TwoDScene::interpolateBucketSolidVelX(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketSolidVelY(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketSolidVelZ(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketFluidVelX(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketFluidVelY(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketFluidVelZ(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-
-scalar TwoDScene::interpolateBucketSavedFluidVelX(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketSavedFluidVelY(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketSavedFluidVelZ(const Vector3s& pos) const
-{
-    return 0.0;
-}
-
-scalar TwoDScene::interpolateBucketSolidWeightX(const Vector3s& pos) const
-{
-    return 1.0;
-}
-
-scalar TwoDScene::interpolateBucketSolidWeightY(const Vector3s& pos) const
-{
-    return 1.0;
-}
-
-scalar TwoDScene::interpolateBucketSolidWeightZ(const Vector3s& pos) const
-{
-    return 1.0;
-}
-
 void TwoDScene::saveFluidVelocity()
 {
     m_node_vel_saved_fluid_x = m_node_vel_fluid_x;
@@ -8093,13 +6724,13 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_x.rows(); ++i)
             {
                 const int node_bucket_idx = indices_x(i, 0);
-                const int node_idx = indices_x(i, 1);
+                if(!m_bucket_activated[node_bucket_idx]) continue;
                 
-                if(!indices_x(i, 2)) continue;
+                const int node_idx = indices_x(i, 1);
                 
                 scalar fnv = m_node_vel_fluid_x[node_bucket_idx](node_idx);
                 
-                Vector3s np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+                Vector3s np = getNodePosX(node_bucket_idx, node_idx);
                 
                 fv(0) += fnv * weights(i, 0);
                 
@@ -8112,13 +6743,13 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_y.rows(); ++i)
             {
                 const int node_bucket_idx = indices_y(i, 0);
-                const int node_idx = indices_y(i, 1);
+                if(!m_bucket_activated[node_bucket_idx]) continue;
                 
-                if(!indices_y(i, 2)) continue;
+                const int node_idx = indices_y(i, 1);
                 
                 scalar fnv = m_node_vel_fluid_y[node_bucket_idx](node_idx);
                 
-                Vector3s np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+                Vector3s np = getNodePosY(node_bucket_idx, node_idx);
                 
                 fv(1) += fnv * weights(i, 1);
                 
@@ -8132,13 +6763,13 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_z.rows(); ++i)
             {
                 const int node_bucket_idx = indices_z(i, 0);
-                const int node_idx = indices_z(i, 1);
+                if(!m_bucket_activated[node_bucket_idx]) continue;
                 
-                if(!indices_z(i, 2)) continue;
+                const int node_idx = indices_z(i, 1);
                 
                 scalar fnv = m_node_vel_fluid_z[node_bucket_idx](node_idx);
                 
-                Vector3s np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+                Vector3s np = getNodePosZ(node_bucket_idx, node_idx);
                 
                 fv(2) += fnv * weights(i, 2);
                 
@@ -8157,11 +6788,11 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_x.rows(); ++i)
             {
                 const int node_bucket_idx = indices_x(i, 0);
+                if(!m_bucket_activated[node_bucket_idx]) continue;
+                
                 const int node_idx = indices_x(i, 1);
                 
-                if(!indices_x(i, 2)) continue;
-                
-                const Vector3s& np = m_node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+                const Vector3s& np = getNodePosX(node_bucket_idx, node_idx);
                 const scalar& nv = m_node_vel_x[node_bucket_idx](node_idx);
                 
                 m_v(pidx * 4 + 0) += nv * weights(i, 0);
@@ -8175,10 +6806,11 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_y.rows(); ++i)
             {
                 const int node_bucket_idx = indices_y(i, 0);
-                const int node_idx = indices_y(i, 1);
-                if(!indices_y(i, 2)) continue;
+                if(!m_bucket_activated[node_bucket_idx]) continue;
                 
-                const Vector3s& np = m_node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+                const int node_idx = indices_y(i, 1);
+
+                const Vector3s& np = getNodePosY(node_bucket_idx, node_idx);
                 const scalar& nv = m_node_vel_y[node_bucket_idx](node_idx);
                 
                 m_v(pidx * 4 + 1) += nv * weights(i, 1);
@@ -8192,10 +6824,11 @@ void TwoDScene::mapNodeParticlesAPIC()
             for(int i = 0; i < indices_z.rows(); ++i)
             {
                 const int node_bucket_idx = indices_z(i, 0);
-                const int node_idx = indices_z(i, 1);
-                if(!indices_z(i, 2)) continue;
+                if(!m_bucket_activated[node_bucket_idx]) continue;
                 
-                const Vector3s& np = m_node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+                const int node_idx = indices_z(i, 1);
+                
+                const Vector3s& np = getNodePosZ(node_bucket_idx, node_idx);
                 const scalar& nv = m_node_vel_z[node_bucket_idx](node_idx);
                 
                 m_v(pidx * 4 + 2) += nv * weights(i, 2);
@@ -8828,7 +7461,7 @@ void TwoDScene::accumulateManifoldGradPorePressure( VectorXs& F )
             scalar p = 0.0;
             
             for(int i = 0; i < num_indices; ++i) {
-                if(weights(i) == 0.0 || !indices_p(i, 2)) continue;
+                if(weights(i) == 0.0 || !m_bucket_activated[indices_p(i, 0)]) continue;
                 p += m_node_pressure[indices_p(i, 0)][indices_p(i, 1)] * weights[i];
             }
             
@@ -9085,48 +7718,28 @@ void TwoDScene::updateSolidPhi()
     };
     
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-        const VectorXs& node_solid_phi_pos = m_node_pos_solid_phi[bucket_idx];
+        if(!m_bucket_activated[bucket_idx]) return;
         
-        const VectorXs& node_pos_x = m_node_pos_x[bucket_idx];
-        const VectorXs& node_pos_y = m_node_pos_y[bucket_idx];
-        const VectorXs& node_pos_z = m_node_pos_z[bucket_idx];
-        
-        const int num_solid_phi = node_solid_phi_pos.size() / 3;
-        
-        const int num_node_x = node_pos_x.size() / 3;
-        const int num_node_y = node_pos_y.size() / 3;
-        const int num_node_z = node_pos_z.size() / 3;
-        
+        const int num_nodes = getNumNodes(bucket_idx);
+
         VectorXs& node_phi = m_node_solid_phi[bucket_idx];
         
         VectorXs& node_solid_vel_x = m_node_solid_vel_x[bucket_idx];
         VectorXs& node_solid_vel_y = m_node_solid_vel_y[bucket_idx];
         VectorXs& node_solid_vel_z = m_node_solid_vel_z[bucket_idx];
         
-        for(int i = 0; i < num_solid_phi; ++i)
+        for(int i = 0; i < num_nodes; ++i)
         {
             Vector3s vel;
-            node_phi(i) = computePhiVel(node_solid_phi_pos.segment<3>(i * 3), vel, solid_sel);
-        }
-        
-        for(int i = 0; i < num_node_x; ++i)
-        {
-            Vector3s vel;
-            computePhiVel(node_pos_x.segment<3>(i * 3), vel, solid_sel);
+            node_phi(i) = computePhiVel(getNodePosSolidPhi(bucket_idx, i), vel, solid_sel);
+
+            computePhiVel(getNodePosX(bucket_idx, i), vel, solid_sel);
             node_solid_vel_x(i) = vel(0);
-        }
-        
-        for(int i = 0; i < num_node_y; ++i)
-        {
-            Vector3s vel;
-            computePhiVel(node_pos_y.segment<3>(i * 3), vel, solid_sel);
+
+            computePhiVel(getNodePosY(bucket_idx, i), vel, solid_sel);
             node_solid_vel_y(i) = vel(1);
-        }
-        
-        for(int i = 0; i < num_node_z; ++i)
-        {
-            Vector3s vel;
-            computePhiVel(node_pos_z.segment<3>(i * 3), vel, solid_sel);
+            
+            computePhiVel(getNodePosZ(bucket_idx, i), vel, solid_sel);
             node_solid_vel_z(i) = vel(2);
         }
     });
@@ -9134,21 +7747,22 @@ void TwoDScene::updateSolidPhi()
     if(m_liquid_info.compute_viscosity)
     {
         m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-            const VectorXs& node_pressure_pos = m_node_pos_p[bucket_idx];
+            if(!m_bucket_activated[bucket_idx]) return;
+            
             VectorXs& node_cell_solid_phi = m_node_cell_solid_phi[bucket_idx];
             
-            const int num_node_p = node_pressure_pos.size() / 3;
+            const int num_node_p = getNumNodes(bucket_idx);
             
             for(int i = 0; i < num_node_p; ++i)
             {
-                node_cell_solid_phi(i) = computePhi(node_pressure_pos.segment<3>(i * 3), solid_sel);
+                node_cell_solid_phi(i) = computePhi(getNodePosP(bucket_idx, i), solid_sel);
             }
         });
         
         m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
-            const int num_node_x = m_node_pos_x[bucket_idx].size() / 3;
-            const int num_node_y = m_node_pos_y[bucket_idx].size() / 3;
-            const int num_node_z = m_node_pos_z[bucket_idx].size() / 3;
+            if(!m_bucket_activated[bucket_idx]) return;
+            
+            const int num_node = getNumNodes(bucket_idx);
             
             VectorXuc& node_state_u = m_node_state_u[bucket_idx];
             VectorXuc& node_state_v = m_node_state_v[bucket_idx];
@@ -9162,7 +7776,7 @@ void TwoDScene::updateSolidPhi()
             node_state_v.setZero();
             node_state_w.setZero();
             
-            for(int i = 0; i < num_node_x; ++i)
+            for(int i = 0; i < num_node; ++i)
             {
                 const Vector4i& indices = node_index_pressure_x.segment<4>(i * 4);
                 scalar sphi = 0.0;
@@ -9180,7 +7794,7 @@ void TwoDScene::updateSolidPhi()
                 }
             }
             
-            for(int i = 0; i < num_node_y; ++i)
+            for(int i = 0; i < num_node; ++i)
             {
                 const Vector4i& indices = node_index_pressure_y.segment<4>(i * 4);
                 scalar sphi = 0.0;
@@ -9198,7 +7812,7 @@ void TwoDScene::updateSolidPhi()
                 }
             }
             
-            for(int i = 0; i < num_node_z; ++i)
+            for(int i = 0; i < num_node; ++i)
             {
                 const Vector4i& indices = node_index_pressure_z.segment<4>(i * 4);
                 scalar sphi = 0.0;
@@ -9217,6 +7831,11 @@ void TwoDScene::updateSolidPhi()
             }
         });
     }
+}
+
+bool TwoDScene::isBucketActivated(int bucket_index) const
+{
+    return m_bucket_activated[bucket_index];
 }
 
 void TwoDScene::applyScript(const scalar& dt)

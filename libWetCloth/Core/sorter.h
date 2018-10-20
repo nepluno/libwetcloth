@@ -278,6 +278,12 @@ public:
 		}
 	}
 	
+    bool empty( int bucket_idx ) const
+    {
+        const std::pair<int, int>& G_START_END = array_sup[bucket_idx];
+        return G_START_END.second == G_START_END.first;
+    }
+    
 	template<typename Callable>
 	void get_bucket( int bucket_idx, Callable func ) const
 	{

@@ -100,9 +100,9 @@ void LinearizedImplicitEuler::performInvLocalSolve( const TwoDScene& scene,
 	const Sorter& buckets = scene.getParticleBuckets();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
 		
 		const VectorXs& bucket_node_masses_x = node_inv_mass_x[bucket_idx];
 		const VectorXs& bucket_node_masses_y = node_inv_mass_y[bucket_idx];
@@ -116,16 +116,10 @@ void LinearizedImplicitEuler::performInvLocalSolve( const TwoDScene& scene,
 		VectorXs& bucket_out_node_vec_y = out_node_vec_y[bucket_idx];
 		VectorXs& bucket_out_node_vec_z = out_node_vec_z[bucket_idx];
 
-		for(int i = 0; i < num_nodes_x; ++i)
+		for(int i = 0; i < num_nodes; ++i)
 		{
 			bucket_out_node_vec_x[i] = bucket_node_rhs_x[i] * bucket_node_masses_x[i];
-		}
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
 			bucket_out_node_vec_y[i] = bucket_node_rhs_y[i] * bucket_node_masses_y[i];
-		}
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
 			bucket_out_node_vec_z[i] = bucket_node_rhs_z[i] * bucket_node_masses_z[i];
 		}
         
@@ -167,9 +161,9 @@ void LinearizedImplicitEuler::performLocalSolve( const TwoDScene& scene,
 	const Sorter& buckets = scene.getParticleBuckets();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
 		
 		const VectorXs& bucket_node_masses_x = node_masses_x[bucket_idx];
 		const VectorXs& bucket_node_masses_y = node_masses_y[bucket_idx];
@@ -183,18 +177,12 @@ void LinearizedImplicitEuler::performLocalSolve( const TwoDScene& scene,
 		VectorXs& bucket_out_node_vec_y = out_node_vec_y[bucket_idx];
 		VectorXs& bucket_out_node_vec_z = out_node_vec_z[bucket_idx];
 		
-		for(int i = 0; i < num_nodes_x; ++i)
+		for(int i = 0; i < num_nodes; ++i)
 		{
 			if(bucket_node_masses_x[i] > 1e-20) bucket_out_node_vec_x[i] = bucket_node_rhs_x[i] / bucket_node_masses_x[i];
 			else bucket_out_node_vec_x[i] = bucket_node_rhs_x[i];
-		}
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
 			if(bucket_node_masses_y[i] > 1e-20) bucket_out_node_vec_y[i] = bucket_node_rhs_y[i] / bucket_node_masses_y[i];
 			else bucket_out_node_vec_y[i] = bucket_node_rhs_y[i];
-		}
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
 			if(bucket_node_masses_z[i] > 1e-20) bucket_out_node_vec_z[i] = bucket_node_rhs_z[i] / bucket_node_masses_z[i];
 			else bucket_out_node_vec_z[i] = bucket_node_rhs_z[i];
 		}
@@ -646,22 +634,14 @@ void LinearizedImplicitEuler::addSolidDrag( TwoDScene& scene,
 	const Sorter& buckets = scene.getParticleBuckets();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
 		
-		for(int i = 0; i < num_nodes_x; ++i)
+		for(int i = 0; i < num_nodes; ++i)
 		{
 			node_fluid_vel_x[bucket_idx][i] += m_node_hdvm_x[bucket_idx][i] * node_vel_x[bucket_idx][i] * m_node_inv_mfhdvm_x[bucket_idx][i];
-		}
-		
-        for(int i = 0; i < num_nodes_y; ++i)
-        {
             node_fluid_vel_y[bucket_idx][i] += m_node_hdvm_y[bucket_idx][i] * node_vel_y[bucket_idx][i] * m_node_inv_mfhdvm_y[bucket_idx][i];
-        }
-        
-        for(int i = 0; i < num_nodes_z; ++i)
-        {
             node_fluid_vel_z[bucket_idx][i] += m_node_hdvm_z[bucket_idx][i] * node_vel_z[bucket_idx][i] * m_node_inv_mfhdvm_z[bucket_idx][i];
         }
 	});
@@ -682,22 +662,14 @@ void LinearizedImplicitEuler::addSolidDragRHS( TwoDScene& scene,
     const std::vector< VectorXs >& node_mass_z = scene.getNodeMassZ();
     
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-        const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-        const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
         
-        for(int i = 0; i < num_nodes_x; ++i)
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+        
+        for(int i = 0; i < num_nodes; ++i)
         {
             node_rhs_x[bucket_idx][i] += m_node_mshdvm_hdvm_x[bucket_idx][i] * node_mass_x[bucket_idx][i] * node_vel_x[bucket_idx][i];
-        }
-        
-        for(int i = 0; i < num_nodes_y; ++i)
-        {
             node_rhs_y[bucket_idx][i] += m_node_mshdvm_hdvm_y[bucket_idx][i] * node_mass_y[bucket_idx][i] * node_vel_y[bucket_idx][i];
-        }
-        
-        for(int i = 0; i < num_nodes_z; ++i)
-        {
             node_rhs_z[bucket_idx][i] += m_node_mshdvm_hdvm_z[bucket_idx][i] * node_mass_z[bucket_idx][i] * node_vel_z[bucket_idx][i];
         }
     });
@@ -719,22 +691,14 @@ void LinearizedImplicitEuler::addFluidDragRHS( TwoDScene& scene,
     const std::vector< VectorXs >& node_mass_fluid_z = scene.getNodeFluidMassZ();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
 		
-		for(int i = 0; i < num_nodes_x; ++i)
+		for(int i = 0; i < num_nodes; ++i)
 		{
 			node_rhs_x[bucket_idx][i] += m_node_mfhdvm_hdvm_x[bucket_idx][i] * node_mass_fluid_x[bucket_idx][i] * node_fluid_vel_x[bucket_idx][i];
-		}
-		
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
 			node_rhs_y[bucket_idx][i] += m_node_mfhdvm_hdvm_y[bucket_idx][i] * node_mass_fluid_y[bucket_idx][i] * node_fluid_vel_y[bucket_idx][i];
-		}
-		
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
 			node_rhs_z[bucket_idx][i] += m_node_mfhdvm_hdvm_z[bucket_idx][i] * node_mass_fluid_z[bucket_idx][i] * node_fluid_vel_z[bucket_idx][i];
 		}
 	});
@@ -873,33 +837,27 @@ void LinearizedImplicitEuler::constructHDV( TwoDScene& scene, const scalar& dt )
     if(scene.getLiquidInfo().drag_by_air)
     {
         buckets.for_each_bucket([&] (int bucket_idx) {
-            const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-            const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-            const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+            if(!scene.isBucketActivated(bucket_idx)) return;
             
-            for(int i = 0; i < num_nodes_x; ++i)
+            const int num_nodes = scene.getNumNodes(bucket_idx);
+
+            for(int i = 0; i < num_nodes; ++i)
             {
-                const scalar dc = scene.getDragCoeffWithOrientation(node_psi_x[bucket_idx][i], 1.0, node_vel_x[bucket_idx][i], orient_x[bucket_idx].segment<3>(i * 3), shape_factor_x[bucket_idx][i], 0, 1);
-                const scalar V_m = node_vol_x[bucket_idx][i];
-                const scalar hdV = dt * dc * V_m;
+                scalar dc = scene.getDragCoeffWithOrientation(node_psi_x[bucket_idx][i], 1.0, node_vel_x[bucket_idx][i], orient_x[bucket_idx].segment<3>(i * 3), shape_factor_x[bucket_idx][i], 0, 1);
+                scalar V_m = node_vol_x[bucket_idx][i];
+                scalar hdV = dt * dc * V_m;
                 
                 m_node_damped_x[bucket_idx][i] = node_mass_x[bucket_idx][i] + hdV;
-            }
-            
-            for(int i = 0; i < num_nodes_y; ++i)
-            {
-                const scalar dc = scene.getDragCoeffWithOrientation(node_psi_y[bucket_idx][i], 1.0, node_vel_y[bucket_idx][i], orient_y[bucket_idx].segment<3>(i * 3), shape_factor_y[bucket_idx][i], 1, 1);
-                const scalar V_m = node_vol_y[bucket_idx][i];
-                const scalar hdV = dt * dc * V_m;
+                
+                dc = scene.getDragCoeffWithOrientation(node_psi_y[bucket_idx][i], 1.0, node_vel_y[bucket_idx][i], orient_y[bucket_idx].segment<3>(i * 3), shape_factor_y[bucket_idx][i], 1, 1);
+                V_m = node_vol_y[bucket_idx][i];
+                hdV = dt * dc * V_m;
                 
                 m_node_damped_y[bucket_idx][i] = node_mass_y[bucket_idx][i] + hdV;
-            }
-            
-            for(int i = 0; i < num_nodes_z; ++i)
-            {
-                const scalar dc = scene.getDragCoeffWithOrientation(node_psi_z[bucket_idx][i], 1.0, node_vel_z[bucket_idx][i], orient_z[bucket_idx].segment<3>(i * 3), shape_factor_z[bucket_idx][i], 2, 1);
-                const scalar V_m = node_vol_z[bucket_idx][i];
-                const scalar hdV = dt * dc * V_m;
+
+                dc = scene.getDragCoeffWithOrientation(node_psi_z[bucket_idx][i], 1.0, node_vel_z[bucket_idx][i], orient_z[bucket_idx].segment<3>(i * 3), shape_factor_z[bucket_idx][i], 2, 1);
+                V_m = node_vol_z[bucket_idx][i];
+                hdV = dt * dc * V_m;
                 
                 m_node_damped_z[bucket_idx][i] = node_mass_z[bucket_idx][i] + hdV;
             }
@@ -911,55 +869,49 @@ void LinearizedImplicitEuler::constructHDV( TwoDScene& scene, const scalar& dt )
     }
     
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
-		
-		for(int i = 0; i < num_nodes_x; ++i)
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
+
+		for(int i = 0; i < num_nodes; ++i)
 		{
-			const scalar sat = node_sat_x[bucket_idx][i];
-            const scalar dc = scene.getDragCoeffWithOrientation(node_psi_x[bucket_idx][i], sat, node_vel_fluid_x[bucket_idx][i] - node_vel_x[bucket_idx][i], orient_x[bucket_idx].segment<3>(i * 3), shape_factor_x[bucket_idx][i], 0, 0);
-            const scalar V_m = node_vol_x[bucket_idx][i] + node_vol_fluid_x[bucket_idx][i];
-            const scalar hdV = dt * dc * V_m;
+			scalar sat = node_sat_x[bucket_idx][i];
+            scalar dc = scene.getDragCoeffWithOrientation(node_psi_x[bucket_idx][i], sat, node_vel_fluid_x[bucket_idx][i] - node_vel_x[bucket_idx][i], orient_x[bucket_idx].segment<3>(i * 3), shape_factor_x[bucket_idx][i], 0, 0);
+            scalar V_m = node_vol_x[bucket_idx][i] + node_vol_fluid_x[bucket_idx][i];
+            scalar hdV = dt * dc * V_m;
             
             m_node_hdvm_x[bucket_idx][i] = hdV;
             
-            const scalar mfhdvm = node_mass_fluid_x[bucket_idx][i] + hdV;
-            const scalar mshdvm = m_node_damped_x[bucket_idx][i] + hdV;
+            scalar mfhdvm = node_mass_fluid_x[bucket_idx][i] + hdV;
+            scalar mshdvm = m_node_damped_x[bucket_idx][i] + hdV;
             
             m_node_inv_mfhdvm_x[bucket_idx][i] = (mfhdvm > 1e-20) ? (1.0 / mfhdvm) : 1.0;
             m_node_mfhdvm_hdvm_x[bucket_idx][i] = (mfhdvm > 1e-20) ? (hdV / mfhdvm) : 1.0;
             m_node_mshdvm_hdvm_x[bucket_idx][i] = (mshdvm > 1e-20) ? (hdV / mshdvm) : 1.0;
-		}
-		
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
-			const scalar sat = node_sat_y[bucket_idx][i];
-            const scalar dc = scene.getDragCoeffWithOrientation(node_psi_y[bucket_idx][i], sat, node_vel_fluid_y[bucket_idx][i] - node_vel_y[bucket_idx][i], orient_y[bucket_idx].segment<3>(i * 3), shape_factor_y[bucket_idx][i], 1, 0);
-            const scalar V_m = node_vol_y[bucket_idx][i] + node_vol_fluid_y[bucket_idx][i];
-            const scalar hdV = dt * dc * V_m;
+
+			sat = node_sat_y[bucket_idx][i];
+            dc = scene.getDragCoeffWithOrientation(node_psi_y[bucket_idx][i], sat, node_vel_fluid_y[bucket_idx][i] - node_vel_y[bucket_idx][i], orient_y[bucket_idx].segment<3>(i * 3), shape_factor_y[bucket_idx][i], 1, 0);
+            V_m = node_vol_y[bucket_idx][i] + node_vol_fluid_y[bucket_idx][i];
+            hdV = dt * dc * V_m;
             
             m_node_hdvm_y[bucket_idx][i] = hdV;
             
-            const scalar mfhdvm = node_mass_fluid_y[bucket_idx][i] + hdV;
-            const scalar mshdvm = m_node_damped_y[bucket_idx][i] + hdV;
+            mfhdvm = node_mass_fluid_y[bucket_idx][i] + hdV;
+            mshdvm = m_node_damped_y[bucket_idx][i] + hdV;
             
             m_node_inv_mfhdvm_y[bucket_idx][i] = (mfhdvm > 1e-20) ? (1.0 / mfhdvm) : 1.0;
             m_node_mfhdvm_hdvm_y[bucket_idx][i] = (mfhdvm > 1e-20) ? (hdV / mfhdvm) : 1.0;
             m_node_mshdvm_hdvm_y[bucket_idx][i] = (mshdvm > 1e-20) ? (hdV / mshdvm) : 1.0;
-		}
-		
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
-			const scalar sat = node_sat_z[bucket_idx][i];
-            const scalar dc = scene.getDragCoeffWithOrientation(node_psi_z[bucket_idx][i], sat, node_vel_fluid_z[bucket_idx][i] - node_vel_z[bucket_idx][i], orient_z[bucket_idx].segment<3>(i * 3), shape_factor_z[bucket_idx][i], 2, 0);
-            const scalar V_m = node_vol_z[bucket_idx][i] + node_vol_fluid_z[bucket_idx][i];
-            const scalar hdV = dt * dc * V_m;
+
+			sat = node_sat_z[bucket_idx][i];
+            dc = scene.getDragCoeffWithOrientation(node_psi_z[bucket_idx][i], sat, node_vel_fluid_z[bucket_idx][i] - node_vel_z[bucket_idx][i], orient_z[bucket_idx].segment<3>(i * 3), shape_factor_z[bucket_idx][i], 2, 0);
+            V_m = node_vol_z[bucket_idx][i] + node_vol_fluid_z[bucket_idx][i];
+            hdV = dt * dc * V_m;
             
             m_node_hdvm_z[bucket_idx][i] = hdV;
             
-            const scalar mfhdvm = node_mass_fluid_z[bucket_idx][i] + hdV;
-            const scalar mshdvm = m_node_damped_z[bucket_idx][i] + hdV;
+            mfhdvm = node_mass_fluid_z[bucket_idx][i] + hdV;
+            mshdvm = m_node_damped_z[bucket_idx][i] + hdV;
             
             m_node_inv_mfhdvm_z[bucket_idx][i] = (mfhdvm > 1e-20) ? (1.0 / mfhdvm) : 1.0;
             m_node_mfhdvm_hdvm_z[bucket_idx][i] = (mfhdvm > 1e-20) ? (hdV / mfhdvm) : 1.0;
@@ -974,53 +926,35 @@ void LinearizedImplicitEuler::constructMsDVs( TwoDScene& scene )
     const std::vector< VectorXs >& node_mass_fluid_y = scene.getNodeFluidMassY();
     const std::vector< VectorXs >& node_mass_fluid_z = scene.getNodeFluidMassZ();
     
-    const std::vector< VectorXs >& node_mass_x = scene.getNodeMassX();
-    const std::vector< VectorXs >& node_mass_y = scene.getNodeMassY();
-    const std::vector< VectorXs >& node_mass_z = scene.getNodeMassZ();
-    
     const Sorter& buckets = scene.getParticleBuckets();
     
-    const std::vector< VectorXs >& node_vol_fluid_x = scene.getNodeFluidVolX();
-    const std::vector< VectorXs >& node_vol_fluid_y = scene.getNodeFluidVolY();
-    const std::vector< VectorXs >& node_vol_fluid_z = scene.getNodeFluidVolZ();
-    
-    const std::vector< VectorXs >& node_vel_x = scene.getNodeFluidVelocityX();
-    const std::vector< VectorXs >& node_vel_y = scene.getNodeFluidVelocityY();
-    const std::vector< VectorXs >& node_vel_z = scene.getNodeFluidVelocityZ();
-    
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-        const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-        const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
         
-        for(int i = 0; i < num_nodes_x; ++i)
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+
+        for(int i = 0; i < num_nodes; ++i)
         {
-            const scalar P = m_node_mfhdvm_hdvm_x[bucket_idx][i];
-            const scalar Cs = m_node_damped_x[bucket_idx][i] + P * node_mass_fluid_x[bucket_idx][i];
+            scalar P = m_node_mfhdvm_hdvm_x[bucket_idx][i];
+            scalar Cs = m_node_damped_x[bucket_idx][i] + P * node_mass_fluid_x[bucket_idx][i];
             m_node_Cs_x[bucket_idx][i] = Cs;
             if(Cs > 1e-20) {
                 m_node_inv_Cs_x[bucket_idx][i] = 1.0 / Cs;
             } else {
                 m_node_inv_Cs_x[bucket_idx][i] = 1.0;
             }
-        }
-        
-        for(int i = 0; i < num_nodes_y; ++i)
-        {
-            const scalar P = m_node_mfhdvm_hdvm_y[bucket_idx][i];
-            const scalar Cs = m_node_damped_y[bucket_idx][i] + P * node_mass_fluid_y[bucket_idx][i];
+
+            P = m_node_mfhdvm_hdvm_y[bucket_idx][i];
+            Cs = m_node_damped_y[bucket_idx][i] + P * node_mass_fluid_y[bucket_idx][i];
             m_node_Cs_y[bucket_idx][i] = Cs;
             if(Cs > 1e-20) {
                 m_node_inv_Cs_y[bucket_idx][i] = 1.0 / Cs;
             } else {
                 m_node_inv_Cs_y[bucket_idx][i] = 1.0;
             }
-        }
-        
-        for(int i = 0; i < num_nodes_z; ++i)
-        {
-            const scalar P = m_node_mfhdvm_hdvm_z[bucket_idx][i];
-            const scalar Cs = m_node_damped_z[bucket_idx][i] + P * node_mass_fluid_z[bucket_idx][i];
+
+            P = m_node_mfhdvm_hdvm_z[bucket_idx][i];
+            Cs = m_node_damped_z[bucket_idx][i] + P * node_mass_fluid_z[bucket_idx][i];
             m_node_Cs_z[bucket_idx][i] = Cs;
             if(Cs > 1e-20) {
                 m_node_inv_Cs_z[bucket_idx][i] = 1.0 / Cs;
@@ -1052,28 +986,22 @@ void LinearizedImplicitEuler::constructPsiSF( TwoDScene& scene )
 	const Sorter& buckets = scene.getParticleBuckets();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
 		
-		for(int i = 0; i < num_nodes_x; ++i)
+		for(int i = 0; i < num_nodes; ++i)
 		{
             m_node_psi_fs_x[bucket_idx][i] = ((1.0 - node_psi_x[bucket_idx][i]) * m_node_inv_C_x[bucket_idx][i] +
                                               node_psi_x[bucket_idx][i] * m_node_inv_Cs_x[bucket_idx][i] * m_node_mfhdvm_hdvm_x[bucket_idx][i]) * node_mass_fluid_x[bucket_idx][i];
             m_node_psi_sf_x[bucket_idx][i] = (node_psi_x[bucket_idx][i] * m_node_inv_Cs_x[bucket_idx][i] +
                                               (1.0 - node_psi_x[bucket_idx][i]) * m_node_inv_C_x[bucket_idx][i] * m_node_mshdvm_hdvm_x[bucket_idx][i]) * node_mass_x[bucket_idx][i];
-		}
-		
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
+
             m_node_psi_fs_y[bucket_idx][i] = ((1.0 - node_psi_y[bucket_idx][i]) * m_node_inv_C_y[bucket_idx][i] +
                                               node_psi_y[bucket_idx][i] * m_node_inv_Cs_y[bucket_idx][i] * m_node_mfhdvm_hdvm_y[bucket_idx][i]) * node_mass_fluid_y[bucket_idx][i];
             m_node_psi_sf_y[bucket_idx][i] = (node_psi_y[bucket_idx][i] * m_node_inv_Cs_y[bucket_idx][i] +
                                               (1.0 - node_psi_y[bucket_idx][i]) * m_node_inv_C_y[bucket_idx][i] * m_node_mshdvm_hdvm_y[bucket_idx][i]) * node_mass_y[bucket_idx][i];
-        }
-		
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
+
             m_node_psi_fs_z[bucket_idx][i] = ((1.0 - node_psi_z[bucket_idx][i]) * m_node_inv_C_z[bucket_idx][i] +
                                               node_psi_z[bucket_idx][i] * m_node_inv_Cs_z[bucket_idx][i] * m_node_mfhdvm_hdvm_z[bucket_idx][i]) * node_mass_fluid_z[bucket_idx][i];
             m_node_psi_sf_z[bucket_idx][i] = (node_psi_z[bucket_idx][i] * m_node_inv_Cs_z[bucket_idx][i] +
@@ -1089,51 +1017,33 @@ void LinearizedImplicitEuler::constructInvMDV( TwoDScene& scene )
 	const std::vector< VectorXs >& node_mass_fluid_y = scene.getNodeFluidMassY();
 	const std::vector< VectorXs >& node_mass_fluid_z = scene.getNodeFluidMassZ();
     
-    const std::vector< VectorXs >& node_mass_x = scene.getNodeMassX();
-    const std::vector< VectorXs >& node_mass_y = scene.getNodeMassY();
-    const std::vector< VectorXs >& node_mass_z = scene.getNodeMassZ();
-	
 	const Sorter& buckets = scene.getParticleBuckets();
     
-    const std::vector< VectorXs >& node_vol_fluid_x = scene.getNodeFluidVolX();
-    const std::vector< VectorXs >& node_vol_fluid_y = scene.getNodeFluidVolY();
-    const std::vector< VectorXs >& node_vol_fluid_z = scene.getNodeFluidVolZ();
-    
-    const std::vector< VectorXs >& node_vel_x = scene.getNodeFluidVelocityX();
-    const std::vector< VectorXs >& node_vel_y = scene.getNodeFluidVelocityY();
-    const std::vector< VectorXs >& node_vel_z = scene.getNodeFluidVelocityZ();
-    
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
-		
-		for(int i = 0; i < num_nodes_x; ++i)
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
+
+		for(int i = 0; i < num_nodes; ++i)
 		{
-            const scalar Q = m_node_mshdvm_hdvm_x[bucket_idx][i];
-            const scalar C = node_mass_fluid_x[bucket_idx][i] + Q * m_node_damped_x[bucket_idx][i];
+            scalar Q = m_node_mshdvm_hdvm_x[bucket_idx][i];
+            scalar C = node_mass_fluid_x[bucket_idx][i] + Q * m_node_damped_x[bucket_idx][i];
 			if(C > 1e-20) {
 				m_node_inv_C_x[bucket_idx][i] = 1.0 / C;
 			} else {
 				m_node_inv_C_x[bucket_idx][i] = 1.0;
 			}
-		}
-		
-		for(int i = 0; i < num_nodes_y; ++i)
-		{
-            const scalar Q = m_node_mshdvm_hdvm_y[bucket_idx][i];
-            const scalar C = node_mass_fluid_y[bucket_idx][i] + Q * m_node_damped_y[bucket_idx][i];
+            
+            Q = m_node_mshdvm_hdvm_y[bucket_idx][i];
+            C = node_mass_fluid_y[bucket_idx][i] + Q * m_node_damped_y[bucket_idx][i];
             if(C > 1e-20) {
                 m_node_inv_C_y[bucket_idx][i] = 1.0 / C;
             } else {
                 m_node_inv_C_y[bucket_idx][i] = 1.0;
             }
-		}
-		
-		for(int i = 0; i < num_nodes_z; ++i)
-		{
-            const scalar Q = m_node_mshdvm_hdvm_z[bucket_idx][i];
-            const scalar C = node_mass_fluid_z[bucket_idx][i] + Q * m_node_damped_z[bucket_idx][i];
+
+            Q = m_node_mshdvm_hdvm_z[bucket_idx][i];
+            C = node_mass_fluid_z[bucket_idx][i] + Q * m_node_damped_z[bucket_idx][i];
             if(C > 1e-20) {
                 m_node_inv_C_z[bucket_idx][i] = 1.0 / C;
             } else {
@@ -1590,8 +1500,6 @@ void LinearizedImplicitEuler::prepareGroupPrecondition(
 bool LinearizedImplicitEuler::stepImplicitElastoLagrangian( TwoDScene& scene, scalar dt )
 {
     int ndof_elasto = scene.getNumSoftElastoParticles() * 4;
-    const Sorter& buckets = scene.getParticleBuckets();
-    
     if(ndof_elasto == 0) return true;	
 
     scalar res_norm_0 = m_lagrangian_rhs.norm();
@@ -1666,6 +1574,7 @@ bool LinearizedImplicitEuler::stepImplicitElastoLagrangian( TwoDScene& scene, sc
 	}
 
 	scene.getV().segment(0, ndof_elasto) = m_v_plus;
+    return true;
 }
 
 bool LinearizedImplicitEuler::stepImplicitElastoDiagonalPCRCoSolve( TwoDScene& scene, scalar dt )
@@ -2123,7 +2032,6 @@ bool LinearizedImplicitEuler::acceptVelocity( TwoDScene& scene )
 bool LinearizedImplicitEuler::stepImplicitElastoAMGPCG( TwoDScene& scene, scalar dt )
 {
     int ndof_elasto = scene.getNumSoftElastoParticles() * 4;
-    const Sorter& buckets = scene.getParticleBuckets();
     
     if(ndof_elasto == 0) return true;
     
@@ -2371,22 +2279,12 @@ bool LinearizedImplicitEuler::applyPressureDragFluid( TwoDScene& scene, scalar d
             const Sorter& buckets = scene.getParticleBuckets();
             
             buckets.for_each_bucket([&] (int bucket_idx) {
-                const int num_nodes_x = scene.getNumNodesX(bucket_idx);
-                const int num_nodes_y = scene.getNumNodesY(bucket_idx);
-                const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
+                const int num_nodes = scene.getNumNodes(bucket_idx);
                 
-                for(int i = 0; i < num_nodes_x; ++i)
+                for(int i = 0; i < num_nodes; ++i)
                 {
                     m_node_v_fluid_plus_x[bucket_idx][i] *= node_mass_fluid_x[bucket_idx][i] * m_node_inv_mfhdvm_x[bucket_idx][i];
-                }
-                
-                for(int i = 0; i < num_nodes_y; ++i)
-                {
                     m_node_v_fluid_plus_y[bucket_idx][i] *= node_mass_fluid_y[bucket_idx][i] * m_node_inv_mfhdvm_y[bucket_idx][i];
-                }
-                
-                for(int i = 0; i < num_nodes_z; ++i)
-                {
                     m_node_v_fluid_plus_z[bucket_idx][i] *= node_mass_fluid_z[bucket_idx][i] * m_node_inv_mfhdvm_z[bucket_idx][i];
                 }
             });
@@ -2406,9 +2304,9 @@ bool LinearizedImplicitEuler::applyPressureDragFluid( TwoDScene& scene, scalar d
             performInvLocalSolve(scene, m_node_rhs_fluid_x, m_node_rhs_fluid_y, m_node_rhs_fluid_z, m_node_inv_C_x, m_node_inv_C_y, m_node_inv_C_z, m_node_v_fluid_plus_x, m_node_v_fluid_plus_y, m_node_v_fluid_plus_z);
         }
         
-        pressure::extrapolate(scene, scene.getNodeLiquidValidX(), scene.getNodeCompressedIndexX(), m_node_v_fluid_plus_x);
-        pressure::extrapolate(scene, scene.getNodeLiquidValidY(), scene.getNodeCompressedIndexY(), m_node_v_fluid_plus_y);
-        pressure::extrapolate(scene, scene.getNodeLiquidValidZ(), scene.getNodeCompressedIndexZ(), m_node_v_fluid_plus_z);
+        pressure::extrapolate(scene, scene.getNodeLiquidValidX(), m_node_v_fluid_plus_x);
+        pressure::extrapolate(scene, scene.getNodeLiquidValidY(), m_node_v_fluid_plus_y);
+        pressure::extrapolate(scene, scene.getNodeLiquidValidZ(), m_node_v_fluid_plus_z);
     }
     
     return true;
@@ -2417,9 +2315,6 @@ bool LinearizedImplicitEuler::applyPressureDragFluid( TwoDScene& scene, scalar d
 bool LinearizedImplicitEuler::projectFine( TwoDScene& scene, scalar dt )
 {
 	if(scene.getNumFluidParticles() == 0) return false;
-
-    const Sorter& buckets = scene.getParticleBuckets();
-    
 
     allocateCenterNodeVectors(scene, m_fine_global_indices);
     
@@ -2514,8 +2409,6 @@ bool LinearizedImplicitEuler::manifoldPropagate( TwoDScene& scene, scalar dt )
 {
 	const scalar subdt = dt / (scalar) m_manifold_substeps;
 
-    VectorXs& vol = scene.getVol();
-    VectorXs& vol_frac = scene.getVolumeFraction();
 	VectorXs& fluid_vol = scene.getFluidVol();
 	VectorXs& fluid_m = scene.getFluidM();
     VectorXs& elasto_v = scene.getV();
@@ -2541,7 +2434,6 @@ bool LinearizedImplicitEuler::manifoldPropagate( TwoDScene& scene, scalar dt )
 		const int num_faces = scene.getNumFaces();
 		
 		const int num_elasto_gauss = num_edges + num_faces;
-		const int num_part = scene.getNumParticles();
 		const int num_elasto = scene.getNumSoftElastoParticles();
 		
 		VectorXs fv0 = fluid_vol;
@@ -2716,299 +2608,4 @@ bool LinearizedImplicitEuler::manifoldPropagate( TwoDScene& scene, scalar dt )
     std::cout << "[manifold propagate avg iter: " << ((scalar) total_iter / (scalar) m_manifold_substeps) << ", avg res: " << sqrt(total_res / (scalar) m_manifold_substeps) << "]" << std::endl;
 	
 	return true;
-}
-
-bool LinearizedImplicitEuler::solveBiCGSTAB( TwoDScene& scene, scalar dt )
-{
-    int ndof_elasto = scene.getNumSoftElastoParticles() * 4;
-    
-    scalar res_norm_0_S = lengthNodeVectors(m_node_rhs_x, m_node_rhs_y, m_node_rhs_z);
-    scalar res_norm_0_F = lengthNodeVectors(m_node_rhs_fluid_x, m_node_rhs_fluid_y, m_node_rhs_fluid_z);
-    scalar res_norm_0 = sqrt(res_norm_0_S * res_norm_0_S + res_norm_0_F * res_norm_0_F);
-    
-    if(res_norm_0 <= m_pcg_criterion) {
-        return true;
-    }
-    
-    allocateNodeVectors(scene, m_node_mshdvm_x, m_node_mshdvm_y, m_node_mshdvm_z );
-    allocateNodeVectors(scene, m_node_mfhdvm_x, m_node_mfhdvm_y, m_node_mfhdvm_z );
-    allocateNodeVectors(scene, m_node_epsilon_x, m_node_epsilon_y, m_node_epsilon_z );
-    
-    const std::vector< VectorXs >& ms_x = scene.getNodeMassX();
-    const std::vector< VectorXs >& ms_y = scene.getNodeMassY();
-    const std::vector< VectorXs >& ms_z = scene.getNodeMassZ();
-    
-    const std::vector< VectorXs >& mf_x = scene.getNodeFluidMassX();
-    const std::vector< VectorXs >& mf_y = scene.getNodeFluidMassY();
-    const std::vector< VectorXs >& mf_z = scene.getNodeFluidMassZ();
-    
-    const std::vector< VectorXs >& psi_x = scene.getNodePsiX();
-    const std::vector< VectorXs >& psi_y = scene.getNodePsiY();
-    const std::vector< VectorXs >& psi_z = scene.getNodePsiZ();
-    
-    const Sorter& bucket = scene.getParticleBuckets();
-    
-    bucket.for_each_bucket([&] (int bucket_idx) {
-        m_node_mshdvm_x[bucket_idx] = ms_x[bucket_idx] + m_node_hdvm_x[bucket_idx];
-        m_node_mfhdvm_x[bucket_idx] = mf_x[bucket_idx] + m_node_hdvm_x[bucket_idx];
-        m_node_epsilon_x[bucket_idx].setOnes();
-        m_node_epsilon_x[bucket_idx] -= psi_x[bucket_idx];
-        m_node_mshdvm_y[bucket_idx] = ms_y[bucket_idx] + m_node_hdvm_y[bucket_idx];
-        m_node_mfhdvm_y[bucket_idx] = mf_y[bucket_idx] + m_node_hdvm_y[bucket_idx];
-        m_node_epsilon_y[bucket_idx].setOnes();
-        m_node_epsilon_y[bucket_idx] -= psi_y[bucket_idx];
-        m_node_mshdvm_z[bucket_idx] = ms_z[bucket_idx] + m_node_hdvm_z[bucket_idx];
-        m_node_mfhdvm_z[bucket_idx] = mf_z[bucket_idx] + m_node_hdvm_z[bucket_idx];
-        m_node_epsilon_z[bucket_idx].setOnes();
-        m_node_epsilon_z[bucket_idx] -= psi_z[bucket_idx];
-    });
-    
-
-    allocateNodeVectors(scene, m_node_bi_r_S_x, m_node_bi_r_S_y, m_node_bi_r_S_z);
-    allocateNodeVectors(scene, m_node_bi_r_hat_S_x, m_node_bi_r_hat_S_y, m_node_bi_r_hat_S_z);
-    allocateNodeVectors(scene, m_node_bi_s_S_x, m_node_bi_s_S_y, m_node_bi_s_S_z);
-    allocateNodeVectors(scene, m_node_bi_p_S_x, m_node_bi_p_S_y, m_node_bi_p_S_z);
-    allocateNodeVectors(scene, m_node_bi_h_S_x, m_node_bi_h_S_y, m_node_bi_h_S_z);
-    allocateNodeVectors(scene, m_node_bi_t_S_x, m_node_bi_t_S_y, m_node_bi_t_S_z);
-    allocateNodeVectors(scene, m_node_bi_v_S_x, m_node_bi_v_S_y, m_node_bi_v_S_z);
-    
-    allocateNodeVectors(scene, m_node_bi_r_L_x, m_node_bi_r_L_y, m_node_bi_r_L_z);
-    allocateNodeVectors(scene, m_node_bi_r_hat_L_x, m_node_bi_r_hat_L_y, m_node_bi_r_hat_L_z);
-    allocateNodeVectors(scene, m_node_bi_s_L_x, m_node_bi_s_L_y, m_node_bi_s_L_z);
-    allocateNodeVectors(scene, m_node_bi_p_L_x, m_node_bi_p_L_y, m_node_bi_p_L_z);
-    allocateNodeVectors(scene, m_node_bi_h_L_x, m_node_bi_h_L_y, m_node_bi_h_L_z);
-    allocateNodeVectors(scene, m_node_bi_t_L_x, m_node_bi_t_L_y, m_node_bi_t_L_z);
-    allocateNodeVectors(scene, m_node_bi_v_L_x, m_node_bi_v_L_y, m_node_bi_v_L_z);
-    
-    allocateCenterNodeVectors(scene, m_node_bi_r_P);
-    allocateCenterNodeVectors(scene, m_node_bi_r_hat_P);
-    allocateCenterNodeVectors(scene, m_node_bi_s_P);
-    allocateCenterNodeVectors(scene, m_node_bi_p_P);
-    allocateCenterNodeVectors(scene, m_node_bi_h_P);
-    allocateCenterNodeVectors(scene, m_node_bi_t_P);
-    allocateCenterNodeVectors(scene, m_node_bi_v_P);
-    
-    constructHessianPreProcess(scene, dt);
-    constructHessianPostProcess(scene, dt);
-    
-    std::vector< VectorXs >& pressure = scene.getNodePressure();
-    
-    // rhat = r = b − Ax0
-    performGlobalMultiplyBiCGSTAB(scene, dt, m_node_v_plus_x, m_node_v_plus_y, m_node_v_plus_z, m_node_v_fluid_plus_x, m_node_v_fluid_plus_y, m_node_v_fluid_plus_z, pressure, m_node_bi_r_S_x, m_node_bi_r_S_y, m_node_bi_r_S_z, m_node_bi_r_L_x, m_node_bi_r_L_y, m_node_bi_r_L_z, m_node_bi_r_P);
-    
-    bucket.for_each_bucket([&] (int bucket_idx) {
-        m_node_bi_r_hat_S_x[bucket_idx] = m_node_bi_r_S_x[bucket_idx] = m_node_rhs_x[bucket_idx] - m_node_bi_r_S_x[bucket_idx];
-        m_node_bi_r_hat_L_x[bucket_idx] = m_node_bi_r_L_x[bucket_idx] = m_node_rhs_fluid_x[bucket_idx] - m_node_bi_r_L_x[bucket_idx];
-        m_node_bi_r_hat_S_y[bucket_idx] = m_node_bi_r_S_y[bucket_idx] = m_node_rhs_y[bucket_idx] - m_node_bi_r_S_y[bucket_idx];
-        m_node_bi_r_hat_L_y[bucket_idx] = m_node_bi_r_L_y[bucket_idx] = m_node_rhs_fluid_y[bucket_idx] - m_node_bi_r_L_y[bucket_idx];
-        m_node_bi_r_hat_S_z[bucket_idx] = m_node_bi_r_S_z[bucket_idx] = m_node_rhs_z[bucket_idx] - m_node_bi_r_S_z[bucket_idx];
-        m_node_bi_r_hat_L_z[bucket_idx] = m_node_bi_r_L_z[bucket_idx] = m_node_rhs_fluid_z[bucket_idx] - m_node_bi_r_L_z[bucket_idx];
-        m_node_bi_r_hat_P[bucket_idx] = m_node_bi_r_P[bucket_idx] = -m_node_bi_r_P[bucket_idx];
-    });
-    
-    // ρ0 = α = ω0 = 1
-    scalar rho0(1.0), alpha(1.0), omega(1.0);
-    scalar res_norm = sqrt(mathutils::sqr(lengthNodeVectors(m_node_bi_r_S_x, m_node_bi_r_S_y, m_node_bi_r_S_z)) +
-    mathutils::sqr(lengthNodeVectors(m_node_bi_r_L_x, m_node_bi_r_L_y, m_node_bi_r_L_z)) +
-    mathutils::sqr(lengthNodeVectors(m_node_bi_r_P))) / res_norm_0;
-    
-    int iter = 0;
-    if(res_norm < m_pcg_criterion) {
-        std::cout << "[bicgstab total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
-    } else {
-        while(iter < m_maxiters) {
-            
-            // ρi = (r̂0, ri−1)
-            scalar rho = dotNodeVectors(m_node_bi_r_hat_S_x, m_node_bi_r_hat_S_y, m_node_bi_r_hat_S_z, m_node_bi_r_S_x, m_node_bi_r_S_y, m_node_bi_r_S_z) + dotNodeVectors(m_node_bi_r_hat_L_x, m_node_bi_r_hat_L_y, m_node_bi_r_hat_L_z, m_node_bi_r_L_x, m_node_bi_r_L_y, m_node_bi_r_L_z) + dotNodeVectors(m_node_bi_r_hat_P, m_node_bi_r_P);
-            
-            // β = (ρi/ρi−1)(α/ωi−1)
-            scalar beta = (rho / rho0) * (alpha / omega);
-            
-            // pi = ri−1 + β(pi−1 − ωi−1vi−1)
-            bucket.for_each_bucket([&] (int bucket_idx) {
-                m_node_bi_p_S_x[bucket_idx] = m_node_bi_r_S_x[bucket_idx] + beta * (m_node_bi_p_S_x[bucket_idx] - omega * m_node_bi_v_S_x[bucket_idx]);
-                m_node_bi_p_L_x[bucket_idx] = m_node_bi_r_L_x[bucket_idx] + beta * (m_node_bi_p_L_x[bucket_idx] - omega * m_node_bi_v_L_x[bucket_idx]);
-                m_node_bi_p_S_y[bucket_idx] = m_node_bi_r_S_y[bucket_idx] + beta * (m_node_bi_p_S_y[bucket_idx] - omega * m_node_bi_v_S_y[bucket_idx]);
-                m_node_bi_p_L_y[bucket_idx] = m_node_bi_r_L_y[bucket_idx] + beta * (m_node_bi_p_L_y[bucket_idx] - omega * m_node_bi_v_L_y[bucket_idx]);
-                m_node_bi_p_S_z[bucket_idx] = m_node_bi_r_S_z[bucket_idx] + beta * (m_node_bi_p_S_z[bucket_idx] - omega * m_node_bi_v_S_z[bucket_idx]);
-                m_node_bi_p_L_z[bucket_idx] = m_node_bi_r_L_z[bucket_idx] + beta * (m_node_bi_p_L_z[bucket_idx] - omega * m_node_bi_v_L_z[bucket_idx]);
-                m_node_bi_p_P[bucket_idx] = m_node_bi_r_P[bucket_idx] + beta * (m_node_bi_p_P[bucket_idx] - omega * m_node_bi_v_P[bucket_idx]);
-            });
-            
-            // vi = Api
-            performGlobalMultiplyBiCGSTAB(scene, dt, m_node_bi_p_S_x, m_node_bi_p_S_y, m_node_bi_p_S_z, m_node_bi_p_L_x, m_node_bi_p_L_y, m_node_bi_p_L_z, m_node_bi_p_P, m_node_bi_v_S_x, m_node_bi_v_S_y, m_node_bi_v_S_z, m_node_bi_v_L_x, m_node_bi_v_L_y, m_node_bi_v_L_z, m_node_bi_v_P);
-            
-            // α = ρi/(r̂0, vi)
-            scalar rhatv = dotNodeVectors(m_node_bi_r_hat_S_x, m_node_bi_r_hat_S_y, m_node_bi_r_hat_S_z, m_node_bi_v_S_x, m_node_bi_v_S_y, m_node_bi_v_S_z) + dotNodeVectors(m_node_bi_r_hat_L_x, m_node_bi_r_hat_L_y, m_node_bi_r_hat_L_z, m_node_bi_v_L_x, m_node_bi_v_L_y, m_node_bi_v_L_z) + dotNodeVectors(m_node_bi_r_hat_P, m_node_bi_v_P);
-            
-            alpha = rho / rhatv;
-            
-            
-//            // If h is accurate enough, then set xi = h and quit
-//            scalar crit0 = alpha * sqrt(sqr(lengthNodeVectors(m_node_bi_p_S_x, m_node_bi_p_S_y, m_node_bi_p_S_z)) +
-//                                        sqr(lengthNodeVectors(m_node_bi_p_L_x, m_node_bi_p_L_y, m_node_bi_p_L_z)) +
-//                                        sqr(lengthNodeVectors(m_node_bi_p_P)));
-//            
-//            if(crit0 < m_pcg_criterion) {
-//                bucket.for_each_bucket([&] (int bucket_idx) {
-//                    m_node_v_plus_x[bucket_idx] = m_node_v_plus_x[bucket_idx] + alpha * m_node_bi_p_S_x[bucket_idx];
-//                    m_node_v_fluid_plus_x[bucket_idx] = m_node_v_fluid_plus_x[bucket_idx] + alpha * m_node_bi_p_L_x[bucket_idx];
-//                    m_node_v_plus_y[bucket_idx] = m_node_v_plus_y[bucket_idx] + alpha * m_node_bi_p_S_y[bucket_idx];
-//                    m_node_v_fluid_plus_y[bucket_idx] = m_node_v_fluid_plus_y[bucket_idx] + alpha * m_node_bi_p_L_y[bucket_idx];
-//                    m_node_v_plus_z[bucket_idx] = m_node_v_plus_z[bucket_idx] + alpha * m_node_bi_p_S_z[bucket_idx];
-//                    m_node_v_fluid_plus_z[bucket_idx] = m_node_v_fluid_plus_z[bucket_idx] + alpha * m_node_bi_p_L_z[bucket_idx];
-//                    pressure[bucket_idx] = pressure[bucket_idx] + alpha * m_node_bi_p_P[bucket_idx];
-//                });
-//                
-//                std::cout << "[bicgstab total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
-//                break;
-//            }
-            
-            // h = xi−1 + αpi
-            // s = ri−1 − αvi
-            bucket.for_each_bucket([&] (int bucket_idx) {
-                m_node_bi_h_S_x[bucket_idx] = m_node_v_plus_x[bucket_idx] + alpha * m_node_bi_p_S_x[bucket_idx];
-                m_node_bi_h_L_x[bucket_idx] = m_node_v_fluid_plus_x[bucket_idx] + alpha * m_node_bi_p_L_x[bucket_idx];
-                m_node_bi_s_S_x[bucket_idx] = m_node_bi_r_S_x[bucket_idx] - alpha * m_node_bi_v_S_x[bucket_idx];
-                m_node_bi_s_L_x[bucket_idx] = m_node_bi_r_L_x[bucket_idx] - alpha * m_node_bi_v_L_x[bucket_idx];
-                m_node_bi_h_S_y[bucket_idx] = m_node_v_plus_y[bucket_idx] + alpha * m_node_bi_p_S_y[bucket_idx];
-                m_node_bi_h_L_y[bucket_idx] = m_node_v_fluid_plus_y[bucket_idx] + alpha * m_node_bi_p_L_y[bucket_idx];
-                m_node_bi_s_S_y[bucket_idx] = m_node_bi_r_S_y[bucket_idx] - alpha * m_node_bi_v_S_y[bucket_idx];
-                m_node_bi_s_L_y[bucket_idx] = m_node_bi_r_L_y[bucket_idx] - alpha * m_node_bi_v_L_y[bucket_idx];
-                m_node_bi_h_S_z[bucket_idx] = m_node_v_plus_z[bucket_idx] + alpha * m_node_bi_p_S_z[bucket_idx];
-                m_node_bi_h_L_z[bucket_idx] = m_node_v_fluid_plus_z[bucket_idx] + alpha * m_node_bi_p_L_z[bucket_idx];
-                m_node_bi_s_S_z[bucket_idx] = m_node_bi_r_S_z[bucket_idx] - alpha * m_node_bi_v_S_z[bucket_idx];
-                m_node_bi_s_L_z[bucket_idx] = m_node_bi_r_L_z[bucket_idx] - alpha * m_node_bi_v_L_z[bucket_idx];
-                m_node_bi_h_P[bucket_idx] = pressure[bucket_idx] + alpha * m_node_bi_p_P[bucket_idx];
-                m_node_bi_s_P[bucket_idx] = m_node_bi_r_P[bucket_idx] - alpha * m_node_bi_v_P[bucket_idx];
-            });
-            
-            
-            // t = As
-            performGlobalMultiplyBiCGSTAB(scene, dt, m_node_bi_s_S_x, m_node_bi_s_S_y, m_node_bi_s_S_z, m_node_bi_s_L_x, m_node_bi_s_L_y, m_node_bi_s_L_z, m_node_bi_s_P, m_node_bi_t_S_x, m_node_bi_t_S_y, m_node_bi_t_S_z, m_node_bi_t_L_x, m_node_bi_t_L_y, m_node_bi_t_L_z, m_node_bi_t_P);
-            
-            
-            // ωi = (t, s)/(t, t)
-            scalar ts = dotNodeVectors(m_node_bi_t_S_x, m_node_bi_t_S_y, m_node_bi_t_S_z, m_node_bi_s_S_x, m_node_bi_s_S_y, m_node_bi_s_S_z) + dotNodeVectors(m_node_bi_t_L_x, m_node_bi_t_L_y, m_node_bi_t_L_z, m_node_bi_s_L_x, m_node_bi_s_L_y, m_node_bi_s_L_z) + dotNodeVectors(m_node_bi_t_P, m_node_bi_s_P);
-            
-            scalar tt = dotNodeVectors(m_node_bi_t_S_x, m_node_bi_t_S_y, m_node_bi_t_S_z, m_node_bi_t_S_x, m_node_bi_t_S_y, m_node_bi_t_S_z) + dotNodeVectors(m_node_bi_t_L_x, m_node_bi_t_L_y, m_node_bi_t_L_z, m_node_bi_t_L_x, m_node_bi_t_L_y, m_node_bi_t_L_z) + dotNodeVectors(m_node_bi_t_P, m_node_bi_t_P);
-            
-            omega = ts / tt;
-            
-            // xi = h + ωis
-            // ri = s − ωit
-            bucket.for_each_bucket([&] (int bucket_idx) {
-                m_node_v_plus_x[bucket_idx] = m_node_bi_h_S_x[bucket_idx] + omega * m_node_bi_s_S_x[bucket_idx];
-                m_node_v_fluid_plus_x[bucket_idx] = m_node_bi_h_L_x[bucket_idx] + omega * m_node_bi_s_L_x[bucket_idx];
-                m_node_bi_r_S_x[bucket_idx] = m_node_bi_s_S_x[bucket_idx] - omega * m_node_bi_t_S_x[bucket_idx];
-                m_node_bi_r_L_x[bucket_idx] = m_node_bi_s_L_x[bucket_idx] - omega * m_node_bi_t_L_x[bucket_idx];
-                m_node_v_plus_y[bucket_idx] = m_node_bi_h_S_y[bucket_idx] + omega * m_node_bi_s_S_y[bucket_idx];
-                m_node_v_fluid_plus_y[bucket_idx] = m_node_bi_h_L_y[bucket_idx] + omega * m_node_bi_s_L_y[bucket_idx];
-                m_node_bi_r_S_y[bucket_idx] = m_node_bi_s_S_y[bucket_idx] - omega * m_node_bi_t_S_y[bucket_idx];
-                m_node_bi_r_L_y[bucket_idx] = m_node_bi_s_L_y[bucket_idx] - omega * m_node_bi_t_L_y[bucket_idx];
-                m_node_v_plus_z[bucket_idx] = m_node_bi_h_S_z[bucket_idx] + omega * m_node_bi_s_S_z[bucket_idx];
-                m_node_v_fluid_plus_z[bucket_idx] = m_node_bi_h_L_z[bucket_idx] + omega * m_node_bi_s_L_z[bucket_idx];
-                m_node_bi_r_S_z[bucket_idx] = m_node_bi_s_S_z[bucket_idx] - omega * m_node_bi_t_S_z[bucket_idx];
-                m_node_bi_r_L_z[bucket_idx] = m_node_bi_s_L_z[bucket_idx] - omega * m_node_bi_t_L_z[bucket_idx];
-                pressure[bucket_idx] = m_node_bi_h_P[bucket_idx] + omega * m_node_bi_s_P[bucket_idx];
-                m_node_bi_r_P[bucket_idx] = m_node_bi_s_P[bucket_idx] - omega * m_node_bi_t_P[bucket_idx];
-            });
-            
-            // If xi is accurate enough, then quit
-            res_norm = sqrt(mathutils::sqr(lengthNodeVectors(m_node_bi_r_S_x, m_node_bi_r_S_y, m_node_bi_r_S_z)) +
-                            mathutils::sqr(lengthNodeVectors(m_node_bi_r_L_x, m_node_bi_r_L_y, m_node_bi_r_L_z)) +
-                            mathutils::sqr(lengthNodeVectors(m_node_bi_r_P))) / res_norm_0;
-            
-			if(scene.getLiquidInfo().iteration_print_step > 0 && iter % scene.getLiquidInfo().iteration_print_step == 0)
-            	std::cout << "[bicgstab iter: " << iter << ", res: " << res_norm << "]" << std::endl;
-
-            
-            if(res_norm < m_pcg_criterion) {
-                std::cout << "[bicgstab total iter: " << iter << ", res: " << res_norm << "]" << std::endl;
-                break;
-            }
-            
-            rho0 = rho;
-            ++iter;
-        }
-    }
-    
-    
-    if(ndof_elasto > 0) {
-        bucket.for_each_bucket([&] (int bucket_idx) {
-            scene.getNodeVelocityX()[bucket_idx] = m_node_v_plus_x[bucket_idx];
-            scene.getNodeVelocityY()[bucket_idx] = m_node_v_plus_y[bucket_idx];
-            scene.getNodeVelocityZ()[bucket_idx] = m_node_v_plus_z[bucket_idx];
-        });
-    }
-    
-    const int nfluid_parts = scene.getNumFluidParticles();
-    if(nfluid_parts > 0) {
-        pressure::identifyValid(scene);
-        
-        pressure::extrapolate(scene, scene.getNodeLiquidValidX(), scene.getNodeCompressedIndexX(), m_node_v_fluid_plus_x);
-        pressure::extrapolate(scene, scene.getNodeLiquidValidY(), scene.getNodeCompressedIndexY(), m_node_v_fluid_plus_y);
-        pressure::extrapolate(scene, scene.getNodeLiquidValidZ(), scene.getNodeCompressedIndexZ(), m_node_v_fluid_plus_z);
-        
-        scene.getNodeFluidVelocityX() = m_node_v_fluid_plus_x;
-        scene.getNodeFluidVelocityY() = m_node_v_fluid_plus_y;
-        scene.getNodeFluidVelocityZ() = m_node_v_fluid_plus_z;
-    }
-    
-    return true;
-}
-
-void LinearizedImplicitEuler::performGlobalMultiplyBiCGSTAB( const TwoDScene& scene, const scalar& dt,
-                                                            const std::vector< VectorXs >& node_v_s_x,
-                                                            const std::vector< VectorXs >& node_v_s_y,
-                                                            const std::vector< VectorXs >& node_v_s_z,
-                                                            const std::vector< VectorXs >& node_v_f_x,
-                                                            const std::vector< VectorXs >& node_v_f_y,
-                                                            const std::vector< VectorXs >& node_v_f_z,
-                                                            const std::vector< VectorXs >& node_v_p,
-                                                            std::vector< VectorXs >& out_node_vec_s_x,
-                                                            std::vector< VectorXs >& out_node_vec_s_y,
-                                                            std::vector< VectorXs >& out_node_vec_s_z,
-                                                            std::vector< VectorXs >& out_node_vec_f_x,
-                                                            std::vector< VectorXs >& out_node_vec_f_y,
-                                                            std::vector< VectorXs >& out_node_vec_f_z,
-                                                            std::vector< VectorXs >& out_node_vec_p )
-{
-    // build equ. solid
-    const Sorter& bucket = scene.getParticleBuckets();
-    
-    bucket.for_each_bucket([&] (int bucket_idx) {
-        out_node_vec_s_x[bucket_idx].setZero();
-        out_node_vec_s_y[bucket_idx].setZero();
-        out_node_vec_s_z[bucket_idx].setZero();
-        
-        out_node_vec_f_x[bucket_idx].setZero();
-        out_node_vec_f_y[bucket_idx].setZero();
-        out_node_vec_f_z[bucket_idx].setZero();
-        
-        out_node_vec_p[bucket_idx].setZero();
-    });
-    
-    performGlobalMultiply(scene, dt, m_node_mshdvm_x, m_node_mshdvm_y, m_node_mshdvm_z, node_v_s_x, node_v_s_y, node_v_s_z, out_node_vec_s_x, out_node_vec_s_y, out_node_vec_s_z);
-    
-    bucket.for_each_bucket([&] (int bucket_idx) {
-        out_node_vec_s_x[bucket_idx] -= VectorXs(m_node_hdvm_x[bucket_idx].array() * node_v_f_x[bucket_idx].array());
-        out_node_vec_f_x[bucket_idx] = VectorXs(m_node_mfhdvm_x[bucket_idx].array() * node_v_f_x[bucket_idx].array()) - VectorXs(m_node_hdvm_x[bucket_idx].array() * node_v_s_x[bucket_idx].array());
-        out_node_vec_s_y[bucket_idx] -= VectorXs(m_node_hdvm_y[bucket_idx].array() * node_v_f_y[bucket_idx].array());
-        out_node_vec_f_y[bucket_idx] = VectorXs(m_node_mfhdvm_y[bucket_idx].array() * node_v_f_y[bucket_idx].array()) - VectorXs(m_node_hdvm_y[bucket_idx].array() * node_v_s_y[bucket_idx].array());
-        out_node_vec_s_z[bucket_idx] -= VectorXs(m_node_hdvm_z[bucket_idx].array() * node_v_f_z[bucket_idx].array());
-        out_node_vec_f_z[bucket_idx] = VectorXs(m_node_mfhdvm_z[bucket_idx].array() * node_v_f_z[bucket_idx].array()) - VectorXs(m_node_hdvm_z[bucket_idx].array() * node_v_s_z[bucket_idx].array());
-    });
-    
-    pressure::applyPressureGradsElastoRHSBiCGSTAB(scene, node_v_p, out_node_vec_s_x, out_node_vec_s_y, out_node_vec_s_z, dt);
-    
-    // build equ. liquid
-    pressure::applyPressureGradsFluidRHSBiCGSTAB(scene, node_v_p, out_node_vec_f_x, out_node_vec_f_y, out_node_vec_f_z, dt);
-    
-    // build equ. pressure
-    const std::vector< VectorXs >& psi_x = scene.getNodePsiX();
-    const std::vector< VectorXs >& psi_y = scene.getNodePsiY();
-    const std::vector< VectorXs >& psi_z = scene.getNodePsiZ();
-    
-    pressure::constructDivEquationBiCGSTAB(scene, out_node_vec_p, m_node_epsilon_x, m_node_epsilon_y, m_node_epsilon_z, psi_x, psi_y, psi_z, node_v_f_x, node_v_f_y, node_v_f_z, node_v_s_x, node_v_s_y, node_v_s_z, dt);
 }

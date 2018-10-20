@@ -99,19 +99,19 @@ void SceneStepper::mapNodeToSoftParticles( const TwoDScene& scene, const std::ve
 
         scalar sum_x(0.), sum_y(0.), sum_z(0.);
 		for(int i = 0; i < 27; ++i) {
-			if(!indices_x(i, 2) || weights(i, 0) == 0.0) continue;
+			if(!scene.isBucketActivated(indices_x(i, 0)) || weights(i, 0) == 0.0) continue;
 			sum_x += node_vec_x[ indices_x(i, 0) ]( indices_x(i, 1) ) * weights(i, 0);
 		}
         part_vec(pidx * 4 + 0) = sum_x;
         
 		for(int i = 0; i < 27; ++i) {
-			if(!indices_y(i, 2) || weights(i, 1) == 0.0) continue;
+			if(!scene.isBucketActivated(indices_y(i, 0)) || weights(i, 1) == 0.0) continue;
 			sum_y += node_vec_y[ indices_y(i, 0) ]( indices_y(i, 1) ) * weights(i, 1);
 		}
         part_vec(pidx * 4 + 1) = sum_y;
 		
 		for(int i = 0; i < 27; ++i) {
-			if(!indices_z(i, 2) || weights(i, 2) == 0.0) continue;
+			if(!scene.isBucketActivated(indices_z(i, 0)) || weights(i, 2) == 0.0) continue;
 			sum_z += node_vec_z[ indices_z(i, 0) ]( indices_z(i, 1) ) * weights(i, 2);
 		}
         part_vec(pidx * 4 + 2) = sum_z;
@@ -188,10 +188,6 @@ void SceneStepper::buildLocalGlobalMapping( const TwoDScene& scene,
     effective_node_indices.resize(total_num_nodes);
     dof_ijk.resize(total_num_nodes);
     
-    const std::vector< VectorXi >& node_indices_x = scene.getNodeIndicesX();
-    const std::vector< VectorXi >& node_indices_y = scene.getNodeIndicesY();
-    const std::vector< VectorXi >& node_indices_z = scene.getNodeIndicesZ();
-    
     buckets.for_each_bucket([&] (int bucket_idx) {
         const Vector3i handle = buckets.bucket_handle(bucket_idx);
         
@@ -210,7 +206,7 @@ void SceneStepper::buildLocalGlobalMapping( const TwoDScene& scene,
                 
                 effective_node_indices[global_idx] = Vector3i(bucket_idx, 0, i);
                 
-                const Vector3i& local_handle = node_indices_x[bucket_idx].segment<3>(i * 3);
+                const Vector3i& local_handle = scene.getNodeHandle(i);
                 
                 dof_ijk[global_idx] = Vector3i(handle(0) * bucket_num_cell * 3 + local_handle(0),
                                                handle(1) * bucket_num_cell + local_handle(1),
@@ -230,7 +226,7 @@ void SceneStepper::buildLocalGlobalMapping( const TwoDScene& scene,
                 
                 effective_node_indices[global_idx] = Vector3i(bucket_idx, 1, i);
                 
-                const Vector3i& local_handle = node_indices_y[bucket_idx].segment<3>(i * 3);
+                const Vector3i& local_handle = scene.getNodeHandle(i);
                 
                 dof_ijk[global_idx] = Vector3i(handle(0) * bucket_num_cell * 3 + bucket_num_cell + local_handle(0),
                                                handle(1) * bucket_num_cell + local_handle(1),
@@ -250,7 +246,7 @@ void SceneStepper::buildLocalGlobalMapping( const TwoDScene& scene,
                 
                 effective_node_indices[global_idx] = Vector3i(bucket_idx, 2, i);
                 
-                const Vector3i& local_handle = node_indices_z[bucket_idx].segment<3>(i * 3);
+                const Vector3i& local_handle = scene.getNodeHandle(i);
                 
                 dof_ijk[global_idx] = Vector3i(handle(0) * bucket_num_cell * 3 + bucket_num_cell * 2 + local_handle(0),
                                                handle(1) * bucket_num_cell + local_handle(1),
@@ -287,7 +283,7 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
         auto& weights = scene.getParticleWeights(pidx);
 
         for(int i = 0; i < 27; ++i) {
-            if(!indices_x(i, 2) || weights(i, 0) == 0.0) {
+            if(!scene.isBucketActivated(indices_x(i, 0)) || weights(i, 0) == 0.0) {
                 tri_W[(pidx * 3 + 0) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_x[indices_x(i, 0)][indices_x(i, 1)];
@@ -299,7 +295,7 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
                 }
             }
             
-            if(!indices_y(i, 2) || weights(i, 1) == 0.0) {
+            if(!scene.isBucketActivated(indices_y(i, 0)) || weights(i, 1) == 0.0) {
                 tri_W[(pidx * 3 + 1) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_y[indices_y(i, 0)][indices_y(i, 1)];
@@ -311,7 +307,7 @@ void SceneStepper::buildNodeToSoftParticlesMat( const TwoDScene& scene,
                 }
             }
             
-            if(!indices_z(i, 2) || weights(i, 2) == 0.0) {
+            if(!scene.isBucketActivated(indices_z(i, 0)) || weights(i, 2) == 0.0) {
                 tri_W[(pidx * 3 + 2) * 27 + i] = Triplets(0, 0, 0.0);
             } else {
                 const int global_idx = node_global_indices_z[indices_z(i, 0)][indices_z(i, 1)];
@@ -345,24 +341,19 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
     const std::vector< Matrix27x4s >& particle_weights = scene.getParticleWeights();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_nodes_x = scene.getNumNodesX(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+		const int num_nodes = scene.getNumNodes(bucket_idx);
+        
 		VectorXs& bucket_node_vec_x = node_vec_x[ bucket_idx ];
-		
-		const int num_nodes_y = scene.getNumNodesY(bucket_idx);
 		VectorXs& bucket_node_vec_y = node_vec_y[ bucket_idx ];
-		
-		const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
 		VectorXs& bucket_node_vec_z = node_vec_z[ bucket_idx ];
 		
-		if(bucket_node_vec_x.size() != num_nodes_x) bucket_node_vec_x.resize( num_nodes_x );
-		if(bucket_node_vec_y.size() != num_nodes_y) bucket_node_vec_y.resize( num_nodes_y );
-		if(bucket_node_vec_z.size() != num_nodes_z) bucket_node_vec_z.resize( num_nodes_z );
+		if(bucket_node_vec_x.size() != num_nodes) bucket_node_vec_x.resize( num_nodes );
+		if(bucket_node_vec_y.size() != num_nodes) bucket_node_vec_y.resize( num_nodes );
+		if(bucket_node_vec_z.size() != num_nodes) bucket_node_vec_z.resize( num_nodes );
 		
-		const VectorXs& node_pos_x = scene.getNodePosX( bucket_idx );
-		const VectorXs& node_pos_y = scene.getNodePosY( bucket_idx );
-		const VectorXs& node_pos_z = scene.getNodePosZ( bucket_idx );
-		
-		for(int i = 0; i < num_nodes_x; ++i) {
+		for(int i = 0; i < num_nodes; ++i) {
 			auto& particle_indices = scene.getNodeParticlePairsX(bucket_idx, i);
 
             scalar ret(0.);
@@ -378,7 +369,7 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
             bucket_node_vec_x(i) = ret;
 		}
 		
-		for(int i = 0; i < num_nodes_y; ++i) {
+		for(int i = 0; i < num_nodes; ++i) {
 			auto& particle_indices = scene.getNodeParticlePairsY(bucket_idx, i);
 
             scalar ret(0.);
@@ -393,7 +384,7 @@ void SceneStepper::mapSoftParticlesToNode( const TwoDScene& scene, std::vector< 
             bucket_node_vec_y(i) = ret;
 		}
 		
-		for(int i = 0; i < num_nodes_z; ++i) {
+		for(int i = 0; i < num_nodes; ++i) {
 			auto& particle_indices = scene.getNodeParticlePairsZ(bucket_idx, i);
 
             scalar ret(0.);
@@ -424,20 +415,19 @@ void SceneStepper::mapSoftParticlesToNodeSqr( const TwoDScene& scene, std::vecto
     const std::vector< Matrix27x4s >& particle_weights = scene.getParticleWeights();
     
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_nodes_x = scene.getNumNodesX(bucket_idx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+        
         VectorXs& bucket_node_vec_x = node_vec_x[ bucket_idx ];
-        
-        const int num_nodes_y = scene.getNumNodesY(bucket_idx);
         VectorXs& bucket_node_vec_y = node_vec_y[ bucket_idx ];
-        
-        const int num_nodes_z = scene.getNumNodesZ(bucket_idx);
         VectorXs& bucket_node_vec_z = node_vec_z[ bucket_idx ];
         
-        if(bucket_node_vec_x.size() != num_nodes_x) bucket_node_vec_x.resize( num_nodes_x );
-        if(bucket_node_vec_y.size() != num_nodes_y) bucket_node_vec_y.resize( num_nodes_y );
-        if(bucket_node_vec_z.size() != num_nodes_z) bucket_node_vec_z.resize( num_nodes_z );
+        if(bucket_node_vec_x.size() != num_nodes) bucket_node_vec_x.resize( num_nodes );
+        if(bucket_node_vec_y.size() != num_nodes) bucket_node_vec_y.resize( num_nodes );
+        if(bucket_node_vec_z.size() != num_nodes) bucket_node_vec_z.resize( num_nodes );
         
-        for(int i = 0; i < num_nodes_x; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
             auto& particle_indices = scene.getNodeParticlePairsX(bucket_idx, i);
 
             scalar ret(0.);
@@ -454,7 +444,7 @@ void SceneStepper::mapSoftParticlesToNodeSqr( const TwoDScene& scene, std::vecto
             bucket_node_vec_x(i) = ret;
         }
         
-        for(int i = 0; i < num_nodes_y; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
             auto& particle_indices = scene.getNodeParticlePairsY(bucket_idx, i);
 
             scalar ret(0.);
@@ -470,7 +460,7 @@ void SceneStepper::mapSoftParticlesToNodeSqr( const TwoDScene& scene, std::vecto
             bucket_node_vec_y(i) = ret;
         }
         
-        for(int i = 0; i < num_nodes_z; ++i) {
+        for(int i = 0; i < num_nodes; ++i) {
             auto& particle_indices = scene.getNodeParticlePairsZ(bucket_idx, i);
 
             scalar ret(0.);
@@ -495,14 +485,12 @@ void SceneStepper::mapGaussToNode( const TwoDScene& scene, std::vector< VectorXs
     const scalar iD = scene.getInverseDCoeff();
 	
 	//	std::cout << "gauss_vec: \n" << gauss_vec << std::endl;
-    const std::vector< VectorXs >& node_pos_x = scene.getNodePosX();
-    const std::vector< VectorXs >& node_pos_y = scene.getNodePosY();
-    const std::vector< VectorXs >& node_pos_z = scene.getNodePosZ();
-    
     const VectorXs& gauss_x = scene.getGaussX();
 	
 	g_buckets.for_each_bucket_particles_colored([&] (int pidx, int bucket_idx) {
-		auto& indices_x = scene.getGaussNodesX(pidx);
+        if(!scene.isBucketActivated(bucket_idx)) return;
+        
+        auto& indices_x = scene.getGaussNodesX(pidx);
 		auto& indices_y = scene.getGaussNodesY(pidx);
 		auto& indices_z = scene.getGaussNodesZ(pidx);
 
@@ -514,9 +502,9 @@ void SceneStepper::mapGaussToNode( const TwoDScene& scene, std::vector< VectorXs
 			const int node_bucket_idx = indices_x(i, 0);
 			const int node_idx = indices_x(i, 1);
             
-            if(!indices_x(i, 2)) continue;
+            if(!scene.isBucketActivated(node_bucket_idx)) continue;
             
-            const Vector3s& np = node_pos_x[node_bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = scene.getNodePosX(node_bucket_idx, node_idx);
 			node_vec_x[node_bucket_idx](node_idx) += iD * weights(i, 0) * gauss_vec.block<1, 3>(pidx * 3 + 0, 0).dot(np - pos);
 		}
 		
@@ -525,9 +513,9 @@ void SceneStepper::mapGaussToNode( const TwoDScene& scene, std::vector< VectorXs
 			const int node_bucket_idx = indices_y(i, 0);
 			const int node_idx = indices_y(i, 1);
             
-            if(!indices_y(i, 2)) continue;
+            if(!scene.isBucketActivated(node_bucket_idx)) continue;
             
-            const Vector3s& np = node_pos_y[node_bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = scene.getNodePosY(node_bucket_idx, node_idx);
 			node_vec_y[node_bucket_idx](node_idx) += iD * weights(i, 1) * gauss_vec.block<1, 3>(pidx * 3 + 1, 0).dot(np - pos);
 		}
 		
@@ -536,9 +524,9 @@ void SceneStepper::mapGaussToNode( const TwoDScene& scene, std::vector< VectorXs
 			const int node_bucket_idx = indices_z(i, 0);
 			const int node_idx = indices_z(i, 1);
             
-            if(!indices_z(i, 2)) continue;
+            if(!scene.isBucketActivated(node_bucket_idx)) continue;
             
-            const Vector3s& np = node_pos_z[node_bucket_idx].segment<3>(node_idx * 3);
+            const Vector3s& np = scene.getNodePosZ(node_bucket_idx, node_idx);
 			node_vec_z[node_bucket_idx](node_idx) += iD * weights(i, 2) * gauss_vec.block<1, 3>(pidx * 3 + 2, 0).dot(np - pos);
 		}
 	}, scene.getNumBucketColors());
@@ -553,8 +541,9 @@ void SceneStepper::allocateCenterNodeVectors( const TwoDScene& scene, std::vecto
     const Sorter& buckets = scene.getParticleBuckets();
     
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_node_p = scene.getNumNodesP(bucket_idx);
-        node_vec_p[bucket_idx].resize(num_node_p);
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+        
+        node_vec_p[bucket_idx].resize(num_nodes);
         node_vec_p[bucket_idx].setZero();
     });
 }
@@ -568,8 +557,9 @@ void SceneStepper::allocateCenterNodeVectors( const TwoDScene& scene, std::vecto
     const Sorter& buckets = scene.getParticleBuckets();
     
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_node_p = scene.getNumNodesP(bucket_idx);
-        node_vec_p[bucket_idx].resize(num_node_p);
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+        
+        node_vec_p[bucket_idx].resize(num_nodes);
         node_vec_p[bucket_idx].setZero();
     });
 }
@@ -585,16 +575,13 @@ void SceneStepper::allocateNodeVectors( const TwoDScene& scene, std::vector< Vec
 	const Sorter& buckets = scene.getParticleBuckets();
 	
 	buckets.for_each_bucket([&] (int bucket_idx) {
-		const int num_node_x = scene.getNumNodesX(bucket_idx);
-		node_vec_x[bucket_idx].resize(num_node_x);
+		const int num_nodes = scene.getNumNodes(bucket_idx);
+        
+		node_vec_x[bucket_idx].resize(num_nodes);
 		node_vec_x[bucket_idx].setZero();
-		
-		const int num_node_y = scene.getNumNodesY(bucket_idx);
-		node_vec_y[bucket_idx].resize(num_node_y);
+		node_vec_y[bucket_idx].resize(num_nodes);
 		node_vec_y[bucket_idx].setZero();
-		
-		const int num_node_z = scene.getNumNodesZ(bucket_idx);
-		node_vec_z[bucket_idx].resize(num_node_z);
+		node_vec_z[bucket_idx].resize(num_nodes);
 		node_vec_z[bucket_idx].setZero();
 	});
 }
@@ -610,16 +597,13 @@ void SceneStepper::allocateNodeVectors( const TwoDScene& scene, std::vector< Vec
     const Sorter& buckets = scene.getParticleBuckets();
     
     buckets.for_each_bucket([&] (int bucket_idx) {
-        const int num_node_x = scene.getNumNodesX(bucket_idx);
-        node_vec_x[bucket_idx].resize(num_node_x);
+        const int num_nodes = scene.getNumNodes(bucket_idx);
+        
+        node_vec_x[bucket_idx].resize(num_nodes);
         node_vec_x[bucket_idx].setZero();
-        
-        const int num_node_y = scene.getNumNodesY(bucket_idx);
-        node_vec_y[bucket_idx].resize(num_node_y);
+        node_vec_y[bucket_idx].resize(num_nodes);
         node_vec_y[bucket_idx].setZero();
-        
-        const int num_node_z = scene.getNumNodesZ(bucket_idx);
-        node_vec_z[bucket_idx].resize(num_node_z);
+        node_vec_z[bucket_idx].resize(num_nodes);
         node_vec_z[bucket_idx].setZero();
     });
 }
