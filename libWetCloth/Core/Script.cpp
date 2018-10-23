@@ -81,7 +81,7 @@ void Script::stepScript( const scalar& dt, const scalar& current_time )
 				if(dx > 0.0) {
 					VectorXs nv = vec / dx;
 					
-					scalar vel = getNextVelocity( dt, current_time + dt );
+					scalar vel = getNextVelocity( dt, current_time );
 					trans += nv * vel * dt;
 					m_scene->getGroupDistanceField( group_index )->apply_translation(nv * vel * dt);
 				}
@@ -90,7 +90,7 @@ void Script::stepScript( const scalar& dt, const scalar& current_time )
 			}
 			case Script::ROTATE:
 			{
-				scalar vel = getNextVelocity( dt, current_time + dt );
+				scalar vel = getNextVelocity( dt, current_time );
 				scalar da = vel * dt;
 				Vector3s axis(v(0), v(1), v(2));
 				
