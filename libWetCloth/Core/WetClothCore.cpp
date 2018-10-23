@@ -127,17 +127,40 @@ void WetClothCore::stepSystem(const scalar &dt){
 		
 		// Emit Liquid Particles for Liquid Sources
 		m_scene->sampleLiquidDistanceFields(cur_time + sub_dt);
-        
+		
+		// Remove Liquid Particles outside Simulation Domain (to save time)
+		std::cout << "[terminate particles]" << std::endl;
+		m_scene->terminateParticles();
+		
+		// Calculate the Optimal Volume of Liquid Particles
+		std::cout << "[update optimal volume]" << std::endl;
+		m_scene->updateOptiVolume();
+		
+		// Split the Liquid Particles if They are too Large
+		std::cout << "[split particles]" << std::endl;
+		m_scene->splitLiquidParticles();
+		
+		// Merge the Liquid Particles if They are too Small
+		std::cout << "[merge particles]" << std::endl;
+		m_scene->mergeLiquidParticles();
+		t1 = timingutils::seconds();
+		timing_buffer[0] += t1 - t0; // Merge & Split Particles
+		t0 = t1;
+		
         // Create Grid around Particles
         m_scene->updateParticleBoundingBox();
         m_scene->rebucketizeParticles();
         m_scene->resampleNodes();
         t1 = timingutils::seconds();
-        timing_buffer[0] += t1 - t0; // build Grid
+        timing_buffer[1] += t1 - t0; // build Grid
         t0 = t1;
         
-        // Apply Flow-Rule to Particles
-        m_scene->postProcess(sub_dt);
+        // Update Particle-Node Weight
+        m_scene->computeWeights(sub_dt);
+		
+		// Update Solid Stress
+		m_scene->computedEdFe();
+		
         m_scene->updateManifoldOperators();
 
 		// Update the Orientation Field
@@ -165,7 +188,7 @@ void WetClothCore::stepSystem(const scalar &dt){
         m_scene->saveParticleVelocity();
 		
         t1 = timingutils::seconds();
-        timing_buffer[1] += t1 - t0; // Plasticity, Solid Stress, and Compute Distance Field (all above)
+        timing_buffer[2] += t1 - t0; // Compute Weight, Solid Stress, and Distance Field (all above)
         t0 = t1;
 		
 		// Map the Liquid Particles and Elastic Vertices onto Grid
@@ -181,13 +204,13 @@ void WetClothCore::stepSystem(const scalar &dt){
 		m_scene->updatePorePressureNodes();
 		
 		t1 = timingutils::seconds();
-		timing_buffer[2] += t1 - t0; // APIC Mapping & Computing the Fields (all above)
+		timing_buffer[3] += t1 - t0; // APIC Mapping & Computing the Fields (all above)
 		t0 = t1;
 		
         // Explicitly Integrate the Elastic and Liquid Velocity
         m_scene_stepper->stepVelocity( *m_scene, sub_dt );
         t1 = timingutils::seconds();
-        timing_buffer[3] += t1 - t0; // Velocity Prediction
+        timing_buffer[4] += t1 - t0; // Velocity Prediction
         t0 = t1;
         
         // Check Divergence if Necessary
@@ -198,14 +221,14 @@ void WetClothCore::stepSystem(const scalar &dt){
         // Do Pressure Projection for the Mixture
         m_scene_stepper->projectFine( *m_scene, sub_dt );
         t1 = timingutils::seconds();
-        timing_buffer[4] += t1 - t0; // Pressure Projection
+        timing_buffer[5] += t1 - t0; // Pressure Projection
         t0 = t1;
         
         if(m_scene->getLiquidInfo().solve_solid) {
             // Apply Pressure Gradient to Solid
             m_scene_stepper->applyPressureDragElasto(*m_scene, sub_dt);
             t1 = timingutils::seconds();
-            timing_buffer[5] += t1 - t0; // Timing the Pressure Gradient Application
+            timing_buffer[6] += t1 - t0; // Timing the Pressure Gradient Application
             t0 = t1;
         }
         
@@ -223,14 +246,14 @@ void WetClothCore::stepSystem(const scalar &dt){
             // Implicitly Integrate the Elastic Objects
             m_scene_stepper->stepImplicitElasto( *m_scene, sub_dt );
             t1 = timingutils::seconds();
-            timing_buffer[5] += t1 - t0; // Solve solid velocity
+            timing_buffer[6] += t1 - t0; // Solve solid velocity
             t0 = t1;
         }
         
         // Apply Pressure Gradient to Liquid
         m_scene_stepper->applyPressureDragFluid(*m_scene, sub_dt);
         t1 = timingutils::seconds();
-        timing_buffer[6] += t1 - t0; // Solve Fluid velocity
+        timing_buffer[7] += t1 - t0; // Solve Fluid velocity
         t0 = t1;
         
         // Update the Current Velocity with the Solved Ones
@@ -246,13 +269,13 @@ void WetClothCore::stepSystem(const scalar &dt){
 		// Relax the Liquid Particles (see [Ando et al. 2011] for details)
 		m_scene->correctLiquidParticles(sub_dt);
 		t1 = timingutils::seconds();
-		timing_buffer[7] += t1 - t0; // Particle Correction
+		timing_buffer[8] += t1 - t0; // Particle Correction
 		t0 = t1;
 		
 		// Transfer Velocity Back to Particles and Elastic Vertices
 		m_scene->mapNodeParticlesAPIC();
 		t1 = timingutils::seconds();
-		timing_buffer[8] += t1 - t0; // APIC Map Particle Back
+		timing_buffer[9] += t1 - t0; // APIC Map Particle Back
 		t0 = t1;
 
 		// Update the Multipliers applied on Geometric Stiffness
@@ -265,19 +288,19 @@ void WetClothCore::stepSystem(const scalar &dt){
 		// Kinematic Projection of the Elastic Vertices at the Boundary (as Fail-safe)
         m_scene->solidProjection( sub_dt );
         t1 = timingutils::seconds();
-        timing_buffer[9] += t1 - t0; // Particle Advection
+        timing_buffer[10] += t1 - t0; // Particle Advection
         t0 = t1;
 		
 		// Distribute the Liquid Volume onto Elastic Vertices (Capturing)
         m_scene->distributeFluidElasto(sub_dt);
         t1 = timingutils::seconds();
-        timing_buffer[10] += t1 - t0; // Liquid Capturing
+        timing_buffer[11] += t1 - t0; // Liquid Capturing
         t0 = t1;
 		
 		// Emit Liquid Particles for Overflowed Elastic Vertices (Dripping)
         m_scene->distributeElastoFluid();
         t1 = timingutils::seconds();
-        timing_buffer[11] += t1 - t0; // Liquid Dripping
+        timing_buffer[12] += t1 - t0; // Liquid Dripping
         t0 = t1;
 		
 		// Update the Velocity Displacement
@@ -289,32 +312,14 @@ void WetClothCore::stepSystem(const scalar &dt){
 		// Solve the Quasi-Static Equation on Elastic Vertices
         m_scene_stepper->manifoldPropagate( *m_scene, sub_dt );
         t1 = timingutils::seconds();
-        timing_buffer[12] += t1 - t0; // Solve Quasi-Static Equations
-        t0 = t1;
-		
-		// Remove Liquid Particles outside Simulation Domain (to save time)
-        std::cout << "[terminate particles]" << std::endl;
-        m_scene->terminateParticles();
-		
-		// Calculate the Optimal Volume of Liquid Particles
-        std::cout << "[update optimal volume]" << std::endl;
-        m_scene->updateOptiVolume();
-		
-		// Split the Liquid Particles if They are too Large
-        std::cout << "[split particles]" << std::endl;
-        m_scene->splitLiquidParticles();
-		
-		// Merge the Liquid Particles if They are too Small
-        std::cout << "[merge particles]" << std::endl;
-        m_scene->mergeLiquidParticles();
-        t1 = timingutils::seconds();
-        timing_buffer[13] += t1 - t0; // Merge & Split Particles
+        timing_buffer[13] += t1 - t0; // Solve Quasi-Static Equations
         t0 = t1;
 		
 		// Update the Variables on Elements
 		// We denote elements as 'Gauss' since they are computed at the Gaussian Quadrature Point (1-Point).
-        std::cout << "[update gauss system]" << std::endl;
+        std::cout << "[update gauss system and plasticity]" << std::endl;
         m_scene->updateGaussSystem(sub_dt);
+		m_scene->updatePlasticity(sub_dt);
         t1 = timingutils::seconds();
         timing_buffer[14] += t1 - t0; // update Deformation Gradient
         t0 = t1;

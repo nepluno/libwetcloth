@@ -49,8 +49,9 @@
 #endif
 
 const static char* g_timing_labels[] = {
+	"Sample, Merge and Split Particles",
     "Build Sparse MAC Grid",
-    "Plasticity, Solid Stress and Kernel Weights",
+    "Compute Weight, Solid Stress, and Distance Field",
     "APIC Particle/Vertex-to-Grid Transfer",
     "Force Integration and Velocity Prediction",
     "Solve Poisson Equation",
@@ -62,8 +63,7 @@ const static char* g_timing_labels[] = {
     "Liquid Capturing",
     "Liquid Dripping",
     "Solve Quasi-Static Equation",
-    "Merge and Split Particles",
-    "Update Deformation Gradient"
+    "Update Deformation Gradient and Plasticity"
 };
 const static int num_timing_labels = sizeof(g_timing_labels) / sizeof(const char*);
 

@@ -1623,13 +1623,9 @@ void TwoDScene::initGaussSystem()
         m_D_inv_gauss.block<3, 3>(i * 3, 0).setIdentity();
         m_D_gauss.block<3, 3>(i * 3, 0).setIdentity();
     });
-    
-    computedEdFe(m_dFe_gauss);
 }
 
-void TwoDScene::computedEdFe(MatrixXs &dFe){
-    assert(dFe.rows()==m_Fe_gauss.rows());
-    assert(dFe.cols()==m_Fe_gauss.cols());
+void TwoDScene::computedEdFe(){
     const int num_gauss = getNumGausses();
     const int num_edges = getNumEdges();
     
@@ -1674,7 +1670,7 @@ void TwoDScene::computedEdFe(MatrixXs &dFe){
         assert(!std::isnan(dphidd.sum()));
         assert(!std::isinf(dphidd.sum()));
         
-        dFe.block<3,3>(i*3,0) = dphidd * m_D_gauss.block<3,3>(i*3,0).transpose();
+        m_dFe_gauss.block<3,3>(i*3,0) = dphidd * m_D_gauss.block<3,3>(i*3,0).transpose();
         
     });
     
@@ -1708,7 +1704,7 @@ void TwoDScene::computedEdFe(MatrixXs &dFe){
         Matrix3s DK = dphidrRt.diagonal().asDiagonal();
         Matrix3s dphidd = Q * (tauK + tauKt - DK) * R.inverse().transpose();
         
-        dFe.block<3, 3>(i * 3, 0) = dphidd * m_D_gauss.block<3, 3>(i * 3, 0).transpose();
+        m_dFe_gauss.block<3, 3>(i * 3, 0) = dphidd * m_D_gauss.block<3, 3>(i * 3, 0).transpose();
     });
 }
 
@@ -2342,17 +2338,13 @@ void TwoDScene::updateGaussWeights(scalar dt)
     });
 }
 
-void TwoDScene::postProcess(scalar dt)
+void TwoDScene::computeWeights(scalar dt)
 {
     updateParticleWeights(dt, 0, getNumParticles());
     
     updateGaussWeights(dt);
     
     buildNodeParticlePairs();
-    
-    updatePlasticity(dt);
-    
-    computedEdFe(m_dFe_gauss);
 }
 
 void TwoDScene::buildNodeParticlePairs()
@@ -2461,9 +2453,7 @@ void TwoDScene::splitLiquidParticles()
     
     const scalar rad_fine = mathutils::defaultRadiusMultiplier() * getCellSize() * m_liquid_info.particle_cell_multiplier;
     const scalar V_fine = 4.0 / 3.0 * M_PI * rad_fine * rad_fine * rad_fine;
-    
-    std::cout << "[split liquid particles: 00]" << std::endl;
-    
+
     threadutils::for_each(0, num_fluids, [&] (int fidx) {
         const int pidx = m_fluids[fidx];
         if(m_classifier[pidx] != PC_L) return;
@@ -2501,9 +2491,7 @@ void TwoDScene::splitLiquidParticles()
         m_particle_rest_area(pidx) = M_PI * new_rad * new_rad;
         m_classifier[pidx] = PC_o;
     });
-    
-    std::cout << "[split liquid particles: 01]" << std::endl;
-    
+	
     std::partial_sum(n_additional.begin(), n_additional.end(), n_additional.begin());
     
     const int num_add = n_additional[n_additional.size() - 1];
@@ -2516,9 +2504,7 @@ void TwoDScene::splitLiquidParticles()
     const int old_num_fluids = getNumFluidParticles();
     
     m_fluids.resize(old_num_fluids + num_add);
-    
-    std::cout << "[split liquid particles: 02]" << std::endl;
-    
+	
     threadutils::for_each(0, num_fluids, [&] (int fidx_parent) {
         const int pidx_parent = m_fluids[fidx_parent];
         const int idx_np = ((fidx_parent == 0) ? 0 : n_additional[fidx_parent - 1]);
@@ -2560,20 +2546,14 @@ void TwoDScene::splitLiquidParticles()
             m_fluids[fidx] = pidx;
         }
     });
-    
-    std::cout << "[split liquid particles: 03]" << std::endl;
-    
+	
     m_particle_buckets.sort(getNumParticles(), [&] (int pidx, int& i, int& j, int& k) {
         i = (int)floor((m_x(pidx * 4 + 0) - m_bucket_mincorner(0)) / m_bucket_size);
         j = (int)floor((m_x(pidx * 4 + 1) - m_bucket_mincorner(1)) / m_bucket_size);
         k = (int)floor((m_x(pidx * 4 + 2) - m_bucket_mincorner(2)) / m_bucket_size);
     });
-    
-    std::cout << "[split liquid particles: 04]" << std::endl;
-    
+	
     relabelLiquidParticles();
-    
-    std::cout << "[split liquid particles: 05]" << std::endl;
 }
 
 void TwoDScene::relabelLiquidParticles()

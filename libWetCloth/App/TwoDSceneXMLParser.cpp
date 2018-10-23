@@ -527,7 +527,9 @@ void TwoDSceneXMLParser::loadParticleSimulation(bool rendering_enabled, std::sha
 	scene->rebucketizeParticles();
 	scene->resampleNodes();
 	scene->updateManifoldOperators();
-	scene->postProcess(0.0);
+	scene->computeWeights(0.0);
+	scene->updatePlasticity(0.0);
+	scene->computedEdFe();
     scene->updateOrientation();
 	
 	scene->updateSolidPhi();

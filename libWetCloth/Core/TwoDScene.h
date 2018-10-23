@@ -719,7 +719,7 @@ public:
 	
     void accumulateAngularddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx = VectorXs(), const VectorXs& dv = VectorXs() );
 
-    void computedEdFe(MatrixXs& dFe);
+    void computedEdFe();
 	
     scalar computeKineticEnergy() const;
     scalar computePotentialEnergy() const;
@@ -754,7 +754,7 @@ public:
 	void resampleNodes();
 	void updateParticleWeights(scalar dt, int start, int end);
 	void updateGaussWeights(scalar dt);
-	void postProcess(scalar dt);
+	void computeWeights(scalar dt);
 	void updateSolidWeights();
 	void updateLiquidPhi(scalar dt);
     void extendLiquidPhi();
