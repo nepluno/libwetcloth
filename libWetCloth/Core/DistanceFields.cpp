@@ -53,6 +53,7 @@
 #include "Capsule.h"
 #include "Icosphere.h"
 #include "RoundCornerBox.h"
+#include "makelevelset3.h"
 
 #include <numeric>
 
@@ -426,14 +427,11 @@ bool DistanceFieldObject::check_durations(const scalar& cur_time, const scalar& 
 }
 
 
-DistanceFieldObject::DistanceFieldObject(const Vector3s& center_, const VectorXs& parameter_, DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, bool inside, const Vector3s& raxis, const scalar& rangle, int group_, int params_index_, bool sampled_, const std::vector< DF_SOURCE_DURATION >& durations_)
+DistanceFieldObject::DistanceFieldObject(const Vector3s& center_, const VectorXs& parameter_, DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, bool inside, const Vector3s& raxis, const scalar& rangle, int group_, int params_index_, bool sampled_, const std::vector< DF_SOURCE_DURATION >& durations_, const std::string& szfn, const std::string& szfn_cache)
 : DistanceField(type_, usage_, group_, params_index_, sampled_), center(center_), parameter(parameter_), sign(inside ? -1.0 : 1.0), rot(Eigen::AngleAxis<scalar>(rangle, raxis)), durations(durations_)
 {
 	V.setZero();
 	omega.setZero();
-	
-	future_center = center;
-	future_rot = rot;
 	
 	switch(type_) {
 		case DFT_BOX:
@@ -445,9 +443,16 @@ DistanceFieldObject::DistanceFieldObject(const Vector3s& center_, const VectorXs
 		case DFT_CAPSULE:
 			mesh = std::make_shared<Capsule>(32, parameter(0), parameter(1));
 			break;
+        case DFT_FILE:
+            mesh = std::make_shared<SolidMesh>(szfn, parameter(0));
+            process_file_mesh(szfn_cache);
+            break;
 		default:
 			mesh = nullptr;
 	}
+    
+    future_center = center;
+    future_rot = rot;
 }
 
 void DistanceFieldObject::resample_mesh(const scalar& dx, VectorXs& result, VectorXs& normals)
@@ -564,11 +569,64 @@ scalar DistanceFieldObject::compute_phi(const Vector3s& pos) const
 			phi = sign * capsule_phi(rotp, center, parameter(0), parameter(1));
 			break;
 		}
+            
+        case DFT_FILE:
+        {
+            Eigen::Quaternion<scalar> p0(0.0, dx(0), dx(1), dx(2));
+            Eigen::Quaternion<scalar> irot = rot.conjugate();
+            Vector3s rotp_coord = ((irot * p0 * irot.inverse()).vec() - volume_origin) / parameter(1);
+            phi = sign * interpolate_value(rotp_coord, volume);
+            break;
+        }
 		default:
 			break;
 	}
 	
 	return phi;
+}
+
+void DistanceFieldObject::process_file_mesh(const std::string& szfn_cache)
+{
+    // pre-process mesh
+    Vector3s centre = mesh->getCenter();
+    mesh->translate(-centre);
+    
+    center += centre;
+    
+    Vector3s bbx_min, bbx_max;
+    mesh->boundingBox(bbx_min, bbx_max);
+    
+    const scalar dx = parameter(1);
+    bbx_min -= Vector3s::Constant(dx * 3.0);
+    bbx_max += Vector3s::Constant(dx * 3.0);
+    
+    volume_origin = bbx_min;
+    
+    // check if cache exist
+    if(!szfn_cache.empty()) {
+        std::ifstream ifs(szfn_cache, std::ios::binary);
+        
+        if(ifs.good()) {
+            // read from file directly
+            read_binary_array(ifs, volume);
+            ifs.close();
+            return;
+        }
+    }
+    
+    Vector3s extend = (bbx_max - bbx_min) / dx;
+    
+    int nx = (int) ceil(extend(0));
+    int ny = (int) ceil(extend(1));
+    int nz = (int) ceil(extend(2));
+    
+    make_level_set3(mesh->getIndices(), mesh->getVertices(), volume_origin, dx, nx, ny, nz, volume);
+    
+    if(!szfn_cache.empty()) {
+        std::ofstream ofs(szfn_cache, std::ios::binary);
+        write_binary_array(ofs, volume);
+        ofs.close();
+    }
 }
 
 scalar DistanceFieldObject::compute_phi_vel(const Vector3s& pos, Vector3s& vel) const
@@ -610,6 +668,11 @@ bool DistanceFieldObject::local_bounding_box(Vector3s& bbx_low, Vector3s& bbx_hi
 		case DFT_BOX:
 			box_phi_bbx(center, rot, Vector3s(parameter(0), parameter(1), parameter(2)), parameter(3), bbx_low, bbx_high);
 			break;
+        case DFT_FILE:
+            mesh->boundingBox(bbx_low, bbx_high, rot);
+            bbx_low += center;
+            bbx_high += center;
+            break;
 		default:
 			break;
 	}

@@ -48,6 +48,8 @@
 
 #include "MathDefs.h"
 #include "SolidMesh.h"
+#include "array3.h"
+#include "array3_utils.h"
 
 class TwoDScene;
 
@@ -73,6 +75,7 @@ enum DISTANCE_FIELD_TYPE
 	DFT_SPHERE,
 	DFT_BOX,
 	DFT_CAPSULE,
+    DFT_FILE,
 	
 	DFT_UNION,
 	DFT_INTERSECT,
@@ -141,7 +144,7 @@ struct DistanceFieldOperator : public DistanceField
 
 struct DistanceFieldObject : public DistanceField
 {
-	DistanceFieldObject(const Vector3s& center_, const VectorXs& parameter_, DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, bool inside, const Vector3s& raxis, const scalar& rangle, int group_, int params_index_, bool sampled_, const std::vector< DF_SOURCE_DURATION >& durations_);
+    DistanceFieldObject(const Vector3s& center_, const VectorXs& parameter_, DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, bool inside, const Vector3s& raxis, const scalar& rangle, int group_, int params_index_, bool sampled_, const std::vector< DF_SOURCE_DURATION >& durations_, const std::string& szfn = "", const std::string& szfn_cache = "");
 	virtual void advance(const scalar& dt);
     virtual void resample_mesh(const scalar& dx, VectorXs& result, VectorXs& normals);
 	virtual bool check_durations(const scalar& cur_time, const scalar& cur_vol, Vector3s& shooting_vel);
@@ -154,6 +157,8 @@ struct DistanceFieldObject : public DistanceField
 	
 	virtual void render(const std::function<void(const std::vector<Vector3s>&, const std::vector<Vector3i>&, const Eigen::Quaternion<scalar>&, const Vector3s&, const scalar&)>&) const;
 	
+    void process_file_mesh(const std::string& szfn_cache);
+    
 	Vector3s center;
 	VectorXs parameter;
 	
@@ -168,6 +173,8 @@ struct DistanceFieldObject : public DistanceField
 	scalar sign;
 	
 	std::shared_ptr<SolidMesh> mesh;
+    Array3s volume;
+    Vector3s volume_origin;
 	
 	std::vector< DF_SOURCE_DURATION > durations;
 };

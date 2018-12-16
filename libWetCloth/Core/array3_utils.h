@@ -290,5 +290,27 @@ void write_matlab_array(std::ostream &output, const Array3<T, Array1<T> >&a, con
     output<<"'";
   output<<";"<<std::endl;
 }
+
+template<class T>
+void write_binary_array(std::ostream &output, const Array3<T, Array1<T> >&a)
+{
+    output.write((char*) &a.ni, sizeof(int));
+    output.write((char*) &a.nj, sizeof(int));
+    output.write((char*) &a.nk, sizeof(int));
+    
+    output.write((char*) &(a.a[0]), a.ni * a.nj * a.nk * sizeof(T));
+}
+
+template<class T>
+void read_binary_array(std::istream &input, Array3<T, Array1<T> >&a)
+{
+    int ni, nj, nk;
+    input.read((char*) &ni, sizeof(int));
+    input.read((char*) &nj, sizeof(int));
+    input.read((char*) &nk, sizeof(int));
+    
+    a.resize(ni, nj, nk);
+    input.read((char*) &(a.a[0]), ni * nj * nk * sizeof(T));
+}
   
 #endif

@@ -122,6 +122,7 @@ namespace stringutils
   // Splits a string at given delimiter character
   void tokenize( const std::string& str, const char chr, std::vector<std::string>& tokens );
   std::vector<std::string> tokenize( const std::string& str, const char delimiter );
+  void tokenize( const std::string& str, std::vector<std::string>& tokens, const std::string& delimiters );
 
   // Reads a set number of values into an Eigen vector
   template<typename Derived>
@@ -157,6 +158,7 @@ namespace stringutils
     return true;
   }      
   
+    
 }
 
 #endif

@@ -159,6 +159,7 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 			if(handlertype == "sphere") bt = DFT_SPHERE;
 			else if(handlertype == "box") bt = DFT_BOX;
 			else if(handlertype == "capsule") bt = DFT_CAPSULE;
+            else if(handlertype == "file") bt = DFT_FILE;
 			else if(handlertype == "union") bt = DFT_UNION;
 			else if(handlertype == "intersect") bt = DFT_INTERSECT;
 			else {
@@ -190,7 +191,7 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 			}
 		}
 		
-		if(bt == DFT_BOX || bt == DFT_SPHERE || bt == DFT_CAPSULE) {
+		if(bt == DFT_BOX || bt == DFT_SPHERE || bt == DFT_CAPSULE || bt == DFT_FILE) {
 			std::vector< DF_SOURCE_DURATION > durations;
 			for( rapidxml::xml_node<>* subsubnd = subnd->first_node("duration"); subsubnd; subsubnd = subsubnd->next_sibling("duration") )
 			{
@@ -453,11 +454,66 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 						}
 					}
 					break;
+                case DFT_FILE:
+                    if( subnd->first_attribute("scale") )
+                    {
+                        std::string attribute(subnd->first_attribute("scale")->value());
+                        if( !stringutils::extractFromString(attribute,parameter(0)) )
+                        {
+                            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of scale attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                            exit(1);
+                        }
+                    }
+                    if( subnd->first_attribute("dx") )
+                    {
+                        std::string attribute(subnd->first_attribute("dx")->value());
+                        if( !stringutils::extractFromString(attribute,parameter(1)) )
+                        {
+                            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of dx attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                            exit(1);
+                        }
+                    }
+                    break;
 				default:
 					break;
 			}
 			
-			fields.push_back( std::make_shared<DistanceFieldObject>(center, parameter, bt, dfu, inside, raxis, rangle, group, params_index, sampled, durations) );
+            if(bt == DFT_FILE) {
+                std::string filename;
+                
+                if(subnd->first_attribute("filename"))
+                {
+                    filename = std::string(subnd->first_attribute("filename")->value());
+                }
+                
+                bool cached = false;
+                if( subnd->first_attribute("cached") )
+                {
+                    std::string attribute(subnd->first_attribute("cached")->value());
+                    if( !stringutils::extractFromString(attribute, cached) )
+                    {
+                        std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of cached attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                        exit(1);
+                    }
+                }
+                
+                std::string cachename;
+                
+                if(cached) {
+                    cachename = filename + ".cache";
+                    if(subnd->first_attribute("cachename"))
+                    {
+                        cachename = std::string(subnd->first_attribute("cachename")->value());
+                    }
+                }
+
+                if(!filename.empty()) {
+                    fields.push_back( std::make_shared<DistanceFieldObject>(center, parameter, bt, dfu, inside, raxis, rangle, group, params_index, sampled, durations, filename, cachename) );
+                }
+            } else {
+                fields.push_back( std::make_shared<DistanceFieldObject>(center, parameter, bt, dfu, inside, raxis, rangle, group, params_index, sampled, durations) );
+            }
+			
 		} else if(bt == DFT_UNION || bt == DFT_INTERSECT) {
 			auto ob = std::make_shared<DistanceFieldOperator>( bt, dfu, group, params_index, sampled);
 			

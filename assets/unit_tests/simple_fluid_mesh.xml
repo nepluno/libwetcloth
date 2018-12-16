@@ -1,0 +1,32 @@
+<scene>
+  <duration time="20.0"/>
+  <integrator type="linearized-implicit-euler" dt="0.004" apic="1" criterion="1e-6" surftensionsubsteps="1"/>
+  <collision type="continuous-time"/>
+
+  <bucketinfo size="1.152" numcells="4" kernelorder="2"/>
+
+  <simplegravity fx="0.0" fy="-981.0"/>
+  <liquidinfo>
+    <viscosity value="8.9e-3"/>
+    <surfTensionCoeff value="72.0"/>
+  </liquidinfo>
+
+  <StrandParameters> 
+    <radius value="0.013" /> 
+    <youngsModulus value="6.6e5" /> 
+    <poissonRatio value="0.35" /> 
+    <collisionMultiplier value="1.0" />
+    <attachMultiplier value="1.0" />     
+    <density value="1.32" /> 
+    <viscosity value="1e3" /> 
+    <baseRotation value="0.0"/>  
+    <accumulateWithViscous value="0" /> 
+    <accumulateViscousOnlyForBendingModes value="0" /> 
+    <friction_angle value="0.0"/>
+  </StrandParameters> 
+
+  <distancefield usage="source" type="box" cx="0.0" cy="4.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" ex="1.25" ey="1.25" ez="1.25" rw="0.0" radius="0.0125" group="0"/>
+  <distancefield usage="solid" type="file" cx="0.0" cy="0.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" rw="0.0" filename="assets/meshes/spot_triangulated.obj" group="1" sampled="0" dx="0.144" scale="2.0"/>
+  <distancefield usage="solid" type="sphere" cx="0.0" cy="2.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" rw="0.0" radius="5.0" group="1" sampled="0" inside="1"/>
+
+</scene>
