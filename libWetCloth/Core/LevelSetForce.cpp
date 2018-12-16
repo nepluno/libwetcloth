@@ -196,6 +196,20 @@ void LevelSetForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus,
 
 void LevelSetForce::preCompute()
 {
+    const int num_elasto = m_scene->getNumSoftElastoParticles();
+    const VectorXs& x = m_scene->getX();
+    m_process_list.resize(0);
+    m_process_list.reserve(num_elasto);
+    
+    for(int i = 0; i < num_elasto; ++i)
+    {
+        if(m_scene->isFixed(i) & 1) continue;
+        
+        Vector3s vel;
+        scalar phi = m_scene->computePhiVel(x.segment<3>(i * 4), vel);
+        
+        if(phi < m_l0) m_process_list.push_back(i);
+    }
 }
 
 void LevelSetForce::updateStartState()
@@ -204,21 +218,6 @@ void LevelSetForce::updateStartState()
 
 int LevelSetForce::numHessX()
 {
-    const int num_elasto = m_scene->getNumSoftElastoParticles();
-    const VectorXs& x = m_scene->getX();
-    m_process_list.resize(0);
-    m_process_list.reserve(num_elasto);
-    
-    for(int i = 0; i < num_elasto; ++i)
-    {
-		if(m_scene->isFixed(i) & 1) continue;
-		
-        Vector3s vel;
-        scalar phi = m_scene->computePhiVel(x.segment<3>(i * 4), vel);
-        
-        if(phi < m_l0) m_process_list.push_back(i);
-    }
-    
 	return 9 * (int) m_process_list.size();
 }
 
