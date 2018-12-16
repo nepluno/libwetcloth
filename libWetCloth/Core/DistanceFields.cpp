@@ -52,6 +52,7 @@
 #include "sorter.h"
 #include "Capsule.h"
 #include "Icosphere.h"
+#include "RoundCylinder.h"
 #include "RoundCornerBox.h"
 #include "makelevelset3.h"
 
@@ -107,6 +108,27 @@ inline void box_phi_bbx(const Vector3s& centre, const Eigen::Quaternion<scalar>&
 	
 	bbx_low -= Vector3s(radius, radius, radius);
 	bbx_high += Vector3s(radius, radius, radius);
+}
+
+inline scalar cylinder_phi(const Vector3s& position, const Vector3s& centre, const scalar& radius_ext, const scalar& radius_cor, const scalar& h) {
+    Vector3s p = position - centre;
+    Vector2s d = Vector2s( Vector2s(p(0), p(2)).norm() - radius_ext + radius_cor, fabs(p(1)) - h);
+    return std::min( std::max(d(0), d(1)), 0.0 ) + Vector2s(std::max(d(0), 0.0), std::max(d(1), 0.0)).norm() - radius_cor;
+}
+
+inline void cylinder_phi_bbx(const Vector3s& centre, const Eigen::Quaternion<scalar>& rot, const scalar& radius_ext, const scalar& radius_cor, const scalar& h, Vector3s& bbx_low, Vector3s& bbx_high) {
+    Vector3s ptb = rot * Vector3s(0, h + radius_cor, 0) + centre;
+    Vector3s pta = rot * Vector3s(0, -h - radius_cor, 0) + centre;
+    Vector3s a = ptb - pta;
+    scalar da = a.dot(a);
+    
+    Vector3s db = (radius_ext + radius_cor) * Vector3s(sqrt( 1.0 - a(0) * a(0) / da ), sqrt( 1.0 - a(1) * a(1) / da ), sqrt( 1.0 - a(2) * a(2) / da ));
+    bbx_low = Vector3s(std::min(pta(0), ptb(0)), std::min(pta(1), ptb(1)), std::min(pta(2), ptb(2)) ) - db;
+    bbx_high = Vector3s(std::max(pta(0), ptb(0)), std::max(pta(1), ptb(1)), std::max(pta(2), ptb(2)) ) + db;
+    
+    Vector3s expansion = (bbx_high - bbx_low) * 0.5;
+    bbx_low = centre - expansion;
+    bbx_high = centre + expansion;
 }
 
 DistanceField::DistanceField(DISTANCE_FIELD_TYPE type_, DISTANCE_FIELD_USAGE usage_, int group_, int params_index_, bool sampled_)
@@ -443,6 +465,9 @@ DistanceFieldObject::DistanceFieldObject(const Vector3s& center_, const VectorXs
 		case DFT_CAPSULE:
 			mesh = std::make_shared<Capsule>(32, parameter(0), parameter(1));
 			break;
+        case DFT_CYLINDER:
+            mesh = std::make_shared<RoundCylinder>(32, 8, parameter(0), parameter(1), parameter(2));
+            break;
         case DFT_FILE:
             mesh = std::make_shared<SolidMesh>(szfn, parameter(0));
             process_file_mesh(szfn_cache);
@@ -570,6 +595,15 @@ scalar DistanceFieldObject::compute_phi(const Vector3s& pos) const
 			break;
 		}
             
+        case DFT_CYLINDER:
+        {
+            Eigen::Quaternion<scalar> p0(0.0, dx(0), dx(1), dx(2));
+            Eigen::Quaternion<scalar> irot = rot.conjugate();
+            Vector3s rotp = (irot * p0 * irot.inverse()).vec() + center;
+            phi = sign * cylinder_phi(rotp, center, parameter(0), parameter(1), parameter(2));
+            break;
+        }
+            
         case DFT_FILE:
         {
             Eigen::Quaternion<scalar> p0(0.0, dx(0), dx(1), dx(2));
@@ -662,6 +696,9 @@ bool DistanceFieldObject::local_bounding_box(Vector3s& bbx_low, Vector3s& bbx_hi
 		case DFT_CAPSULE:
 			capsule_phi_bbx(center, rot, parameter(0), parameter(1), bbx_low, bbx_high);
 			break;
+        case DFT_CYLINDER:
+            cylinder_phi_bbx(center, rot, parameter(0), parameter(1), parameter(2), bbx_low, bbx_high);
+            break;
 		case DFT_SPHERE:
 			sphere_phi_bbx(center, parameter(0), bbx_low, bbx_high);
 			break;

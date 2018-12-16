@@ -159,6 +159,7 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 			if(handlertype == "sphere") bt = DFT_SPHERE;
 			else if(handlertype == "box") bt = DFT_BOX;
 			else if(handlertype == "capsule") bt = DFT_CAPSULE;
+            else if(handlertype == "cylinder") bt = DFT_CYLINDER;
             else if(handlertype == "file") bt = DFT_FILE;
 			else if(handlertype == "union") bt = DFT_UNION;
 			else if(handlertype == "intersect") bt = DFT_INTERSECT;
@@ -191,7 +192,7 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 			}
 		}
 		
-		if(bt == DFT_BOX || bt == DFT_SPHERE || bt == DFT_CAPSULE || bt == DFT_FILE) {
+		if(bt == DFT_BOX || bt == DFT_SPHERE || bt == DFT_CAPSULE || bt == DFT_CYLINDER || bt == DFT_FILE) {
 			std::vector< DF_SOURCE_DURATION > durations;
 			for( rapidxml::xml_node<>* subsubnd = subnd->first_node("duration"); subsubnd; subsubnd = subsubnd->next_sibling("duration") )
 			{
@@ -454,6 +455,35 @@ void TwoDSceneXMLParser::loadDistanceFields( rapidxml::xml_node<>* node, const s
 						}
 					}
 					break;
+                case DFT_CYLINDER:
+                    if( subnd->first_attribute("radius") )
+                    {
+                        std::string attribute(subnd->first_attribute("radius")->value());
+                        if( !stringutils::extractFromString(attribute,parameter(0)) )
+                        {
+                            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of radius attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                            exit(1);
+                        }
+                    }
+                    if( subnd->first_attribute("corner") )
+                    {
+                        std::string attribute(subnd->first_attribute("corner")->value());
+                        if( !stringutils::extractFromString(attribute,parameter(1)) )
+                        {
+                            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of corner attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                            exit(1);
+                        }
+                    }
+                    if( subnd->first_attribute("halflength") )
+                    {
+                        std::string attribute(subnd->first_attribute("halflength")->value());
+                        if( !stringutils::extractFromString(attribute,parameter(2)) )
+                        {
+                            std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to parse value of halflength attribute for distancefield parameters. Value must be numeric. Exiting." << std::endl;
+                            exit(1);
+                        }
+                    }
+                    break;
                 case DFT_FILE:
                     if( subnd->first_attribute("scale") )
                     {
