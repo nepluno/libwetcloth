@@ -54,6 +54,10 @@
 #include <stack>
 #include <numeric>
 
+
+/*!
+ * Outputting parameters for debugging
+ */
 std::ostream& operator<<(std::ostream& os, const LiquidInfo& info)
 {
     os << "liquid density: " <<                 info.liquid_density << std::endl;
@@ -97,6 +101,9 @@ std::ostream& operator<<(std::ostream& os, const LiquidInfo& info)
     return os;
 }
 
+/*!
+ * init the Scene structure
+ */
 TwoDScene::TwoDScene()
 : m_x()
 , m_v()
@@ -304,6 +311,9 @@ MatrixXs& TwoDScene::getGaussD(){
     return m_D_gauss;
 }
 
+/*!
+ * swap particle pos in buffer, used for particle deletion
+ */
 void TwoDScene::swapParticles(int i, int j)
 {
     mathutils::swap<scalar, 4>(m_x, i, j);
@@ -672,6 +682,9 @@ std::vector< VectorXs >& TwoDScene::getNodeVolZ()
     return m_node_vol_z;
 }
 
+/*!
+ * mark the inside/outside of a levelset
+ */
 void TwoDScene::markInsideOut()
 {
     const int num_parts = getNumParticles();
@@ -806,6 +819,9 @@ scalar TwoDScene::getInitialVolumeFraction(int pidx) const
     return m_liquid_info.rest_volume_fraction;
 }
 
+/*!
+ * calculate capillary pressure caused by saturation difference
+ */
 scalar TwoDScene::getCapillaryPressure(const scalar& psi) const
 {
     if(1.0 - psi < 1e-20 || m_liquid_info.pore_radius < 1e-20) return 0.0;
@@ -816,6 +832,9 @@ scalar TwoDScene::getCapillaryPressure(const scalar& psi) const
     return alpha * surf_tension * contact_angle / m_liquid_info.pore_radius;
 }
 
+/*!
+ * get the equivalent radius for Elements
+ */
 scalar TwoDScene::getGaussRadius(int pidx, int dir) const
 {
     const int num_edges = getNumEdges();
@@ -869,6 +888,9 @@ scalar TwoDScene::getCollisionMultiplier(int pidx) const {
     return m_strandParameters[ m_gauss_to_parameters[pidx] ]->m_collisionMultiplier;
 }
 
+/*!
+ * load forces fixing vertices to some specific position
+ */
 void TwoDScene::loadAttachForces()
 {
     const int num_part = getNumSoftElastoParticles();
@@ -939,6 +961,9 @@ bool TwoDScene::isSoft(int pidx) const
     return m_particle_to_surfel[pidx] < 0;
 }
 
+/*!
+ * resize the system
+ */
 void TwoDScene::resizeParticleSystem( int num_particles )
 {
     assert( num_particles >= 0 );
@@ -1010,6 +1035,9 @@ bool TwoDScene::isOutsideFluid(int pidx) const
     return isFluid(pidx) && m_inside[pidx] == 0U;
 }
 
+/*!
+ * resize the system in a conservative way
+ */
 void TwoDScene::conservativeResizeParticles(int num_particles)
 {
     m_x.conservativeResize(4*num_particles);
@@ -1055,6 +1083,9 @@ void TwoDScene::conservativeResizeParticles(int num_particles)
     m_div.resize( num_particles );
 }
 
+/*!
+ * resize edges
+ */
 void TwoDScene::conservativeResizeEdges(int num_edges)
 {
     m_edges.conservativeResize(num_edges, 2);
@@ -1073,6 +1104,9 @@ void TwoDScene::setFaceToParameter( int idx, int params )
     m_face_to_parameters[idx] = params;
 }
 
+/*!
+ * resize face elements
+ */
 void TwoDScene::conservativeResizeFaces(int num_faces)
 {
     m_faces.conservativeResize(num_faces, 3);
@@ -1082,6 +1116,9 @@ void TwoDScene::conservativeResizeFaces(int num_faces)
     m_face_to_parameters.resize(num_faces);
 }
 
+/*!
+ * calculate local divergence on particles
+ */
 void TwoDScene::updateParticleDiv()
 {
     const int num_particles = getNumParticles();
@@ -1138,6 +1175,9 @@ const std::vector< std::vector<RayTriInfo> >& TwoDScene::getIntersections() cons
     return m_ray_tri_gauss;
 }
 
+/*!
+ * shoot rays and compute hitting points on elements. This is used for finding cohesion pairs.
+ */
 void TwoDScene::updateIntersection()
 {
     const int num_edges = getNumEdges();
@@ -1160,7 +1200,7 @@ void TwoDScene::updateIntersection()
         m_x_reshaped.row(pidx) = m_x.segment<3>(pidx * 4).transpose();
     });
     
-    // do searching
+    // do nearest neighbor searching
     m_gauss_buckets.for_each_bucket_particles([&] (int gidx, int bucket_idx) {
         if(m_fluid_vol_gauss(gidx) < 1e-20) {
             m_ray_tri_gauss[gidx].resize(0);
@@ -1402,6 +1442,9 @@ const std::vector<int> TwoDScene::getParticleGroup() const
     return m_particle_group;
 }
 
+/*!
+ * initialize variables on face/edge Elements
+ */
 void TwoDScene::initGaussSystem()
 {
     // update connectivity
@@ -1625,6 +1668,9 @@ void TwoDScene::initGaussSystem()
     });
 }
 
+/*!
+ * compute derivative of energy E over deformation gradient Fe, this is crucial for computing collision force
+ */
 void TwoDScene::computedEdFe(){
     const int num_gauss = getNumGausses();
     const int num_edges = getNumEdges();
@@ -1708,7 +1754,9 @@ void TwoDScene::computedEdFe(){
     });
 }
 
-
+/*!
+ * update bounding box
+ */
 void TwoDScene::updateParticleBoundingBox()
 {
     Vector4s bbmin = Vector4s::Constant(1e+20);
@@ -1782,6 +1830,9 @@ const Vector3s& TwoDScene::getBucketMinCorner() const
     return m_bucket_mincorner;
 }
 
+/*!
+ * Put particles into buckets for parallel searching and computing
+ */
 void TwoDScene::rebucketizeParticles()
 {
     scalar dx = getCellSize();
@@ -1826,6 +1877,9 @@ void TwoDScene::rebucketizeParticles()
     m_bucket_activated.assign(total_buckets, 0U);
 }
 
+/*!
+ * remove empty particles.
+ */
 void TwoDScene::removeEmptyParticles()
 {
     const int num_parts = getNumParticles();
@@ -1866,6 +1920,9 @@ void TwoDScene::updateStrandParamViscosity(const scalar& dt)
     });
 }
 
+/*!
+ * when particles are outside a Terminator, we delete them
+ */
 void TwoDScene::terminateParticles()
 {
     auto term_sel = [] (const std::shared_ptr<DistanceField>& dfptr) -> bool {
@@ -1884,6 +1941,9 @@ void TwoDScene::terminateParticles()
     removeEmptyParticles();
 }
 
+/*!
+ * project particles to avoid penetrating rigid bodies
+ */
 void TwoDScene::solidProjection(const scalar& dt)
 {
     const int num_parts = getNumParticles();
@@ -1934,6 +1994,9 @@ void TwoDScene::solidProjection(const scalar& dt)
     });
 }
 
+/*!
+ * set liquid velocity inside rigid bodies as the body velocity
+ */
 void TwoDScene::constrainLiquidVelocity()
 {
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
@@ -1973,6 +2036,9 @@ void TwoDScene::constrainLiquidVelocity()
     });
 }
 
+/*!
+ * compute particle weight on solid node
+ */
 void TwoDScene::updateSolidWeights()
 {
     const int num_buckets = m_particle_buckets.size();
@@ -2061,6 +2127,9 @@ void TwoDScene::updateSolidWeights()
     });
 }
 
+/*!
+ * use Ryoichi's method to relax particles
+ */
 void TwoDScene::correctLiquidParticles(const scalar& dt)
 {
     const int num_fluid = getNumFluidParticles();
@@ -2170,6 +2239,9 @@ Vector3s TwoDScene::nodePosFromBucket(int bucket_idx, int raw_node_idx, const Ve
     return node_pos;
 }
 
+/*!
+ * update particle weights on X-, Y-, Z-, SOLID- and PRESSURE- nodes.
+ */
 void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
 {
     const scalar h = getCellSize();
@@ -2269,6 +2341,9 @@ void TwoDScene::updateParticleWeights(scalar dt, int start, int end)
     
 }
 
+/*!
+ * update element weight on nodes
+ */
 void TwoDScene::updateGaussWeights(scalar dt)
 {
     const int num_gauss = getNumGausses();
@@ -2347,6 +2422,9 @@ void TwoDScene::computeWeights(scalar dt)
     buildNodeParticlePairs();
 }
 
+/*!
+ * from nodes, find neighbor particles, and record them
+ */
 void TwoDScene::buildNodeParticlePairs()
 {
     const int num_buckets = (int) m_particle_buckets.size();
@@ -2443,6 +2521,9 @@ void TwoDScene::updateOptiVolume()
     relabelLiquidParticles();
 }
 
+/*!
+ * split liquid particles if they're too large
+ */
 void TwoDScene::splitLiquidParticles()
 {
     const int num_fluids = getNumFluidParticles();
@@ -2556,6 +2637,9 @@ void TwoDScene::splitLiquidParticles()
     relabelLiquidParticles();
 }
 
+/*!
+ * label particle state according to their size
+ */
 void TwoDScene::relabelLiquidParticles()
 {
     const scalar rad_fine = mathutils::defaultRadiusMultiplier() * getCellSize() * m_liquid_info.particle_cell_multiplier;
@@ -2574,6 +2658,9 @@ void TwoDScene::relabelLiquidParticles()
     });
 }
 
+/*!
+ * merge too small particles into large particles
+ */
 void TwoDScene::mergeLiquidParticles()
 {
     const int num_parts = getNumParticles();
@@ -2718,6 +2805,9 @@ void TwoDScene::mergeLiquidParticles()
     relabelLiquidParticles();
 }
 
+/*!
+ * build liquid level set for wet cloth, to achieve correct contact angle
+ */
 void TwoDScene::extendLiquidPhi()
 {
     const int num_buckets = (int) m_particle_buckets.size();
@@ -2794,7 +2884,9 @@ void TwoDScene::extendLiquidPhi()
     });
 }
 
-
+/*!
+ * update color buffer, used to compute surface tension
+ */
 void TwoDScene::updateColorP()
 {
     const int num_buckets = (int) m_particle_buckets.size();
@@ -2971,7 +3063,7 @@ void TwoDScene::updateColorP()
     });
 }
 
-/*
+/*!
  * see Section 4 in [Sussman and Ohta 2009] for details
  */
 void TwoDScene::updateCurvatureP()
@@ -3226,6 +3318,9 @@ void TwoDScene::updateCurvatureP()
     }
 }
 
+/*!
+ * see [Sussman and Ohta 2009] for details, advect curvature here
+ */
 void TwoDScene::advectCurvatureP(const scalar& dt)
 {
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
@@ -3316,6 +3411,9 @@ bool TwoDScene::useSurfTension() const
     return m_liquid_info.use_surf_tension;
 }
 
+/*!
+ * update liquid levelset
+ */
 void TwoDScene::updateLiquidPhi(scalar dt)
 {
     const int num_buckets = (int) m_particle_buckets.size();
@@ -3398,6 +3496,9 @@ void TwoDScene::updateLiquidPhi(scalar dt)
     }
 }
 
+/*!
+ * renormalize liquid levelset with 8-way sweeping
+ */
 void TwoDScene::renormalizeLiquidPhi()
 {
     // for all negative values, mark it to be invalid if their neighbors are all negative
@@ -3537,6 +3638,9 @@ void TwoDScene::renormalizeLiquidPhi()
     });
 }
 
+/*!
+ * calculate volume fraction of non-rigid body region, used for implicit viscosity
+ */
 void TwoDScene::estimateVolumeFractions(std::vector< VectorXs >& volumes, const std::vector< VectorXs >& node_pos, const Vector3s& np_offset)
 {
     const scalar dx = getCellSize();
@@ -3664,6 +3768,9 @@ void TwoDScene::preAllocateNodes()
     }
 }
 
+/*!
+ * for all particles, find the neighbor nodes to construct node structure
+ */
 template<typename Callable>
 void TwoDScene::findNodes( const Sorter& buckets, const VectorXs& x, std::vector< Matrix27x2i >& particle_nodes, const Vector3s& offset, Callable func )
 {
@@ -3822,6 +3929,9 @@ Vector3s TwoDScene::getNodePosEZ(int bucket_idx, int node_idx) const
     }
 }
 
+/*!
+ * allocate memory for nodes
+ */
 void TwoDScene::generateNodes()
 {
     const scalar dx = getCellSize();
@@ -4185,6 +4295,9 @@ const std::vector< VectorXi >& TwoDScene::getNodeIndexEdgeZ() const
     return m_node_index_edge_z;
 }
 
+/*!
+ * connect edges to neighbor nodes
+ */
 void TwoDScene::connectEdgeNodes()
 {
     m_particle_buckets.for_each_bucket([&] (int bucket_idx) {
@@ -4506,6 +4619,9 @@ void TwoDScene::connectSolidPhiNodes()
     });
 }
 
+/*!
+ * connect pressure nodes with X- Y- and Z- nodes
+ */
 void TwoDScene::connectPressureNodes()
 {
     const Vector3i ppdir[] = {
@@ -4662,6 +4778,9 @@ void TwoDScene::connectPressureNodes()
     });
 }
 
+/*!
+ * allocate attributes to be stored on nodes
+ */
 void TwoDScene::postAllocateNodes()
 {
     const int num_buckets = m_particle_buckets.size();
@@ -4935,6 +5054,9 @@ void TwoDScene::expandFluidNodesMarked(int layers)
     }
 }
 
+/*!
+ * resample nodes in the scene
+ */
 void TwoDScene::resampleNodes()
 {
     preAllocateNodes();
@@ -5051,6 +5173,9 @@ int TwoDScene::getNumSoftElastoParticles() const
     return getNumElastoParticles() - getNumSurfels();
 }
 
+/*!
+ * update plasticity for friction and sliding, see [Jiang et al. 2017]
+ */
 void TwoDScene::updatePlasticity(scalar dt){
     
     const int num_edges = getNumEdges();
@@ -5285,6 +5410,9 @@ scalar TwoDScene::computePhiVel(const Vector3s& pos, Vector3s& vel, const std::f
     return min_phi;
 }
 
+/*!
+ * sample particle from level set of rigid bodies
+ */
 void TwoDScene::sampleSolidDistanceFields()
 {
     int num_group = (int) m_group_distance_field.size();
@@ -5354,6 +5482,9 @@ void TwoDScene::sampleSolidDistanceFields()
     }
 }
 
+/*!
+ * sample liquid particles from level set sources
+ */
 void TwoDScene::sampleLiquidDistanceFields(scalar cur_time)
 {
     int num_group = (int) m_group_distance_field.size();
@@ -5453,6 +5584,9 @@ MatrixXs& TwoDScene::getGaussNormal()
     return m_norm_gauss;
 }
 
+/*!
+ * update deformation gradient stored on face/edge
+ */
 void TwoDScene::updateDeformationGradient(scalar dt){
     //updating deformation gradient
     const int num_edges = m_edges.rows();
@@ -5685,6 +5819,9 @@ void TwoDScene::updateDeformationGradient(scalar dt){
     }
 }
 
+/*!
+ * update solid volume fraction
+ */
 void TwoDScene::updateSolidVolumeFraction()
 {
     const int num_soft_elasto = getNumSoftElastoParticles();
@@ -5743,6 +5880,9 @@ void TwoDScene::updatePorePressureNodes()
     });
 }
 
+/*!
+ * calculate volume fraction of nodes and saturation
+ */
 void TwoDScene::mapParticleSaturationPsiNodes()
 {
     const int num_buckets = getNumBuckets();
@@ -5790,6 +5930,9 @@ void TwoDScene::setVolumeFraction(int particle, const scalar& vol_frac)
     m_volume_fraction[particle] = m_rest_volume_fraction[particle] = vol_frac;
 }
 
+/*!
+ * convert fluid on cloth/yarn into particles
+ */
 void TwoDScene::distributeElastoFluid()
 {
     const int num_elasto_parts = getNumElastoParticles();
@@ -5977,6 +6120,9 @@ void TwoDScene::distributeElastoFluid()
     updateGaussManifoldSystem();
 }
 
+/*!
+ * do DDA analysis for particle distribution
+ */
 void TwoDScene::computeDDA()
 {
     const int num_elasto = getNumElastoParticles();
@@ -6041,6 +6187,9 @@ void TwoDScene::computeDDA()
     std::cout << "-----------------------------------" << std::endl;
 }
 
+/*!
+ * convert fluid particles to liquid on manifold
+ */
 void TwoDScene::distributeFluidElasto(const scalar& dt)
 {
     const int num_elasto_parts = getNumElastoParticles();
@@ -6352,6 +6501,9 @@ void TwoDScene::distributeFluidElasto(const scalar& dt)
     removeEmptyParticles();
 }
 
+/*!
+ * use MLS-MPM to map particle/vertices onto nodes, see [Hu et al. 2018]
+ */
 void TwoDScene::mapParticleNodesAPIC()
 {
     const scalar dx = getCellSize();
@@ -6673,6 +6825,9 @@ void TwoDScene::saveParticleVelocity()
     m_saved_v = m_v;
 }
 
+/*!
+ * map node variables back to particle and vertices, see [Jiang et al. 2015]
+ */
 void TwoDScene::mapNodeParticlesAPIC()
 {
     const int num_part = getNumParticles();
@@ -7266,6 +7421,9 @@ VectorXs& TwoDScene::getVolumeFraction()
     return m_volume_fraction;
 }
 
+/*!
+ * update differential operators on rods and meshes
+ */
 void TwoDScene::updateManifoldOperators()
 {
     const int num_edges = m_edges.rows();
@@ -7381,6 +7539,9 @@ const std::vector< std::pair<int, scalar> >& TwoDScene::getParticleFaces(int pid
     return m_particle_to_face[pidx];
 }
 
+/*!
+ * calculate gradient of velocity on manifold
+ */
 void TwoDScene::accumulateManifoldFluidGradU( VectorXs& F )
 {
     const int ndof = getNumParticles() * 4;
@@ -7421,6 +7582,9 @@ const std::vector<Vector3s>& TwoDScene::getFaceWeights() const
     return m_face_weights;
 }
 
+/*!
+ * calculate pore pressure on manifold
+ */
 void TwoDScene::accumulateManifoldGradPorePressure( VectorXs& F )
 {
     const int num_elasto = getNumElastoParticles();
@@ -7553,6 +7717,9 @@ bool TwoDScene::isGaussFixed(int i) const
     return aisfixed;
 }
 
+/*!
+ * calculate velocity gradient on elements
+ */
 void TwoDScene::accumulateGaussGradU(MatrixXs& F, const VectorXs& dx, const VectorXs& dv){
     //    MatrixXs dFe;
     //    dFe.resize(m_Fe_gauss.rows(), m_Fe_gauss.cols());
@@ -7594,6 +7761,9 @@ void TwoDScene::accumulateGaussGradU(MatrixXs& F, const VectorXs& dx, const Vect
     });
 }
 
+/*!
+ * accumulate Hessian matrix
+ */
 void TwoDScene::accumulateddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx, const VectorXs& dv )
 {
     
@@ -7641,6 +7811,9 @@ void TwoDScene::updateMultipliers(const scalar& dt)
     }
 }
 
+/*!
+ * accumulate Hessian for the twisting DOF
+ */
 void TwoDScene::accumulateAngularddUdxdx( TripletXs& A, const scalar& dt, int base_idx, const VectorXs& dx, const VectorXs& dv )
 {
     
@@ -7691,6 +7864,9 @@ void TwoDScene::stepScript(const scalar& dt, const scalar& current_time)
     });
 }
 
+/*!
+ * update rigid body level set
+ */
 void TwoDScene::updateSolidPhi()
 {
     auto solid_sel = [] (const std::shared_ptr<DistanceField>& dfptr) -> bool {
@@ -7818,6 +7994,9 @@ bool TwoDScene::isBucketActivated(int bucket_index) const
     return m_bucket_activated[bucket_index];
 }
 
+/*!
+ * apply scripts to transform objects
+ */
 void TwoDScene::applyScript(const scalar& dt)
 {
     const int np = getNumParticles();
