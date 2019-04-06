@@ -1,4 +1,7 @@
-The Clear BSD License
+The code is licensed under the same terms as a Clear BSD License but further 
+restricted to academic and non-commercial use (commercial licenses may be 
+obtained by contacting the faculty of the Columbia Computer Graphics Group 
+or Columbia Technology Ventures).
 
 Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and Changxi Zheng
 
@@ -29,9 +32,3 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
-
-## Exception to the Clear BSD License ##
-
-The code is licensed solely for academic and non-commercial use under the
-terms of the Clear BSD License. Other licenses may be obtained by contacting the faculty
-of the Columbia Computer Graphics Group or a Columbia University licensing officer.

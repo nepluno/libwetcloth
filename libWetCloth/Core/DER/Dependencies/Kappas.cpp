@@ -1,30 +1,27 @@
 //
-// This file is part of the libWetHair open source project
+// This file is part of the libWetCloth open source project
 //
-// The code is licensed solely for academic and non-commercial use under the
-// terms of the Clear BSD License. The terms of the Clear BSD License are
-// provided below. Other licenses may be obtained by contacting the faculty
-// of the Columbia Computer Graphics Group or a Columbia University licensing officer.
+// The code is licensed under the same terms as a Clear BSD License but further
+// restricted to academic and non-commercial use (commercial licenses may be
+// obtained by contacting the faculty of the Columbia Computer Graphics Group
+// or Columbia Technology Ventures).
 //
-// The Clear BSD License
-//
-// Copyright 2017 Yun (Raymond) Fei, Henrique Teles Maia, Christopher Batty,
-// Changxi Zheng, and Eitan Grinspun
+// Copyright 2012 Jean-Marie Aubry
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
 //
 // * Redistributions of source code must retain the above copyright notice, this
-//  list of conditions and the following disclaimer.
+// list of conditions and the following disclaimer.
 //
 // * Redistributions in binary form must reproduce the above copyright notice,
-//  this list of conditions and the following disclaimer in the documentation
-//  and/or other materials provided with the distribution.
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
 //
 // * Neither the name of the copyright holder nor the names of its contributors may be used
-//  to endorse or promote products derived from this software without specific
-//  prior written permission.
+// to endorse or promote products derived from this software without specific
+// prior written permission.
 //
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
 // LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -38,7 +35,6 @@
 // LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 // OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
-
 #include "Kappas.h"
 #include "ElasticStrandUtils.h"
 
