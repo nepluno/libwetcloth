@@ -2483,28 +2483,28 @@ void TwoDScene::buildNodeParticlePairs()
 
         for(int i = 0; i < indices_x.rows(); ++i)
         {
-            if(weights(i, 0) > 0.0) {
+            if(m_bucket_activated[indices_x(i, 0)] && weights(i, 0) > 0.0) {
                 m_node_particles_x[ indices_x(i, 0) ][ indices_x(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_y.rows(); ++i)
         {
-            if(weights(i, 1) > 0.0) {
+            if(m_bucket_activated[indices_y(i, 0)] && weights(i, 1) > 0.0) {
                 m_node_particles_y[ indices_y(i, 0) ][ indices_y(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_z.rows(); ++i)
         {
-            if(weights(i, 2) > 0.0) {
+            if(m_bucket_activated[indices_z(i, 0)] && weights(i, 2) > 0.0) {
                 m_node_particles_z[ indices_z(i, 0) ][ indices_z(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
         
         for(int i = 0; i < indices_p.rows(); ++i)
         {
-            if(weights_p(i) > 0.0) {
+            if(m_bucket_activated[indices_p(i, 0)] && weights_p(i) > 0.0) {
                 m_node_particles_p[ indices_p(i, 0) ][ indices_p(i, 1) ].emplace_back( std::pair<int, int>( pidx, i ) );
             }
         }
