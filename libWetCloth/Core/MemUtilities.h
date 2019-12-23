@@ -3,7 +3,6 @@
 
 //
 // This file is part of the libWetCloth open source project
-//
 // Author:  David Robert Nadeau
 // Site:    http://NadeauSoftware.com/
 // License: Creative Commons Attribution 3.0 Unported License

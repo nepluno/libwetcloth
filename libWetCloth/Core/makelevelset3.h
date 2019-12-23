@@ -3,7 +3,6 @@
 
 //
 // This file is part of the libWetCloth open source project
-//
 // The MIT License (MIT)
 //
 // Copyright (c) 2015, Christopher Batty
