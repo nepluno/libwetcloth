@@ -64,7 +64,7 @@ public:
         }
         
         bbx_min = Vector3s::Constant(std::numeric_limits<scalar>::max());
-        bbx_max = Vector3s::Constant(std::numeric_limits<scalar>::min());
+        bbx_max = Vector3s::Constant(std::numeric_limits<scalar>::lowest());
         
         for(const Vector3s& v : vertices)
         {
