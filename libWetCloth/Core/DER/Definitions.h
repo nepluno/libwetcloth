@@ -38,7 +38,7 @@ namespace Eigen
 }
 
 typedef double scalar; ///< the scalar type
-typedef uint16_t IndexType; ///< large unsigned int for IDs
+typedef uint32_t IndexType; ///< large unsigned int for IDs
 
 typedef Eigen::Matrix<scalar, 2, 1> Vec2; ///< 2d scalar vector
 typedef Eigen::Matrix<scalar, 3, 1> Vec3; ///< 3d scalar vector
