@@ -14,9 +14,9 @@
 
 template<class T>
 void levelGen<T>::generateRP(const FixedSparseMatrix<T> &A,
-	FixedSparseMatrix<T> &R,
-	FixedSparseMatrix<T> &P,
-	int ni, int nj, int nk)
+                             FixedSparseMatrix<T> &R,
+                             FixedSparseMatrix<T> &P,
+                             int ni, int nj, int nk)
 {
 	//matlab code(2D):
 	//m = ceil(M/2);
@@ -46,32 +46,32 @@ void levelGen<T>::generateRP(const FixedSparseMatrix<T> &A,
 
 	//P = 4*R';
 
-	int nni = ceil((float)ni/2.0);
-	int nnj = ceil((float)nj/2.0);
-	int nnk = ceil((float)nk/2.0);
+	int nni = ceil((float)ni / 2.0);
+	int nnj = ceil((float)nj / 2.0);
+	int nnk = ceil((float)nk / 2.0);
 	SparseMatrix<T> r;
 	SparseMatrix<T> p;
-	p.resize(ni*nj*nk);
+	p.resize(ni * nj * nk);
 	p.zero();
-	r.resize(nni*nnj*nnk);
+	r.resize(nni * nnj * nnk);
 	r.zero();
 
-	for(int k=0;k<nnk;k++)for(int j=0;j<nnj;j++)for (int i=0;i<nni;i++)
-	{
-		unsigned int index = (k*nnj +j)*nni + i;
-		for(int kk=0;kk<=1;kk++)for(int jj=0;jj<=1;jj++)for(int ii=0;ii<=1;ii++)
-		{
-			int iii = i*2 + ii;
-			int jjj = j*2 + jj;
-			int kkk = k*2 + kk;
-			if(iii<ni && jjj<nj && kkk<nk)
+	for (int k = 0; k < nnk; k++)for (int j = 0; j < nnj; j++)for (int i = 0; i < nni; i++)
 			{
-				unsigned int index2 = (kkk*nj + jjj)*ni + iii;
-				r.set_element(index, index2, (T)0.125);
-				p.set_element(index2,index, 1.0);
+				unsigned int index = (k * nnj + j) * nni + i;
+				for (int kk = 0; kk <= 1; kk++)for (int jj = 0; jj <= 1; jj++)for (int ii = 0; ii <= 1; ii++)
+						{
+							int iii = i * 2 + ii;
+							int jjj = j * 2 + jj;
+							int kkk = k * 2 + kk;
+							if (iii < ni && jjj < nj && kkk < nk)
+							{
+								unsigned int index2 = (kkk * nj + jjj) * ni + iii;
+								r.set_element(index, index2, (T)0.125);
+								p.set_element(index2, index, 1.0);
+							}
+						}
 			}
-		}
-	}
 
 	R.construct_from_matrix(r);
 	P.construct_from_matrix(p);

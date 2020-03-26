@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef STRETCHINGFORCE_H_
-#define STRETCHINGFORCE_H_
+#ifndef STRETCHINGFORCE_H
+#define STRETCHINGFORCE_H
 
 #include "ViscousOrNotViscous.h"
 #include "../StrandForce.h"
@@ -44,10 +44,10 @@ public:
     static void computeLocal( LocalForceType& localF, const StrandForce& strand, const IndexType vtx );
 
     static void computeLocal( LocalJacobianType& localJ, const StrandForce& strand,
-            const IndexType vtx );
+                              const IndexType vtx );
 
     static void addInPosition( ForceVectorType& globalForce, const IndexType vtx,
-            const LocalForceType& localForce );
+                               const LocalForceType& localForce );
 
     static void addInPosition( VecX& globalMultiplier, const IndexType vtx, const LocalMultiplierType& localL );
 

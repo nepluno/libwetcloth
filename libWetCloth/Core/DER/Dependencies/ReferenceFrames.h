@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef REFERENCEFRAMES_H_
-#define REFERENCEFRAMES_H_
+#ifndef REFERENCEFRAMES_H
+#define REFERENCEFRAMES_H
 
 #include "DegreesOfFreedom.h"
 
@@ -24,7 +24,7 @@ class ReferenceFrames1: public DependencyNode<Vec3Array>
 {
 public:
     ReferenceFrames1( Tangents& tangents ) :
-            DependencyNode<Vec3Array>( 0, tangents.size() ), m_tangents( tangents )
+        DependencyNode<Vec3Array>( 0, tangents.size() ), m_tangents( tangents )
     {
         m_tangents.addDependent( this );
 
@@ -82,8 +82,8 @@ class ReferenceFrames2: public DependencyNode<Vec3Array>
 {
 public:
     ReferenceFrames2( Tangents& tangents, ReferenceFrames1& referenceFrames1 ) :
-            DependencyNode<Vec3Array>( 0, tangents.size() ), m_tangents( tangents ), m_referenceFrames1(
-                    referenceFrames1 )
+        DependencyNode<Vec3Array>( 0, tangents.size() ), m_tangents( tangents ), m_referenceFrames1(
+            referenceFrames1 )
     {
         m_tangents.addDependent( this );
         m_referenceFrames1.addDependent( this );
@@ -109,8 +109,8 @@ class ReferenceTwists: public DependencyNode<std::vector<scalar> >
 {
 public:
     ReferenceTwists( Tangents& tangents, ReferenceFrames1& referenceFrames1 ) :
-            DependencyNode<std::vector<scalar> >( 1, tangents.size() ), m_tangents( tangents ), m_referenceFrames1(
-                    referenceFrames1 )
+        DependencyNode<std::vector<scalar> >( 1, tangents.size() ), m_tangents( tangents ), m_referenceFrames1(
+            referenceFrames1 )
     {
         m_tangents.addDependent( this );
         m_referenceFrames1.addDependent( this );

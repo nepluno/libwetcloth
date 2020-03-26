@@ -16,7 +16,7 @@ void Twists::compute()
     const std::vector<scalar>& refTwists = m_refTwists.get();
     const VecX& dofs = m_dofs.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         m_value[vtx] = refTwists[vtx] + dofs[4 * vtx + 3] - dofs[4 * vtx - 1];
     }
@@ -30,10 +30,10 @@ void GradTwists::compute()
     const Vec3Array& curvatureBinormals = m_curvatureBinormals.get();
     const std::vector<scalar>& lengths = m_lengths.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         Vec11& Dtwist = m_value[vtx];
-		Dtwist.setZero();
+        Dtwist.setZero();
 
         const Vec3& kb = curvatureBinormals[vtx];
 
@@ -52,7 +52,7 @@ void GradTwistsSquared::compute()
     m_value.resize( m_size );
     const Vec11Array& gradTwists = m_gradTwists.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         const Vec11& gradTwist = gradTwists[vtx];
         m_value[vtx] = gradTwist * gradTwist.transpose();
@@ -68,7 +68,7 @@ void HessTwists::compute()
     const std::vector<scalar>& lengths = m_lengths.get();
     const Vec3Array& curvatureBinormals = m_curvatureBinormals.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         Mat11& DDtwist = m_value[vtx];
 
@@ -83,21 +83,21 @@ void HessTwists::compute()
         scalar chi = 1 + te.dot( tf );
 
         //    assert( chi>0 );
-        if( chi <= 0 )
+        if ( chi <= 0 )
         {
             std::cerr << "StrandState::computeHessTwist for state " << this
-                    << " chi = " << chi << " te = " << te << " tf = " << tf << std::endl;
+                      << " chi = " << chi << " te = " << te << " tf = " << tf << std::endl;
             chi = 1e-12;
         }
 
         const Vec3& tilde_t = 1.0 / chi * ( te + tf );
 
         const Mat3& D2mDe2 = -0.25 / square( norm_e )
-                * ( outerProd<3>( kb, te + tilde_t ) + outerProd<3>( te + tilde_t, kb ) );
+                             * ( outerProd<3>( kb, te + tilde_t ) + outerProd<3>( te + tilde_t, kb ) );
         const Mat3& D2mDf2 = -0.25 / square( norm_f )
-                * ( outerProd<3>( kb, tf + tilde_t ) + outerProd<3>( tf + tilde_t, kb ) );
+                             * ( outerProd<3>( kb, tf + tilde_t ) + outerProd<3>( tf + tilde_t, kb ) );
         const Mat3& D2mDeDf = 0.5 / ( norm_e * norm_f )
-                * ( 2.0 / chi * crossMat( te ) - outerProd<3>( kb, tilde_t ) );
+                              * ( 2.0 / chi * crossMat( te ) - outerProd<3>( kb, tilde_t ) );
         const Mat3& D2mDfDe = D2mDeDf.transpose();
 
         DDtwist.block<3, 3>( 0, 0 ) = D2mDe2;

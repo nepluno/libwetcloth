@@ -16,12 +16,12 @@ void Kappas::compute()
     const Vec3Array& materialFrames1 = m_materialFrames1.get();
     const Vec3Array& materialFrames2 = m_materialFrames2.get();
 
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         const Vec3& kb = curvatureBinormals[vtx];
         const Vec3& m1e = materialFrames1[vtx - 1];
@@ -45,15 +45,15 @@ void GradKappas::compute()
     const Vec3Array& materialFrames2 = m_materialFrames2.get();
     const Vec2Array& kappas = m_kappas.get();
 
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         GradKType& gradKappa = m_value[vtx];
-		gradKappa.setZero();
+        gradKappa.setZero();
 
         const scalar norm_e = lengths[vtx - 1];
         const scalar norm_f = lengths[vtx];
@@ -69,10 +69,10 @@ void GradKappas::compute()
         scalar chi = 1.0 + te.dot( tf );
 
         //    assert( chi>0 );
-        if( chi <= 0 )
+        if ( chi <= 0 )
         {
             std::cerr << "GradKappas::compute(): " << " chi = " << chi << " te = "
-                    << te << " tf = " << tf << std::endl;
+                      << te << " tf = " << tf << std::endl;
             chi = 1e-12;
         }
 
@@ -80,22 +80,22 @@ void GradKappas::compute()
         const Vec3& tilde_d2 = ( m2e + m2f ) / chi;
 
         const Vec2& kappa = kappas[vtx];
-		
-#ifdef USE_APPROX_GRAD_KAPPA
-		const scalar beta0 = fabs(kappa[0]) < 1e-16 ? 1.0 : (kappa[0] / 2.0 / sin(kappa[0] / 2.0));
-		const scalar beta1 = fabs(kappa[1]) < 1e-16 ? 1.0 : (kappa[1] / 2.0 / sin(kappa[1] / 2.0));
 
-		const Vec3& Dkappa0De = 1.0 / norm_e * ( tf.cross( tilde_d2 ) ) * beta0;
-		const Vec3& Dkappa0Df = 1.0 / norm_f * ( -te.cross( tilde_d2 ) ) * beta0;
-		const Vec3& Dkappa1De = 1.0 / norm_e * ( -tf.cross( tilde_d1 ) ) * beta1;
-		const Vec3& Dkappa1Df = 1.0 / norm_f * ( te.cross( tilde_d1 ) ) * beta1;
+#ifdef USE_APPROX_GRAD_KAPPA
+        const scalar beta0 = fabs(kappa[0]) < 1e-16 ? 1.0 : (kappa[0] / 2.0 / sin(kappa[0] / 2.0));
+        const scalar beta1 = fabs(kappa[1]) < 1e-16 ? 1.0 : (kappa[1] / 2.0 / sin(kappa[1] / 2.0));
+
+        const Vec3& Dkappa0De = 1.0 / norm_e * ( tf.cross( tilde_d2 ) ) * beta0;
+        const Vec3& Dkappa0Df = 1.0 / norm_f * ( -te.cross( tilde_d2 ) ) * beta0;
+        const Vec3& Dkappa1De = 1.0 / norm_e * ( -tf.cross( tilde_d1 ) ) * beta1;
+        const Vec3& Dkappa1Df = 1.0 / norm_f * ( te.cross( tilde_d1 ) ) * beta1;
 #else
         const Vec3& tilde_t = ( te + tf ) / chi;
-		
-		const Vec3& Dkappa0De = 1.0 / norm_e * ( -kappa[0] * tilde_t + tf.cross( tilde_d2 ) );
-		const Vec3& Dkappa0Df = 1.0 / norm_f * ( -kappa[0] * tilde_t - te.cross( tilde_d2 ) );
-		const Vec3& Dkappa1De = 1.0 / norm_e * ( -kappa[1] * tilde_t - tf.cross( tilde_d1 ) );
-		const Vec3& Dkappa1Df = 1.0 / norm_f * ( -kappa[1] * tilde_t + te.cross( tilde_d1 ) );
+
+        const Vec3& Dkappa0De = 1.0 / norm_e * ( -kappa[0] * tilde_t + tf.cross( tilde_d2 ) );
+        const Vec3& Dkappa0Df = 1.0 / norm_f * ( -kappa[0] * tilde_t - te.cross( tilde_d2 ) );
+        const Vec3& Dkappa1De = 1.0 / norm_e * ( -kappa[1] * tilde_t - tf.cross( tilde_d1 ) );
+        const Vec3& Dkappa1Df = 1.0 / norm_f * ( -kappa[1] * tilde_t + te.cross( tilde_d1 ) );
 #endif
 
         gradKappa.block<3, 1>( 0, 0 ) = -Dkappa0De;
@@ -126,15 +126,15 @@ void HessKappas::compute()
     const Vec3Array& materialFrames2 = m_materialFrames2.get();
     const Vec2Array& kappas = m_kappas.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         Mat11Pair& HessKappa = m_value[vtx];
 
         Mat11& DDkappa1 = HessKappa.first;
         Mat11& DDkappa2 = HessKappa.second;
 
-		DDkappa1.setZero();
-		DDkappa2.setZero();
+        DDkappa1.setZero();
+        DDkappa2.setZero();
 
         const scalar norm_e = lengths[vtx - 1];
         const scalar norm_f = lengths[vtx];
@@ -152,10 +152,10 @@ void HessKappas::compute()
         scalar chi = 1.0 + te.dot( tf );
 
         //    assert( chi>0 );
-        if( chi <= 0 )
+        if ( chi <= 0 )
         {
             std::cerr << "HessKappas::compute(): " << " chi = " << chi << " te = "
-                    << te << " tf = " << tf << std::endl;
+                      << te << " tf = " << tf << std::endl;
             chi = 1e-12;
         }
 
@@ -177,9 +177,9 @@ void HessKappas::compute()
 
         {
             const Mat3& D2kappa1De2 = 1.0 / norm2_e
-                    * ( 2 * kappa[0] * tt_o_tt - ( tf_c_d2t_o_tt + tt_o_tf_c_d2t ) )
-                    - kappa[0] / ( chi * norm2_e ) * ( Id - outerProd<3>( te, te ) )
-                    + 1.0 / ( 4.0 * norm2_e ) * ( kb_o_d2e + d2e_o_kb );
+                                      * ( 2 * kappa[0] * tt_o_tt - ( tf_c_d2t_o_tt + tt_o_tf_c_d2t ) )
+                                      - kappa[0] / ( chi * norm2_e ) * ( Id - outerProd<3>( te, te ) )
+                                      + 1.0 / ( 4.0 * norm2_e ) * ( kb_o_d2e + d2e_o_kb );
 
             const Mat3& te_c_d2t_o_tt = outerProd<3>( te.cross( tilde_d2 ), tilde_t );
             const Mat3& tt_o_te_c_d2t = te_c_d2t_o_tt.transpose();
@@ -187,33 +187,33 @@ void HessKappas::compute()
             const Mat3& d2f_o_kb = kb_o_d2f.transpose();
 
             const Mat3& D2kappa1Df2 = 1.0 / norm2_f
-                    * ( 2 * kappa[0] * tt_o_tt + ( te_c_d2t_o_tt + tt_o_te_c_d2t ) )
-                    - kappa[0] / ( chi * norm2_f ) * ( Id - outerProd<3>( tf, tf ) )
-                    + 1.0 / ( 4.0 * norm2_f ) * ( kb_o_d2f + d2f_o_kb );
+                                      * ( 2 * kappa[0] * tt_o_tt + ( te_c_d2t_o_tt + tt_o_te_c_d2t ) )
+                                      - kappa[0] / ( chi * norm2_f ) * ( Id - outerProd<3>( tf, tf ) )
+                                      + 1.0 / ( 4.0 * norm2_f ) * ( kb_o_d2f + d2f_o_kb );
 
             const Mat3& D2kappa1DeDf = -kappa[0] / ( chi * norm_e * norm_f )
-                    * ( Id + outerProd<3>( te, tf ) )
-                    + 1.0 / ( norm_e * norm_f )
-                            * ( 2 * kappa[0] * tt_o_tt - tf_c_d2t_o_tt + tt_o_te_c_d2t
-                                    - crossMat( tilde_d2 ) );
+                                       * ( Id + outerProd<3>( te, tf ) )
+                                       + 1.0 / ( norm_e * norm_f )
+                                       * ( 2 * kappa[0] * tt_o_tt - tf_c_d2t_o_tt + tt_o_te_c_d2t
+                                           - crossMat( tilde_d2 ) );
             const Mat3& D2kappa1DfDe = D2kappa1DeDf.transpose();
 
             const scalar D2kappa1Dthetae2 = -0.5 * kb.dot( m2e );
             const scalar D2kappa1Dthetaf2 = -0.5 * kb.dot( m2f );
             const Vec3& D2kappa1DeDthetae = 1.0 / norm_e
-                    * ( 0.5 * kb.dot( m1e ) * tilde_t - 1.0 / chi * tf.cross( m1e ) );
+                                            * ( 0.5 * kb.dot( m1e ) * tilde_t - 1.0 / chi * tf.cross( m1e ) );
             const Vec3& D2kappa1DeDthetaf = 1.0 / norm_e
-                    * ( 0.5 * kb.dot( m1f ) * tilde_t - 1.0 / chi * tf.cross( m1f ) );
+                                            * ( 0.5 * kb.dot( m1f ) * tilde_t - 1.0 / chi * tf.cross( m1f ) );
             const Vec3& D2kappa1DfDthetae = 1.0 / norm_f
-                    * ( 0.5 * kb.dot( m1e ) * tilde_t + 1.0 / chi * te.cross( m1e ) );
+                                            * ( 0.5 * kb.dot( m1e ) * tilde_t + 1.0 / chi * te.cross( m1e ) );
             const Vec3& D2kappa1DfDthetaf = 1.0 / norm_f
-                    * ( 0.5 * kb.dot( m1f ) * tilde_t + 1.0 / chi * te.cross( m1f ) );
+                                            * ( 0.5 * kb.dot( m1f ) * tilde_t + 1.0 / chi * te.cross( m1f ) );
 
             DDkappa1.block<3, 3>( 0, 0 ) = D2kappa1De2;
             DDkappa1.block<3, 3>( 0, 4 ) = -D2kappa1De2 + D2kappa1DeDf;
             DDkappa1.block<3, 3>( 4, 0 ) = -D2kappa1De2 + D2kappa1DfDe;
             DDkappa1.block<3, 3>( 4, 4 ) = D2kappa1De2 - ( D2kappa1DeDf + D2kappa1DfDe )
-                    + D2kappa1Df2;
+                                           + D2kappa1Df2;
             DDkappa1.block<3, 3>( 0, 8 ) = -D2kappa1DeDf;
             DDkappa1.block<3, 3>( 8, 0 ) = -D2kappa1DfDe;
             DDkappa1.block<3, 3>( 4, 8 ) = D2kappa1DeDf - D2kappa1Df2;
@@ -245,9 +245,9 @@ void HessKappas::compute()
             const Mat3& d1e_o_kb = kb_o_d1e.transpose();
 
             const Mat3& D2kappa2De2 = 1.0 / norm2_e
-                    * ( 2 * kappa[1] * tt_o_tt + ( tf_c_d1t_o_tt + tt_o_tf_c_d1t ) )
-                    - kappa[1] / ( chi * norm2_e ) * ( Id - outerProd<3>( te, te ) )
-                    - 1.0 / ( 4.0 * norm2_e ) * ( kb_o_d1e + d1e_o_kb );
+                                      * ( 2 * kappa[1] * tt_o_tt + ( tf_c_d1t_o_tt + tt_o_tf_c_d1t ) )
+                                      - kappa[1] / ( chi * norm2_e ) * ( Id - outerProd<3>( te, te ) )
+                                      - 1.0 / ( 4.0 * norm2_e ) * ( kb_o_d1e + d1e_o_kb );
 
             const Mat3& te_c_d1t_o_tt = outerProd<3>( te.cross( tilde_d1 ), tilde_t );
             const Mat3& tt_o_te_c_d1t = te_c_d1t_o_tt.transpose();
@@ -255,33 +255,33 @@ void HessKappas::compute()
             const Mat3& d1f_o_kb = kb_o_d1f.transpose();
 
             const Mat3& D2kappa2Df2 = 1.0 / norm2_f
-                    * ( 2 * kappa[1] * tt_o_tt - ( te_c_d1t_o_tt + tt_o_te_c_d1t ) )
-                    - kappa[1] / ( chi * norm2_f ) * ( Id - outerProd<3>( tf, tf ) )
-                    - 1.0 / ( 4.0 * norm2_f ) * ( kb_o_d1f + d1f_o_kb );
+                                      * ( 2 * kappa[1] * tt_o_tt - ( te_c_d1t_o_tt + tt_o_te_c_d1t ) )
+                                      - kappa[1] / ( chi * norm2_f ) * ( Id - outerProd<3>( tf, tf ) )
+                                      - 1.0 / ( 4.0 * norm2_f ) * ( kb_o_d1f + d1f_o_kb );
 
             const Mat3& D2kappa2DeDf = -kappa[1] / ( chi * norm_e * norm_f )
-                    * ( Id + outerProd<3>( te, tf ) )
-                    + 1.0 / ( norm_e * norm_f )
-                            * ( 2 * kappa[1] * tt_o_tt + tf_c_d1t_o_tt - tt_o_te_c_d1t
-                                    + crossMat( tilde_d1 ) );
+                                       * ( Id + outerProd<3>( te, tf ) )
+                                       + 1.0 / ( norm_e * norm_f )
+                                       * ( 2 * kappa[1] * tt_o_tt + tf_c_d1t_o_tt - tt_o_te_c_d1t
+                                           + crossMat( tilde_d1 ) );
             const Mat3& D2kappa2DfDe = D2kappa2DeDf.transpose();
 
             const scalar D2kappa2Dthetae2 = 0.5 * kb.dot( m1e );
             const scalar D2kappa2Dthetaf2 = 0.5 * kb.dot( m1f );
             const Vec3& D2kappa2DeDthetae = 1.0 / norm_e
-                    * ( 0.5 * kb.dot( m2e ) * tilde_t - 1.0 / chi * tf.cross( m2e ) );
+                                            * ( 0.5 * kb.dot( m2e ) * tilde_t - 1.0 / chi * tf.cross( m2e ) );
             const Vec3& D2kappa2DeDthetaf = 1.0 / norm_e
-                    * ( 0.5 * kb.dot( m2f ) * tilde_t - 1.0 / chi * tf.cross( m2f ) );
+                                            * ( 0.5 * kb.dot( m2f ) * tilde_t - 1.0 / chi * tf.cross( m2f ) );
             const Vec3& D2kappa2DfDthetae = 1.0 / norm_f
-                    * ( 0.5 * kb.dot( m2e ) * tilde_t + 1.0 / chi * te.cross( m2e ) );
+                                            * ( 0.5 * kb.dot( m2e ) * tilde_t + 1.0 / chi * te.cross( m2e ) );
             const Vec3& D2kappa2DfDthetaf = 1.0 / norm_f
-                    * ( 0.5 * kb.dot( m2f ) * tilde_t + 1.0 / chi * te.cross( m2f ) );
+                                            * ( 0.5 * kb.dot( m2f ) * tilde_t + 1.0 / chi * te.cross( m2f ) );
 
             DDkappa2.block<3, 3>( 0, 0 ) = D2kappa2De2;
             DDkappa2.block<3, 3>( 0, 4 ) = -D2kappa2De2 + D2kappa2DeDf;
             DDkappa2.block<3, 3>( 4, 0 ) = -D2kappa2De2 + D2kappa2DfDe;
             DDkappa2.block<3, 3>( 4, 4 ) = D2kappa2De2 - ( D2kappa2DeDf + D2kappa2DfDe )
-                    + D2kappa2Df2;
+                                           + D2kappa2Df2;
             DDkappa2.block<3, 3>( 0, 8 ) = -D2kappa2DeDf;
             DDkappa2.block<3, 3>( 8, 0 ) = -D2kappa2DfDe;
             DDkappa2.block<3, 3>( 4, 8 ) = D2kappa2DeDf - D2kappa2Df2;
@@ -317,14 +317,14 @@ void ThetaHessKappas::compute()
     const Vec3Array& materialFrames1 = m_materialFrames1.get();
     const Vec3Array& materialFrames2 = m_materialFrames2.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         ThetaHessKType& HessKappa = m_value[vtx];
         Mat2& DDkappa1 = HessKappa.first;
         Mat2& DDkappa2 = HessKappa.second;
 
-		DDkappa1.setZero();
-		DDkappa2.setZero();
+        DDkappa1.setZero();
+        DDkappa2.setZero();
 
         const Vec3& m1e = materialFrames1[vtx - 1];
         const Vec3& m2e = materialFrames2[vtx - 1];

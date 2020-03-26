@@ -32,19 +32,19 @@
 // gross template hacking to determine if a type is integral or not
 struct Array1True {};
 struct Array1False {};
-template<typename T> struct Array1IsIntegral{ typedef Array1False type; }; // default: no (specializations to yes follow)
-template<> struct Array1IsIntegral<bool>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<char>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<signed char>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<unsigned char>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<short>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<unsigned short>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<int>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<unsigned int>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<long>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<unsigned long>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<long long>{ typedef Array1True type; };
-template<> struct Array1IsIntegral<unsigned long long>{ typedef Array1True type; };
+template<typename T> struct Array1IsIntegral { typedef Array1False type; }; // default: no (specializations to yes follow)
+template<> struct Array1IsIntegral<bool> { typedef Array1True type; };
+template<> struct Array1IsIntegral<char> { typedef Array1True type; };
+template<> struct Array1IsIntegral<signed char> { typedef Array1True type; };
+template<> struct Array1IsIntegral<unsigned char> { typedef Array1True type; };
+template<> struct Array1IsIntegral<short> { typedef Array1True type; };
+template<> struct Array1IsIntegral<unsigned short> { typedef Array1True type; };
+template<> struct Array1IsIntegral<int> { typedef Array1True type; };
+template<> struct Array1IsIntegral<unsigned int> { typedef Array1True type; };
+template<> struct Array1IsIntegral<long> { typedef Array1True type; };
+template<> struct Array1IsIntegral<unsigned long> { typedef Array1True type; };
+template<> struct Array1IsIntegral<long long> { typedef Array1True type; };
+template<> struct Array1IsIntegral<unsigned long long> { typedef Array1True type; };
 
 //============================================================================
 template<typename T>
@@ -80,77 +80,77 @@ struct Array1
    Array1(unsigned long n_)
       : n(0), max_n(0), data(0)
    {
-      if(n_>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      data=(T*)std::calloc(n_, sizeof(T));
-      if(!data) throw std::bad_alloc();
-      n=n_;
-      max_n=n_;
+      if (n_ > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      data = (T*)std::calloc(n_, sizeof(T));
+      if (!data) throw std::bad_alloc();
+      n = n_;
+      max_n = n_;
    }
 
    Array1(unsigned long n_, const T& value)
       : n(0), max_n(0), data(0)
    {
-      if(n_>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      data=(T*)std::calloc(n_, sizeof(T));
-      if(!data) throw std::bad_alloc();
-      n=n_;
-      max_n=n_;
-      for(unsigned long i=0; i<n; ++i) data[i]=value;
+      if (n_ > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      data = (T*)std::calloc(n_, sizeof(T));
+      if (!data) throw std::bad_alloc();
+      n = n_;
+      max_n = n_;
+      for (unsigned long i = 0; i < n; ++i) data[i] = value;
    }
 
    Array1(unsigned long n_, const T& value, unsigned long max_n_)
       : n(0), max_n(0), data(0)
    {
-      assert(n_<=max_n_);
-      if(max_n_>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      data=(T*)std::calloc(max_n_, sizeof(T));
-      if(!data) throw std::bad_alloc();
-      n=n_;
-      max_n=max_n_;
-      for(unsigned long i=0; i<n; ++i) data[i]=value;
+      assert(n_ <= max_n_);
+      if (max_n_ > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      data = (T*)std::calloc(max_n_, sizeof(T));
+      if (!data) throw std::bad_alloc();
+      n = n_;
+      max_n = max_n_;
+      for (unsigned long i = 0; i < n; ++i) data[i] = value;
    }
 
    Array1(unsigned long n_, const T* data_)
       : n(0), max_n(0), data(0)
    {
-      if(n_>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      data=(T*)std::calloc(n_, sizeof(T));
-      if(!data) throw std::bad_alloc();
-      n=n_;
-      max_n=n_;
+      if (n_ > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      data = (T*)std::calloc(n_, sizeof(T));
+      if (!data) throw std::bad_alloc();
+      n = n_;
+      max_n = n_;
       assert(data_);
-      std::memcpy(data, data_, n*sizeof(T));
+      std::memcpy(data, data_, n * sizeof(T));
    }
 
    Array1(unsigned long n_, const T* data_, unsigned long max_n_)
       : n(0), max_n(0), data(0)
    {
-      assert(n_<=max_n_);
-      if(max_n_>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      data=(T*)std::calloc(max_n_, sizeof(T));
-      if(!data) throw std::bad_alloc();
-      max_n=max_n_;
-      n=n_;
+      assert(n_ <= max_n_);
+      if (max_n_ > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      data = (T*)std::calloc(max_n_, sizeof(T));
+      if (!data) throw std::bad_alloc();
+      max_n = max_n_;
+      n = n_;
       assert(data_);
-      std::memcpy(data, data_, n*sizeof(T));
+      std::memcpy(data, data_, n * sizeof(T));
    }
 
    Array1(const Array1<T> &x)
       : n(0), max_n(0), data(0)
    {
-      data=(T*)std::malloc(x.n*sizeof(T));
-      if(!data) throw std::bad_alloc();
-      n=x.n;
-      max_n=x.n;
-      std::memcpy(data, x.data, n*sizeof(T));
+      data = (T*)std::malloc(x.n * sizeof(T));
+      if (!data) throw std::bad_alloc();
+      n = x.n;
+      max_n = x.n;
+      std::memcpy(data, x.data, n * sizeof(T));
    }
 
    ~Array1(void)
    {
       std::free(data);
 #ifndef NDEBUG
-      data=0;
-      n=max_n=0;
+      data = 0;
+      n = max_n = 0;
 #endif
    }
 
@@ -163,107 +163,107 @@ struct Array1
    // these are range-checked (in debug mode) versions of operator[], like at()
    const T& operator()(unsigned long i) const
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    T& operator()(unsigned long i)
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    Array1<T>& operator=(const Array1<T>& x)
    {
-      if(max_n<x.n){
-         T* new_data=(T*)std::malloc(x.n*sizeof(T));
-         if(!new_data) throw std::bad_alloc();
+      if (max_n < x.n) {
+         T* new_data = (T*)std::malloc(x.n * sizeof(T));
+         if (!new_data) throw std::bad_alloc();
          std::free(data);
-         data=new_data;
-         max_n=x.n;
+         data = new_data;
+         max_n = x.n;
       }
-      n=x.n;
-      std::memcpy(data, x.data, n*sizeof(T));
+      n = x.n;
+      std::memcpy(data, x.data, n * sizeof(T));
       return *this;
    }
 
    bool operator==(const Array1<T>& x) const
    {
-      if(n!=x.n) return false;
-      for(unsigned long i=0; i<n; ++i) if(!(data[i]==x.data[i])) return false;
+      if (n != x.n) return false;
+      for (unsigned long i = 0; i < n; ++i) if (!(data[i] == x.data[i])) return false;
       return true;
    }
- 
+
    bool operator!=(const Array1<T>& x) const
    {
-      if(n!=x.n) return true;
-      for(unsigned long i=0; i<n; ++i) if(data[i]!=x.data[i]) return true;
+      if (n != x.n) return true;
+      for (unsigned long i = 0; i < n; ++i) if (data[i] != x.data[i]) return true;
       return false;
    }
 
    bool operator<(const Array1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]<x[i]) return true;
-         else if(x[i]<data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] < x[i]) return true;
+         else if (x[i] < data[i]) return false;
       }
-      return n<x.n;
+      return n < x.n;
    }
 
    bool operator>(const Array1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]>x[i]) return true;
-         else if(x[i]>data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] > x[i]) return true;
+         else if (x[i] > data[i]) return false;
       }
-      return n>x.n;
+      return n > x.n;
    }
 
    bool operator<=(const Array1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]<x[i]) return true;
-         else if(x[i]<data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] < x[i]) return true;
+         else if (x[i] < data[i]) return false;
       }
-      return n<=x.n;
+      return n <= x.n;
    }
 
    bool operator>=(const Array1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]>x[i]) return true;
-         else if(x[i]>data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] > x[i]) return true;
+         else if (x[i] > data[i]) return false;
       }
-      return n>=x.n;
+      return n >= x.n;
    }
 
    void add_unique(const T& value)
    {
-      for(unsigned long i=0; i<n; ++i) if(data[i]==value) return;
-      if(n==max_n) grow();
-      data[n++]=value;
+      for (unsigned long i = 0; i < n; ++i) if (data[i] == value) return;
+      if (n == max_n) grow();
+      data[n++] = value;
    }
 
    void assign(const T& value)
-   { for(unsigned long i=0; i<n; ++i) data[i]=value; }
+   { for (unsigned long i = 0; i < n; ++i) data[i] = value; }
 
    void assign(unsigned long num, const T& value)
-   { fill(num, value); } 
+   { fill(num, value); }
 
    // note: copydata may not alias this array's data, and this should not be
    // used when T is a full object (which defines its own copying operation)
    void assign(unsigned long num, const T* copydata)
    {
-      assert(num==0 || copydata);
-      if(num>max_n){
-         if(num>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
+      assert(num == 0 || copydata);
+      if (num > max_n) {
+         if (num > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
          std::free(data);
-         data=(T*)std::malloc(num*sizeof(T));
-         if(!data) throw std::bad_alloc();
-         max_n=num;
+         data = (T*)std::malloc(num * sizeof(T));
+         if (!data) throw std::bad_alloc();
+         max_n = num;
       }
-      n=num;
-      std::memcpy(data, copydata, n*sizeof(T));
+      n = num;
+      std::memcpy(data, copydata, n * sizeof(T));
    }
 
    template<typename InputIterator>
@@ -277,37 +277,37 @@ struct Array1
    template<typename InputIterator>
    void assign_(InputIterator first, InputIterator last, Array1False check)
    {
-      unsigned long i=0;
-      InputIterator p=first;
-      for(; p!=last; ++p, ++i){
-         if(i==max_n) grow();
-         data[i]=*p;
+      unsigned long i = 0;
+      InputIterator p = first;
+      for (; p != last; ++p, ++i) {
+         if (i == max_n) grow();
+         data[i] = *p;
       }
-      n=i;
+      n = i;
    }
 
    const T& at(unsigned long i) const
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    T& at(unsigned long i)
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    const T& back(void) const
-   { 
-      assert(data && n>0);
-      return data[n-1];
+   {
+      assert(data && n > 0);
+      return data[n - 1];
    }
 
    T& back(void)
    {
-      assert(data && n>0);
-      return data[n-1];
+      assert(data && n > 0);
+      return data[n - 1];
    }
 
    const T* begin(void) const
@@ -322,84 +322,84 @@ struct Array1
    void clear(void)
    {
       std::free(data);
-      data=0;
-      max_n=0;
-      n=0;
+      data = 0;
+      max_n = 0;
+      n = 0;
    }
 
    bool empty(void) const
-   { return n==0; }
+   { return n == 0; }
 
    const T* end(void) const
-   { return data+n; }
+   { return data + n; }
 
    T* end(void)
-   { return data+n; }
+   { return data + n; }
 
    void erase(unsigned long index)
    {
-      assert(index<n);
-      for(unsigned long i=index; i<n-1; ++i)
-         data[i]=data[i-1];
+      assert(index < n);
+      for (unsigned long i = index; i < n - 1; ++i)
+         data[i] = data[i - 1];
       pop_back();
    }
 
    void fill(unsigned long num, const T& value)
    {
-      if(num>max_n){
-         if(num>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
+      if (num > max_n) {
+         if (num > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
          std::free(data);
-         data=(T*)std::malloc(num*sizeof(T));
-         if(!data) throw std::bad_alloc();
-         max_n=num;
+         data = (T*)std::malloc(num * sizeof(T));
+         if (!data) throw std::bad_alloc();
+         max_n = num;
       }
-      n=num;
-      for(unsigned long i=0; i<n; ++i) data[i]=value;
+      n = num;
+      for (unsigned long i = 0; i < n; ++i) data[i] = value;
    }
 
    const T& front(void) const
    {
-      assert(n>0);
+      assert(n > 0);
       return *data;
    }
 
    T& front(void)
    {
-      assert(n>0);
+      assert(n > 0);
       return *data;
    }
 
    void grow(void)
    {
-      unsigned long new_size=(max_n*sizeof(T)<ULONG_MAX/2 ? 2*max_n+1 : ULONG_MAX/sizeof(T));
-      T *new_data=(T*)std::realloc(data, new_size*sizeof(T));
-      if(!new_data) throw std::bad_alloc();
-      data=new_data;
-      max_n=new_size;
+      unsigned long new_size = (max_n * sizeof(T) < ULONG_MAX / 2 ? 2 * max_n + 1 : ULONG_MAX / sizeof(T));
+      T *new_data = (T*)std::realloc(data, new_size * sizeof(T));
+      if (!new_data) throw std::bad_alloc();
+      data = new_data;
+      max_n = new_size;
    }
 
    void insert(unsigned long index, const T& entry)
    {
-      assert(index<=n);
+      assert(index <= n);
       push_back(back());
-      for(unsigned long i=n-1; i>index; --i)
-         data[i]=data[i-1];
-      data[index]=entry;
+      for (unsigned long i = n - 1; i > index; --i)
+         data[i] = data[i - 1];
+      data[index] = entry;
    }
 
    unsigned long max_size(void) const
-   { return ULONG_MAX/sizeof(T); }
+   { return ULONG_MAX / sizeof(T); }
 
    void pop_back(void)
    {
-      assert(n>0);
+      assert(n > 0);
       --n;
    }
 
    void push_back(const T& value)
    {
-      if(n==max_n) grow();
-      data[n++]=value;
+      if (n == max_n) grow();
+      data[n++] = value;
    }
 
    reverse_iterator rbegin(void)
@@ -416,28 +416,28 @@ struct Array1
 
    void reserve(unsigned long r)
    {
-      if(r>ULONG_MAX/sizeof(T)) throw std::bad_alloc();
-      T *new_data=(T*)std::realloc(data, r*sizeof(T));
-      if(!new_data) throw std::bad_alloc();
-      data=new_data;
-      max_n=r;
+      if (r > ULONG_MAX / sizeof(T)) throw std::bad_alloc();
+      T *new_data = (T*)std::realloc(data, r * sizeof(T));
+      if (!new_data) throw std::bad_alloc();
+      data = new_data;
+      max_n = r;
    }
 
    void resize(unsigned long n_)
    {
-      if(n_>max_n) reserve(n_);
-      n=n_;
+      if (n_ > max_n) reserve(n_);
+      n = n_;
    }
 
    void resize(unsigned long n_, const T& value)
    {
-      if(n_>max_n) reserve(n_);
-      if(n<n_) for(unsigned long i=n; i<n_; ++i) data[i]=value;
-      n=n_;
+      if (n_ > max_n) reserve(n_);
+      if (n < n_) for (unsigned long i = n; i < n_; ++i) data[i] = value;
+      n = n_;
    }
 
    void set_zero(void)
-   { std::memset(data, 0, n*sizeof(T)); }
+   { std::memset(data, 0, n * sizeof(T)); }
 
    unsigned long size(void) const
    { return n; }
@@ -453,13 +453,13 @@ struct Array1
    // (Note: realloc, at least on some platforms, will not do the trick)
    void trim(void)
    {
-      if(n==max_n) return;
-      T *new_data=(T*)std::malloc(n*sizeof(T));
-      if(!new_data) return;
-      std::memcpy(new_data, data, n*sizeof(T));
+      if (n == max_n) return;
+      T *new_data = (T*)std::malloc(n * sizeof(T));
+      if (!new_data) return;
+      std::memcpy(new_data, data, n * sizeof(T));
       std::free(data);
-      data=new_data;
-      max_n=n;
+      data = new_data;
+      max_n = n;
    }
 };
 
@@ -508,13 +508,13 @@ struct WrapArray1
 
    WrapArray1(unsigned long n_, T* data_)
       : n(n_), max_n(n_), data(data_)
-   { assert(data || max_n==0); }
+   { assert(data || max_n == 0); }
 
    WrapArray1(unsigned long n_, T* data_, unsigned long max_n_)
       : n(n_), max_n(max_n_), data(data_)
    {
-      assert(n<=max_n);
-      assert(data || max_n==0);
+      assert(n <= max_n);
+      assert(data || max_n == 0);
    }
 
    // Allow for simple shallow copies of existing arrays
@@ -530,11 +530,11 @@ struct WrapArray1
 
    void init(unsigned long n_, T* data_, unsigned long max_n_)
    {
-      assert(n_<=max_n_);
-      assert(data_ || max_n_==0);
-      n=n_;
-      max_n=max_n_;
-      data=data_;
+      assert(n_ <= max_n_);
+      assert(data_ || max_n_ == 0);
+      n = n_;
+      max_n = max_n_;
+      data = data_;
    }
 
    const T& operator[](unsigned long i) const
@@ -546,87 +546,87 @@ struct WrapArray1
    // these are range-checked (in debug mode) versions of operator[], like at()
    const T& operator()(unsigned long i) const
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    T& operator()(unsigned long i)
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    bool operator==(const WrapArray1<T>& x) const
    {
-      if(n!=x.n) return false;
-      for(unsigned long i=0; i<n; ++i) if(!(data[i]==x.data[i])) return false;
+      if (n != x.n) return false;
+      for (unsigned long i = 0; i < n; ++i) if (!(data[i] == x.data[i])) return false;
       return true;
    }
- 
+
    bool operator!=(const WrapArray1<T>& x) const
    {
-      if(n!=x.n) return true;
-      for(unsigned long i=0; i<n; ++i) if(data[i]!=x.data[i]) return true;
+      if (n != x.n) return true;
+      for (unsigned long i = 0; i < n; ++i) if (data[i] != x.data[i]) return true;
       return false;
    }
 
    bool operator<(const WrapArray1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]<x[i]) return true;
-         else if(x[i]<data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] < x[i]) return true;
+         else if (x[i] < data[i]) return false;
       }
-      return n<x.n;
+      return n < x.n;
    }
 
    bool operator>(const WrapArray1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]>x[i]) return true;
-         else if(x[i]>data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] > x[i]) return true;
+         else if (x[i] > data[i]) return false;
       }
-      return n>x.n;
+      return n > x.n;
    }
 
    bool operator<=(const WrapArray1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]<x[i]) return true;
-         else if(x[i]<data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] < x[i]) return true;
+         else if (x[i] < data[i]) return false;
       }
-      return n<=x.n;
+      return n <= x.n;
    }
 
    bool operator>=(const WrapArray1<T>& x) const
    {
-      for(unsigned long i=0; i<n && i<x.n; ++i){
-         if(data[i]>x[i]) return true;
-         else if(x[i]>data[i]) return false;
+      for (unsigned long i = 0; i < n && i < x.n; ++i) {
+         if (data[i] > x[i]) return true;
+         else if (x[i] > data[i]) return false;
       }
-      return n>=x.n;
+      return n >= x.n;
    }
 
    void add_unique(const T& value)
    {
-      for(unsigned long i=0; i<n; ++i) if(data[i]==value) return;
-      assert(n<max_n);
-      data[n++]=value;
+      for (unsigned long i = 0; i < n; ++i) if (data[i] == value) return;
+      assert(n < max_n);
+      data[n++] = value;
    }
 
    void assign(const T& value)
-   { for(unsigned long i=0; i<n; ++i) data[i]=value; }
+   { for (unsigned long i = 0; i < n; ++i) data[i] = value; }
 
    void assign(unsigned long num, const T& value)
-   { fill(num, value); } 
+   { fill(num, value); }
 
    // note: copydata may not alias this array's data, and this should not be
    // used when T is a full object (which defines its own copying operation)
    void assign(unsigned long num, const T* copydata)
    {
-      assert(num==0 || copydata);
-      assert(num<=max_n);
-      n=num;
-      std::memcpy(data, copydata, n*sizeof(T));
+      assert(num == 0 || copydata);
+      assert(num <= max_n);
+      n = num;
+      std::memcpy(data, copydata, n * sizeof(T));
    }
 
    template<typename InputIterator>
@@ -640,37 +640,37 @@ struct WrapArray1
    template<typename InputIterator>
    void assign_(InputIterator first, InputIterator last, Array1False check)
    {
-      unsigned long i=0;
-      InputIterator p=first;
-      for(; p!=last; ++p, ++i){
-         assert(i<max_n);
-         data[i]=*p;
+      unsigned long i = 0;
+      InputIterator p = first;
+      for (; p != last; ++p, ++i) {
+         assert(i < max_n);
+         data[i] = *p;
       }
-      n=i;
+      n = i;
    }
 
    const T& at(unsigned long i) const
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    T& at(unsigned long i)
    {
-      assert(i<n);
+      assert(i < n);
       return data[i];
    }
 
    const T& back(void) const
-   { 
-      assert(data && n>0);
-      return data[n-1];
+   {
+      assert(data && n > 0);
+      return data[n - 1];
    }
 
    T& back(void)
    {
-      assert(data && n>0);
-      return data[n-1];
+      assert(data && n > 0);
+      return data[n - 1];
    }
 
    const T* begin(void) const
@@ -683,51 +683,51 @@ struct WrapArray1
    { return max_n; }
 
    void clear(void)
-   { n=0; }
+   { n = 0; }
 
    bool empty(void) const
-   { return n==0; }
+   { return n == 0; }
 
    const T* end(void) const
-   { return data+n; }
+   { return data + n; }
 
    T* end(void)
-   { return data+n; }
+   { return data + n; }
 
    void erase(unsigned long index)
    {
-      assert(index<n);
-      for(unsigned long i=index; i<n-1; ++i)
-         data[i]=data[i-1];
+      assert(index < n);
+      for (unsigned long i = index; i < n - 1; ++i)
+         data[i] = data[i - 1];
       pop_back();
    }
 
    void fill(unsigned long num, const T& value)
    {
-      assert(num<=max_n);
-      n=num;
-      for(unsigned long i=0; i<n; ++i) data[i]=value;
+      assert(num <= max_n);
+      n = num;
+      for (unsigned long i = 0; i < n; ++i) data[i] = value;
    }
 
    const T& front(void) const
    {
-      assert(n>0);
+      assert(n > 0);
       return *data;
    }
 
    T& front(void)
    {
-      assert(n>0);
+      assert(n > 0);
       return *data;
    }
 
    void insert(unsigned long index, const T& entry)
    {
-      assert(index<=n);
+      assert(index <= n);
       push_back(back());
-      for(unsigned long i=n-1; i>index; --i)
-         data[i]=data[i-1];
-      data[index]=entry;
+      for (unsigned long i = n - 1; i > index; --i)
+         data[i] = data[i - 1];
+      data[index] = entry;
    }
 
    unsigned long max_size(void) const
@@ -735,14 +735,14 @@ struct WrapArray1
 
    void pop_back(void)
    {
-      assert(n>0);
+      assert(n > 0);
       --n;
    }
 
    void push_back(const T& value)
    {
-      assert(n<max_n);
-      data[n++]=value;
+      assert(n < max_n);
+      data[n++] = value;
    }
 
    reverse_iterator rbegin(void)
@@ -758,24 +758,24 @@ struct WrapArray1
    { return const_reverse_iterator(begin()); }
 
    void reserve(unsigned long r)
-   { assert(r<=max_n); }
+   { assert(r <= max_n); }
 
    void resize(unsigned long n_)
    {
-      assert(n_<=max_n);
-      n=n_;
+      assert(n_ <= max_n);
+      n = n_;
    }
 
    void resize(unsigned long n_, const T& value)
    {
-      assert(n_<=max_n);
-      if(n<n_) for(unsigned long i=n; i<n_; ++i) data[i]=value;
-      n=n_;
+      assert(n_ <= max_n);
+      if (n < n_) for (unsigned long i = n; i < n_; ++i) data[i] = value;
+      n = n_;
    }
 
    // note: shouldn't be used when T is a full object (setting to zero may not make sense)
    void set_zero(void)
-   { std::memset(data, 0, n*sizeof(T)); }
+   { std::memset(data, 0, n * sizeof(T)); }
 
    unsigned long size(void) const
    { return n; }

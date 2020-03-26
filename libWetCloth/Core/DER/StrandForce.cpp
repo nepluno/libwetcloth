@@ -26,34 +26,34 @@
 #define TWIST
 #define BEND
 
-StrandForce::StrandForce( 
-	const std::shared_ptr<TwoDScene>& scene,
-	const std::vector<int>& consecutiveStrandVertices, 
-	const int& parameterIndex, 
-	int globalIndex ) :
-		m_verts( consecutiveStrandVertices ),
-        m_globalIndex( globalIndex ),
-        m_strandParams( NULL ),
-        m_scene( scene ),
-        m_requiresExactForceJacobian( true ),
-        m_strandEnergyUpdate( 0. ),
-         m_strandForceUpdate( getNumVertices() * 4 - 1 ),
-        m_strandHessianUpdate(),
-        m_strandState( NULL ),
-        m_startState( NULL )
+StrandForce::StrandForce(
+    const std::shared_ptr<TwoDScene>& scene,
+    const std::vector<int>& consecutiveStrandVertices,
+    const int& parameterIndex,
+    int globalIndex ) :
+    m_verts( consecutiveStrandVertices ),
+    m_globalIndex( globalIndex ),
+    m_strandParams( NULL ),
+    m_scene( scene ),
+    m_requiresExactForceJacobian( true ),
+    m_strandEnergyUpdate( 0. ),
+    m_strandForceUpdate( getNumVertices() * 4 - 1 ),
+    m_strandHessianUpdate(),
+    m_strandState( NULL ),
+    m_startState( NULL )
 {
     m_strandParams = m_scene->getStrandParameters( parameterIndex );
 
     VecX initDoFs( getNumVertices() * 4 - 1 );
-    for( int i = 0; i < getNumVertices(); ++i ){
-        if( m_scene->isTip( m_verts[i] ) ) initDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
+    for ( int i = 0; i < getNumVertices(); ++i ) {
+        if ( m_scene->isTip( m_verts[i] ) ) initDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
         else initDoFs.segment<4>( i * 4 ) = m_scene->getX().segment<4>( m_scene->getDof( m_verts[i] ) );
     }
-	m_strandState = new StrandState( initDoFs, m_strandParams->getBendingMatrixBase() );
+    m_strandState = new StrandState( initDoFs, m_strandParams->getBendingMatrixBase() );
     m_startState = new StartState( initDoFs );
 
-	m_packing_fraction.resize(m_verts.size());
-	m_packing_fraction.setOnes();
+    m_packing_fraction.resize(m_verts.size());
+    m_packing_fraction.setOnes();
 
     m_v_plus.resize(m_verts.size() * 4);
     m_v_plus.setZero();
@@ -73,10 +73,10 @@ StrandForce::StrandForce(
     m_viscous_stretching_multipliers.setZero();
     m_viscous_bending_multipliers.setZero();
     m_viscous_twisting_multipliers.setZero();
-   
+
     resizeInternals();
     freezeRestShape( 0, getNumEdges() ); // for now the rest shape is the shape in which the strand is created, unless this is called later on.
-	
+
     // wont need to update first step's DoFs,
     // therefore must initialize the stored quantities as well
     recomputeGlobal();
@@ -126,29 +126,29 @@ StartState::StartState( const VecX& initDoFs ):
 
 void StrandForce::updateStartState()
 {
-	const VectorXs& x = m_scene->getX();
-	const VectorXs& psi = m_scene->getVolumeFraction();
-	
+    const VectorXs& x = m_scene->getX();
+    const VectorXs& psi = m_scene->getVolumeFraction();
+
     VecX currentStrandDoFs( getNumVertices() * 4 );
     currentStrandDoFs.setZero();
-    for( int i = 0; i < getNumVertices(); ++i ){
-        if( m_scene->isTip( m_verts[i] ) ) currentStrandDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
+    for ( int i = 0; i < getNumVertices(); ++i ) {
+        if ( m_scene->isTip( m_verts[i] ) ) currentStrandDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
         else currentStrandDoFs.segment<4>( i * 4 ) = m_scene->getX().segment<4>( m_scene->getDof( m_verts[i] ) );
     }
     m_startState->m_dofs.set( currentStrandDoFs );
-	
-	const int num_verts = getNumVertices();
-	for(int i = 0; i < num_verts; ++i)
-	{
-		m_packing_fraction[i] = pow(psi[m_verts[i]], m_scene->getLiquidInfo().lambda);
-	}
+
+    const int num_verts = getNumVertices();
+    for (int i = 0; i < num_verts; ++i)
+    {
+        m_packing_fraction[i] = pow(psi[m_verts[i]], m_scene->getLiquidInfo().lambda);
+    }
 }
 
-void StrandForce::updateStrandState(){
+void StrandForce::updateStrandState() {
     VecX initDoFs( getNumVertices() * 4 );
     initDoFs.setZero();
-    for( int i = 0; i < getNumVertices(); ++i ){
-        if( m_scene->isTip( m_verts[i] ) ) initDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
+    for ( int i = 0; i < getNumVertices(); ++i ) {
+        if ( m_scene->isTip( m_verts[i] ) ) initDoFs.segment<3>( i * 4 ) = m_scene->getX().segment<3>( m_scene->getDof( m_verts[i] ) );
         else initDoFs.segment<4>( i * 4 ) = m_scene->getX().segment<4>( m_scene->getDof( m_verts[i] ) );
     }
 //    m_strandState->m_dofs.sets
@@ -158,24 +158,24 @@ void StrandForce::updateStrandState(){
 
 void StrandForce::updateRestShape( const VecX& dof_restshape, scalar damping )
 {
-  StartState restshape_state( dof_restshape );
-  
-  int nedges = getNumEdges();
-  for( IndexType vtx = 0; vtx < nedges; ++vtx )
-  { // Fix rest lengths
-    m_restLengths[vtx] = ( 1. - damping ) * restshape_state.m_lengths[vtx] + damping * m_restLengths[vtx];
-  }
-  updateEverythingThatDependsOnRestLengths();
-  
-  for( IndexType vtx = 0; vtx < nedges; ++vtx )
-  {
-    m_restKappas[vtx] = ( 1. - damping ) * restshape_state.m_kappas[vtx] + damping * m_restKappas[vtx];
-    m_restTwists[vtx] = ( 1. - damping ) * restshape_state.m_twists[vtx] + damping * m_restTwists[vtx];
-  }
+    StartState restshape_state( dof_restshape );
+
+    int nedges = getNumEdges();
+    for ( IndexType vtx = 0; vtx < nedges; ++vtx )
+    {   // Fix rest lengths
+        m_restLengths[vtx] = ( 1. - damping ) * restshape_state.m_lengths[vtx] + damping * m_restLengths[vtx];
+    }
+    updateEverythingThatDependsOnRestLengths();
+
+    for ( IndexType vtx = 0; vtx < nedges; ++vtx )
+    {
+        m_restKappas[vtx] = ( 1. - damping ) * restshape_state.m_kappas[vtx] + damping * m_restKappas[vtx];
+        m_restTwists[vtx] = ( 1. - damping ) * restshape_state.m_twists[vtx] + damping * m_restTwists[vtx];
+    }
 }
 
 void StrandForce::resizeInternals()
-{ // To be called on creation
+{   // To be called on creation
     m_restLengths.resize( getNumEdges() );
     m_restKappas.resize( getNumEdges() );
     m_restTwists.resize( getNumEdges() );
@@ -185,15 +185,15 @@ void StrandForce::resizeInternals()
 }
 
 void StrandForce::freezeRestShape( unsigned begin, unsigned end, scalar damping )
-{ // Take the current configuration as rest shape
+{   // Take the current configuration as rest shape
 
-    for( IndexType vtx = begin; vtx < end; ++vtx )
-    { // Fix rest lengths
+    for ( IndexType vtx = begin; vtx < end; ++vtx )
+    {   // Fix rest lengths
         m_restLengths[vtx] = ( 1. - damping ) * m_strandState->m_lengths[vtx] + damping * m_restLengths[vtx];
     }
     updateEverythingThatDependsOnRestLengths();
 
-    for( IndexType vtx = begin; vtx < end; ++vtx )
+    for ( IndexType vtx = begin; vtx < end; ++vtx )
     {
         m_restKappas[vtx] = ( 1. - damping ) * m_strandState->m_kappas[vtx] + damping * m_restKappas[vtx];
         m_restTwists[vtx] = ( 1. - damping ) * m_strandState->m_twists[vtx] + damping * m_restTwists[vtx];
@@ -204,21 +204,21 @@ void StrandForce::updateEverythingThatDependsOnRestLengths()
 {
     // Total rest length
     m_totalRestLength = 0.0;
-    for( IndexType vtx = 0; vtx < getNumEdges(); ++vtx ){
+    for ( IndexType vtx = 0; vtx < getNumEdges(); ++vtx ) {
         m_totalRestLength += m_restLengths[vtx];
     }
 
     // Compute Voronoi lengths
     m_VoronoiLengths[0] = 0.5 * m_restLengths[0];
-    for( IndexType vtx = 1; vtx < getNumEdges(); ++vtx ){
+    for ( IndexType vtx = 1; vtx < getNumEdges(); ++vtx ) {
         m_VoronoiLengths[vtx] = 0.5 * ( m_restLengths[vtx - 1] + m_restLengths[vtx] );
     }
     m_VoronoiLengths[getNumEdges()] = 0.5 * m_restLengths[getNumVertices() - 2];
 
     // Compute masses and inverse of Voronoi lengths
-    for( IndexType vtx = 0; vtx < getNumVertices(); ++vtx ){
-        m_vertexMasses[vtx] = m_strandParams->m_density * m_VoronoiLengths[vtx] * 
-                                M_PI * m_strandParams->getRadiusA( vtx ) * m_strandParams->getRadiusB( vtx );
+    for ( IndexType vtx = 0; vtx < getNumVertices(); ++vtx ) {
+        m_vertexMasses[vtx] = m_strandParams->m_density * m_VoronoiLengths[vtx] *
+                              M_PI * m_strandParams->getRadiusA( vtx ) * m_strandParams->getRadiusB( vtx );
         m_invVoronoiLengths[vtx] = 1.0 / m_VoronoiLengths[vtx];
     }
 }
@@ -252,8 +252,8 @@ void StrandForce::accumulateQuantity( AccumulatedT& accumulated )
     ForceAccumulator< TwistingForce< NonViscous > >::accumulate( accumulated, *this );
     ForceAccumulator< BendingForce< NonViscous > >::accumulate( accumulated, *this );
 
-    if( m_strandParams->m_accumulateWithViscous ){
-        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
+    if ( m_strandParams->m_accumulateWithViscous ) {
+        if ( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
         {
             ForceAccumulator< StretchingForce< Viscous > >::accumulate( accumulated, *this );
         }
@@ -268,14 +268,14 @@ void StrandForce::accumulateHessian( TripletXs& accumulated, TripletXs& accumula
     ForceAccumulator< TwistingForce< NonViscous > >::accumulate( accumulated, accumulated_twist, *this );
     ForceAccumulator< BendingForce< NonViscous > >::accumulate( accumulated, accumulated_twist, *this );
 
-    if( m_strandParams->m_accumulateWithViscous ){
-        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
+    if ( m_strandParams->m_accumulateWithViscous ) {
+        if ( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
         {
             ForceAccumulator< StretchingForce< Viscous > >::accumulate( accumulated, accumulated_twist, *this );
         }
         ForceAccumulator< TwistingForce<Viscous> >::accumulate( accumulated, accumulated_twist, *this );
         ForceAccumulator< BendingForce<Viscous> >::accumulate( accumulated, accumulated_twist, *this );
-    }    
+    }
 }
 
 Force* StrandForce::createNewCopy()
@@ -284,14 +284,14 @@ Force* StrandForce::createNewCopy()
 }
 
 void StrandForce::preCompute()
-{  
+{
     /* nothing to do here, updateStartDoFs called separately and otherwise need to update every time we compute (in case nonlinear) */
     updateStrandState();
     recomputeGlobal();
 }
 
 int StrandForce::numConstraintNonViscous()
-{ //Spring = numEdges  //Twist = NumVertices - 2  //Bending = 2*(NumVertices - 2)
+{   //Spring = numEdges  //Twist = NumVertices - 2  //Bending = 2*(NumVertices - 2)
     int numConstraintNonViscous = 0;
 #ifdef STRETCH
     numConstraintNonViscous += getNumEdges(); // Stretch
@@ -310,8 +310,8 @@ int StrandForce::numConstraintNonViscous()
 int StrandForce::numConstraintViscous()
 {
     int numConstraintViscous = 0;
-    if( m_strandParams->m_accumulateWithViscous ){
-        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes ){
+    if ( m_strandParams->m_accumulateWithViscous ) {
+        if ( !m_strandParams->m_accumulateViscousOnlyForBendingModes ) {
 #ifdef STRETCH
             numConstraintViscous += getNumEdges(); // Stretch
 #endif
@@ -326,44 +326,44 @@ int StrandForce::numConstraintViscous()
     return numConstraintViscous;
 }
 
-const char* StrandForce::name(){ return "Strand Material Forces"; }
+const char* StrandForce::name() { return "Strand Material Forces"; }
 
 void StrandForce::addEnergyToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, scalar& E )
 {
-	// TODO
+    // TODO
     E += m_strandEnergyUpdate;
 }
 
 void StrandForce::addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE )
 {
-	const int num_verts = m_verts.size();
-	
-	threadutils::for_each(0, num_verts, [&] (int i) {
-		if(i != num_verts - 1)
-			gradE.segment<4>(4 * m_verts[i]) -= m_strandForceUpdate.segment<4>(i * 4);
-		else
-			gradE.segment<3>(4 * m_verts[i]) -= m_strandForceUpdate.segment<3>(i * 4);
-	});
+    const int num_verts = m_verts.size();
+
+    threadutils::for_each(0, num_verts, [&] (int i) {
+        if (i != num_verts - 1)
+            gradE.segment<4>(4 * m_verts[i]) -= m_strandForceUpdate.segment<4>(i * 4);
+        else
+            gradE.segment<3>(4 * m_verts[i]) -= m_strandForceUpdate.segment<3>(i * 4);
+    });
 }
 
 void StrandForce::addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
-	const int num_hess = numHessX();
-	
-	threadutils::for_each(0, num_hess, [&] (int i) {
-		const Triplets& data = m_strandHessianUpdate[i];
-		int col_vert = data.col() / 4;
-		int col_r = data.col() - col_vert * 4;
-		int row_vert = data.row() / 4;
-		int row_r = data.row() - row_vert * 4;
-		hessE[hessE_index + i] = Triplets( 4 * m_verts[row_vert] + row_r, 4 * m_verts[col_vert] + col_r, -data.value() );
-	});
+    const int num_hess = numHessX();
+
+    threadutils::for_each(0, num_hess, [&] (int i) {
+        const Triplets& data = m_strandHessianUpdate[i];
+        int col_vert = data.col() / 4;
+        int col_r = data.col() - col_vert * 4;
+        int row_vert = data.row() / 4;
+        int row_r = data.row() - row_vert * 4;
+        hessE[hessE_index + i] = Triplets( 4 * m_verts[row_vert] + row_r, 4 * m_verts[col_vert] + col_r, -data.value() );
+    });
 }
 
 void StrandForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt )
 {
     const int num_hess = numAngularHessX();
-    
+
     threadutils::for_each(0, num_hess, [&] (int i) {
         const Triplets& data = m_strandAngularHessianUpdate[i];
         int col_vert = data.col() / 4;
@@ -375,7 +375,7 @@ void StrandForce::addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, 
 void StrandForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt )
 {
     const int num_verts = getNumVertices();
-    for(int i = 0; i < num_verts; ++i)
+    for (int i = 0; i < num_verts; ++i)
     {
         m_v_plus.segment<4>(i * 4) = vplus.segment<4>(m_verts[i] * 4);
     }
@@ -388,15 +388,15 @@ void StrandForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, c
     ForceAccumulator< TwistingForce< NonViscous > >::accumulateMultipliers( m_twisting_multipliers, *this, dt );
     ForceAccumulator< BendingForce< NonViscous > >::accumulateMultipliers( m_bending_multipliers, *this, dt );
 
-    if( m_strandParams->m_accumulateWithViscous ){
-        if( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
+    if ( m_strandParams->m_accumulateWithViscous ) {
+        if ( !m_strandParams->m_accumulateViscousOnlyForBendingModes )
         {
             m_viscous_stretching_multipliers.setZero();
             ForceAccumulator< StretchingForce< Viscous > >::accumulateMultipliers( m_viscous_stretching_multipliers, *this, dt );
         }
         m_viscous_twisting_multipliers.setZero();
         m_viscous_bending_multipliers.setZero();
-        
+
         ForceAccumulator< TwistingForce<Viscous> >::accumulateMultipliers( m_viscous_twisting_multipliers, *this, dt );
         ForceAccumulator< BendingForce<Viscous> >::accumulateMultipliers( m_viscous_bending_multipliers, *this, dt );
     }
@@ -404,7 +404,7 @@ void StrandForce::updateMultipliers( const VectorXs& x, const VectorXs& vplus, c
 
 int StrandForce::numHessX( )
 {
-	return m_strandHessianUpdate.size();
+    return m_strandHessianUpdate.size();
 }
 
 int StrandForce::numAngularHessX( )
@@ -414,5 +414,5 @@ int StrandForce::numAngularHessX( )
 
 int StrandForce::flag() const
 {
-	return 1;
+    return 1;
 }

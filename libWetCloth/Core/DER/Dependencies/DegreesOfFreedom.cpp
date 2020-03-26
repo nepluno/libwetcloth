@@ -13,11 +13,11 @@ void Edges::compute()
 {
     m_value.resize( m_size );
     const VecX& dofs = m_dofs.get();
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         m_value[vtx] = dofs.segment<3>( 4 * ( vtx + 1 ) ) - dofs.segment<3>( 4 * vtx );
     }
@@ -29,11 +29,11 @@ void Lengths::compute()
 {
     m_value.resize( m_size );
     const Vec3Array& edges = m_edges.get();
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx] = 0.0;
-	}
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx] = 0.0;
+    }
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         m_value[vtx] = edges[vtx].norm();
         //assert( !isSmall(m_value[vtx]) ); // Commented-out assert, as it be may thrown while we're checking stuff
@@ -47,11 +47,11 @@ void Tangents::compute()
     m_value.resize( m_size );
     const Vec3Array& edges = m_edges.get();
     const std::vector<scalar>& lengths = m_lengths.get();
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         m_value[vtx] = edges[vtx] / lengths[vtx];
     }
@@ -62,38 +62,38 @@ void Tangents::compute()
 void CurvatureBinormals::compute()
 {
     m_value.resize( m_size );
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
 
     const Vec3Array& tangents = m_tangents.get();
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         const Vec3& t1 = tangents[vtx - 1];
         const Vec3& t2 = tangents[vtx];
 
         scalar denominator = 1. + t1.dot( t2 );
 
-        if( denominator <= 0. || isSmall( denominator ) )
+        if ( denominator <= 0. || isSmall( denominator ) )
         {
-            if( denominator <= 0. )
+            if ( denominator <= 0. )
             {
                 denominator = 1. + t1.normalized().dot( t2.normalized() );
             }
 
-            if( denominator <= 0. )
+            if ( denominator <= 0. )
             {
                 std::cerr << "CurvatureBinormals::compute() denominator == " << denominator
-                        << " at vertex " << vtx << " t1 = " << t1 << " t2 = " << t2 << std::endl;
+                          << " at vertex " << vtx << " t1 = " << t1 << " t2 = " << t2 << std::endl;
 
                 m_value[vtx] = Vec3::Constant( std::numeric_limits<scalar>::infinity() ); // Should not be accepted.
             }
             else
             {
                 m_value[vtx] = 4. * std::tan( .5 * std::acos( denominator - 1. ) )
-                        * findNormal( t1 ).segment<3>(0);
+                               * findNormal( t1 ).segment<3>(0);
             }
         }
         else
@@ -125,7 +125,7 @@ void TrigThetas::compute()
 
     // Extract thetas in their own vector for mkl_vlm
     const Eigen::Map<const VecX, Eigen::Unaligned, Eigen::InnerStride<4> > thetasMap(
-            dofs.data() + 3, numThetas );
+        dofs.data() + 3, numThetas );
     const VecX thetaVec( thetasMap );
     // Compute their sine and cosine
     // assert( typeid(double) == typeid(VecX::scalar) );

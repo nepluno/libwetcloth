@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef CAPSULE_H__
-#define CAPSULE_H__
+#ifndef CAPSULE_H
+#define CAPSULE_H
 
 /* Capsule generation algorithm.
  * Adapted from Paul Bourke's C implementation found here:

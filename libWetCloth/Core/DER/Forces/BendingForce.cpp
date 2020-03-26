@@ -34,7 +34,7 @@ scalar BendingForce<ViscousT>::localEnergy( const StrandForce& strand, const Ind
     const Vec2& kappaBar = ViscousT::kappaBar( strand, vtx );
     const scalar ilen = strand.m_invVoronoiLengths[vtx];
     const Vec2& kappa = strand.m_strandState->m_kappas[vtx];
-	const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
+    const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
 
     return 0.5 * ilen * psi_coeff * ( kappa - kappaBar ).dot( Vec2( B * ( kappa - kappaBar ) ) );
 }
@@ -48,8 +48,8 @@ void BendingForce<ViscousT>::computeLocal( Eigen::Matrix<scalar, 11, 1>& localF,
     const scalar ilen = strand.m_invVoronoiLengths[vtx];
     const Vec2& kappa = strand.m_strandState->m_kappas[vtx];
     const GradKType& gradKappa = strand.m_strandState->m_gradKappas[vtx];
-	const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
-	
+    const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
+
     localF = -ilen * psi_coeff * gradKappa * B * ( kappa - kappaBar );
 }
 
@@ -62,7 +62,7 @@ void BendingForce<ViscousT>::computeLocal(Eigen::Matrix<scalar, 11, 11>& localJ,
     localJ = -ilen * ViscousT::bendingCoefficient( strand, vtx ) * psi_coeff * strand.m_strandState->m_bendingProducts[vtx];
 
 #ifndef USE_APPROX_GRAD_KAPPA
-    if( strand.m_requiresExactForceJacobian )
+    if ( strand.m_requiresExactForceJacobian )
     {
         // const Mat2& bendingMatrixBase = strand.m_strandParams->bendingMatrixBase(vtx);
         // const Vec2& kappaBar = ViscousT::kappaBar( strand, vtx );
@@ -95,7 +95,7 @@ void BendingForce<ViscousT>::addInPosition( VecX& globalMultiplier, const IndexT
 template<typename ViscousT>
 void BendingForce<ViscousT>::accumulateCurrentE( scalar& energy, StrandForce& strand )
 {
-    for( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
+    for ( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
     {
         energy += localEnergy( strand, vtx );
     }
@@ -104,7 +104,7 @@ void BendingForce<ViscousT>::accumulateCurrentE( scalar& energy, StrandForce& st
 template<typename ViscousT>
 void BendingForce<ViscousT>::accumulateCurrentF( VecX& force, StrandForce& strand )
 {
-    for( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
+    for ( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
     {
         LocalForceType localF;
         computeLocal( localF, strand, vtx );

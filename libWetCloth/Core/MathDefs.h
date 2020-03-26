@@ -6,8 +6,8 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
-#ifndef __MATH_DEFS_H__
-#define __MATH_DEFS_H__
+#ifndef MATH_DEFS_H
+#define MATH_DEFS_H
 
 #ifdef WIN32
 #define _USE_MATH_DEFINES
@@ -24,13 +24,13 @@ typedef double scalar;
 typedef unsigned long long uint64;
 
 struct int_scalar {
-  int i;
-  scalar v;
-  
-  inline bool operator() (const int_scalar& struct1, const int_scalar& struct2)
-  {
-    return (struct1.v < struct2.v);
-  }
+	int i;
+	scalar v;
+
+	inline bool operator() (const int_scalar& struct1, const int_scalar& struct2)
+	{
+		return (struct1.v < struct2.v);
+	}
 };
 
 struct int5_scalar {
@@ -40,13 +40,13 @@ struct int5_scalar {
 	int col_node;
 	int col_dir;
 	scalar v;
-	
+
 	int5_scalar(int rn, int rd, int cb, int cn, int cd, scalar value)
-	: row_node(rn), row_dir(rd), col_bucket(cb), col_node(cn), col_dir(cd), v(value)
+		: row_node(rn), row_dir(rd), col_bucket(cb), col_node(cn), col_dir(cd), v(value)
 	{}
-	
+
 	int5_scalar()
-	: row_node(0), row_dir(0), col_bucket(0), col_node(0), col_dir(0), v(0.0)
+		: row_node(0), row_dir(0), col_bucket(0), col_node(0), col_dir(0), v(0.0)
 	{}
 };
 
@@ -592,35 +592,35 @@ using Blockf = Eigen::Block<float, N, N>;
 
 template<int DIM>
 struct int_Vectors {
-  int i;
-  Vectors<DIM> v;
-  scalar d;
-  
-  int_Vectors(int i_, const Vectors<DIM>& v_) :
-  i(i_), v(v_), d(v_.norm())
-  {}
-  
-  inline bool operator() (const int_Vectors& struct1, const int_Vectors& struct2)
-  {
-    return (struct1.d < struct2.d);
-  }
+	int i;
+	Vectors<DIM> v;
+	scalar d;
+
+	int_Vectors(int i_, const Vectors<DIM>& v_) :
+		i(i_), v(v_), d(v_.norm())
+	{}
+
+	inline bool operator() (const int_Vectors& struct1, const int_Vectors& struct2)
+	{
+		return (struct1.d < struct2.d);
+	}
 };
 
 template<int DIM>
 struct int_Vectors_scalar {
-  int i;
-  Vectors<DIM> v;
-  scalar d;
-  scalar eta;
-  
-  int_Vectors_scalar(int i_, const Vectors<DIM>& v_, const scalar& eta_) :
-  i(i_), v(v_), d(v_.norm()), eta(eta_)
-  {}
-  
-  bool operator<(const int_Vectors_scalar& b) const
-  {
-    return d < b.d;
-  }
+	int i;
+	Vectors<DIM> v;
+	scalar d;
+	scalar eta;
+
+	int_Vectors_scalar(int i_, const Vectors<DIM>& v_, const scalar& eta_) :
+		i(i_), v(v_), d(v_.norm()), eta(eta_)
+	{}
+
+	bool operator<(const int_Vectors_scalar& b) const
+	{
+		return d < b.d;
+	}
 };
 
 #endif

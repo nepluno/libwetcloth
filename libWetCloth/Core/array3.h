@@ -16,7 +16,7 @@
 #include <cassert>
 #include <vector>
 
-template<class T, class ArrayT=std::vector<T> >
+template<class T, class ArrayT = std::vector<T> >
 struct Array3
 {
    // STL-friendly typedefs
@@ -45,96 +45,96 @@ struct Array3
    {}
 
    Array3(int ni_, int nj_, int nk_)
-      : ni(ni_), nj(nj_), nk(nk_), a(ni_*nj_*nk_)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+      : ni(ni_), nj(nj_), nk(nk_), a(ni_ * nj_ * nk_)
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    Array3(int ni_, int nj_, int nk_, ArrayT& a_)
       : ni(ni_), nj(nj_), nk(nk_), a(a_)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    Array3(int ni_, int nj_, int nk_, const T& value)
-      : ni(ni_), nj(nj_), nk(nk_), a(ni_*nj_*nk_, value)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+      : ni(ni_), nj(nj_), nk(nk_), a(ni_ * nj_ * nk_, value)
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    Array3(int ni_, int nj_, int nk_, const T& value, size_type max_n_)
-      : ni(ni_), nj(nj_), nk(nk_), a(ni_*nj_*nk_, value, max_n_)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+      : ni(ni_), nj(nj_), nk(nk_), a(ni_ * nj_ * nk_, value, max_n_)
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    Array3(int ni_, int nj_, int nk_, T* data_)
-      : ni(ni_), nj(nj_), nk(nk_), a(ni_*nj_*nk_, data_)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+      : ni(ni_), nj(nj_), nk(nk_), a(ni_ * nj_ * nk_, data_)
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    Array3(int ni_, int nj_, int nk_, T* data_, size_type max_n_)
-      : ni(ni_), nj(nj_), nk(nk_), a(ni_*nj_*nk_, data_, max_n_)
-   { assert(ni_>=0 && nj_>=0 && nk_>=0); }
+      : ni(ni_), nj(nj_), nk(nk_), a(ni_ * nj_ * nk_, data_, max_n_)
+   { assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0); }
 
    ~Array3(void)
    {
 #ifndef NDEBUG
-      ni=nj=0;
+      ni = nj = 0;
 #endif
    }
 
    const T& operator()(int i, int j, int k) const
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj && k>=0 && k<nk);
-      return a[i+ni*(j+nj*k)];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj && k >= 0 && k < nk);
+      return a[i + ni * (j + nj * k)];
    }
 
    T& operator()(int i, int j, int k)
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj && k>=0 && k<nk);
-      return a[i+ni*(j+nj*k)];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj && k >= 0 && k < nk);
+      return a[i + ni * (j + nj * k)];
    }
-    
-    const T& operator()(const Vector3i& handle) const
-    {
-        assert(handle(0)>=0 && handle(0)<ni && handle(1)>=0 && handle(1)<nj && handle(2)>=0 && handle(2)<nk);
-        return a[handle(0)+ni*(handle(1)+nj*handle(2))];
-    }
-    
-    T& operator()(const Vector3i& handle)
-    {
-        assert(handle(0)>=0 && handle(0)<ni && handle(1)>=0 && handle(1)<nj && handle(2)>=0 && handle(2)<nk);
-        return a[handle(0)+ni*(handle(1)+nj*handle(2))];
-    }
+
+   const T& operator()(const Vector3i& handle) const
+   {
+      assert(handle(0) >= 0 && handle(0) < ni && handle(1) >= 0 && handle(1) < nj && handle(2) >= 0 && handle(2) < nk);
+      return a[handle(0) + ni * (handle(1) + nj * handle(2))];
+   }
+
+   T& operator()(const Vector3i& handle)
+   {
+      assert(handle(0) >= 0 && handle(0) < ni && handle(1) >= 0 && handle(1) < nj && handle(2) >= 0 && handle(2) < nk);
+      return a[handle(0) + ni * (handle(1) + nj * handle(2))];
+   }
 
    bool operator==(const Array3<T>& x) const
-   { return ni==x.ni && nj==x.nj && nk==x.nk && a==x.a; }
+   { return ni == x.ni && nj == x.nj && nk == x.nk && a == x.a; }
 
    bool operator!=(const Array3<T>& x) const
-   { return ni!=x.ni || nj!=x.nj || nk!=x.nk || a!=x.a; }
+   { return ni != x.ni || nj != x.nj || nk != x.nk || a != x.a; }
 
    bool operator<(const Array3<T>& x) const
    {
-      if(ni<x.ni) return true; else if(ni>x.ni) return false;
-      if(nj<x.nj) return true; else if(nj>x.nj) return false;
-      if(nk<x.nk) return true; else if(nk>x.nk) return false;
-      return a<x.a;
+      if (ni < x.ni) return true; else if (ni > x.ni) return false;
+      if (nj < x.nj) return true; else if (nj > x.nj) return false;
+      if (nk < x.nk) return true; else if (nk > x.nk) return false;
+      return a < x.a;
    }
 
    bool operator>(const Array3<T>& x) const
    {
-      if(ni>x.ni) return true; else if(ni<x.ni) return false;
-      if(nj>x.nj) return true; else if(nj<x.nj) return false;
-      if(nk>x.nk) return true; else if(nk<x.nk) return false;
-      return a>x.a;
+      if (ni > x.ni) return true; else if (ni < x.ni) return false;
+      if (nj > x.nj) return true; else if (nj < x.nj) return false;
+      if (nk > x.nk) return true; else if (nk < x.nk) return false;
+      return a > x.a;
    }
 
    bool operator<=(const Array3<T>& x) const
    {
-      if(ni<x.ni) return true; else if(ni>x.ni) return false;
-      if(nj<x.nj) return true; else if(nj>x.nj) return false;
-      if(nk<x.nk) return true; else if(nk>x.nk) return false;
-      return a<=x.a;
+      if (ni < x.ni) return true; else if (ni > x.ni) return false;
+      if (nj < x.nj) return true; else if (nj > x.nj) return false;
+      if (nk < x.nk) return true; else if (nk > x.nk) return false;
+      return a <= x.a;
    }
 
    bool operator>=(const Array3<T>& x) const
    {
-      if(ni>x.ni) return true; else if(ni<x.ni) return false;
-      if(nj>x.nj) return true; else if(nj<x.nj) return false;
-      if(nk>x.nk) return true; else if(nk<x.nk) return false;
-      return a>=x.a;
+      if (ni > x.ni) return true; else if (ni < x.ni) return false;
+      if (nj > x.nj) return true; else if (nj < x.nj) return false;
+      if (nk > x.nk) return true; else if (nk < x.nk) return false;
+      return a >= x.a;
    }
 
    void assign(const T& value)
@@ -142,34 +142,34 @@ struct Array3
 
    void assign(int ni_, int nj_, int nk_, const T& value)
    {
-      a.assign(ni_*nj_*nk_, value);
-      ni=ni_;
-      nj=nj_;
-      nk=nk_;
+      a.assign(ni_ * nj_ * nk_, value);
+      ni = ni_;
+      nj = nj_;
+      nk = nk_;
    }
-    
+
    void assign(int ni_, int nj_, int nk_, const T* copydata)
    {
-      a.assign(ni_*nj_*nk_, copydata);
-      ni=ni_;
-      nj=nj_;
-      nk=nk_;
+      a.assign(ni_ * nj_ * nk_, copydata);
+      ni = ni_;
+      nj = nj_;
+      nk = nk_;
    }
-    
+
    const T& at(int i, int j, int k) const
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj && k>=0 && k<nk);
-      return a[i+ni*(j+nj*k)];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj && k >= 0 && k < nk);
+      return a[i + ni * (j + nj * k)];
    }
 
    T& at(int i, int j, int k)
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj && k>=0 && k<nk);
-      return a[i+ni*(j+nj*k)];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj && k >= 0 && k < nk);
+      return a[i + ni * (j + nj * k)];
    }
 
    const T& back(void) const
-   { 
+   {
       assert(a.size());
       return a.back();
    }
@@ -192,7 +192,7 @@ struct Array3
    void clear(void)
    {
       a.clear();
-      ni=nj=nk=0;
+      ni = nj = nk = 0;
    }
 
    bool empty(void) const
@@ -206,12 +206,12 @@ struct Array3
 
    void fill(int ni_, int nj_, int nk_, const T& value)
    {
-      a.fill(ni_*nj_*nk_, value);
-      ni=ni_;
-      nj=nj_;
-      nk=nk_;
+      a.fill(ni_ * nj_ * nk_, value);
+      ni = ni_;
+      nj = nj_;
+      nk = nk_;
    }
-    
+
    const T& front(void) const
    {
       assert(a.size());
@@ -240,24 +240,24 @@ struct Array3
    { return const_reverse_iterator(begin()); }
 
    void reserve(int reserve_ni, int reserve_nj, int reserve_nk)
-   { a.reserve(reserve_ni*reserve_nj*reserve_nk); }
+   { a.reserve(reserve_ni * reserve_nj * reserve_nk); }
 
    void resize(int ni_, int nj_, int nk_)
    {
-      assert(ni_>=0 && nj_>=0 && nk_>=0);
-      a.resize(ni_*nj_*nk_);
-      ni=ni_;
-      nj=nj_;
-      nk=nk_;
+      assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0);
+      a.resize(ni_ * nj_ * nk_);
+      ni = ni_;
+      nj = nj_;
+      nk = nk_;
    }
 
    void resize(int ni_, int nj_, int nk_, const T& value)
    {
-      assert(ni_>=0 && nj_>=0 && nk_>=0);
-      a.resize(ni_*nj_*nk_, value);
-      ni=ni_;
-      nj=nj_;
-      nk=nk_;
+      assert(ni_ >= 0 && nj_ >= 0 && nk_ >= 0);
+      a.resize(ni_ * nj_ * nk_, value);
+      ni = ni_;
+      nj = nj_;
+      nk = nk_;
    }
 
    void set_zero(void)

@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef BENDINGPRODUCTS_H_
-#define BENDINGPRODUCTS_H_
+#ifndef BENDINGPRODUCTS_H
+#define BENDINGPRODUCTS_H
 
 #include "ElasticityParameters.h"
 #include "Kappas.h"
@@ -32,9 +32,9 @@ class BendingProducts: public DependencyNode<Mat11Array>
 {
 public:
     BendingProducts( BendingMatrixBase& bendingMatrixBase, GradKappas& gradKappas ) :
-            DependencyNode<Mat11Array>( 1, gradKappas.size() ), //
-            m_bendingMatrixBase( bendingMatrixBase ), //
-            m_gradKappas( gradKappas )
+        DependencyNode<Mat11Array>( 1, gradKappas.size() ), //
+        m_bendingMatrixBase( bendingMatrixBase ), //
+        m_gradKappas( gradKappas )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
@@ -56,7 +56,7 @@ protected:
         const MatX& bendingMatrix = m_bendingMatrixBase.get();
         const GradKArrayType& gradKappas = m_gradKappas.get();
 
-        for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+        for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
         {
             symBProduct<11>( m_value[vtx], bendingMatrix.block<2, 2>(vtx * 2, 0), gradKappas[vtx] );
         }

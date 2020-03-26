@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef __RENDERING_UTILITIES_H__
-#define __RENDERING_UTILITIES_H__
+#ifndef RENDERING_UTILITIES_H
+#define RENDERING_UTILITIES_H
 
 #ifdef WIN32
 #include <Windows.h>
@@ -35,53 +35,53 @@
 
 namespace renderingutils
 {
-	// False => error
-	bool checkGLErrors();
-	
-	class Color
-	{
-	public:
-		
-		Color();
-		
-		Color( double r, double g, double b );
-		
-		Color( const Vector3s& );
-		
-		Vector3s toVector() const;
-		
-		double r;
-		double g;
-		double b;
-	};
-	
-	struct Viewport
-	{
-	public:
-		Viewport() : cx(0.0), cy(0.0), cz(0.0), size(0.) {}
-		double cx;
-		double cy;
-		double cz;
-		double rx;
-		double ry;
-		double rz;
-		double size;
-	};
-	
-	inline Vector3s interpolateColor(const scalar& x, const scalar xmin = 0.0, const scalar xmax = 1.0)
-	{
-		scalar dm = (xmax - xmin);
-		
-		scalar a;
-		if(dm == 0.0) a = x;
-		else a = (x - xmin) / dm * (scalar)(jetmapping_size - 1);
-		
-		int isel = std::max(std::min((int) a, jetmapping_size - 1), 0);
-		int inext = (isel + 1) % (jetmapping_size);
-		scalar fraca = std::max(std::min(a - (scalar) isel, 1.0), 0.0);
-		
-		return mathutils::lerp(jetmapping_real[isel], jetmapping_real[inext], fraca);
-	}
+// False => error
+bool checkGLErrors();
+
+class Color
+{
+public:
+
+	Color();
+
+	Color( double r, double g, double b );
+
+	Color( const Vector3s& );
+
+	Vector3s toVector() const;
+
+	double r;
+	double g;
+	double b;
+};
+
+struct Viewport
+{
+public:
+	Viewport() : cx(0.0), cy(0.0), cz(0.0), size(0.) {}
+	double cx;
+	double cy;
+	double cz;
+	double rx;
+	double ry;
+	double rz;
+	double size;
+};
+
+inline Vector3s interpolateColor(const scalar& x, const scalar xmin = 0.0, const scalar xmax = 1.0)
+{
+	scalar dm = (xmax - xmin);
+
+	scalar a;
+	if (dm == 0.0) a = x;
+	else a = (x - xmin) / dm * (scalar)(jetmapping_size - 1);
+
+	int isel = std::max(std::min((int) a, jetmapping_size - 1), 0);
+	int inext = (isel + 1) % (jetmapping_size);
+	scalar fraca = std::max(std::min(a - (scalar) isel, 1.0), 0.0);
+
+	return mathutils::lerp(jetmapping_real[isel], jetmapping_real[inext], fraca);
+}
 }
 
 #endif

@@ -35,7 +35,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		tmpres <<= 32;
 		tmpres |= ft.dwLowDateTime;
 		tmpres /= 10;  /*convert into microseconds*/
-					   /*converting file time to unix epoch*/
+		/*converting file time to unix epoch*/
 		tmpres -= DELTA_EPOCH_IN_MICROSECS;
 		tv->tv_sec = (long)(tmpres / 1000000UL);
 		tv->tv_usec = (long)(tmpres % 1000000UL);
@@ -61,13 +61,13 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 namespace timingutils
 {
 
-	double seconds()
-	{
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		double time = ((double)tv.tv_sec) + ((double)tv.tv_usec)*1.0e-6;
-		return time;
-	}
+double seconds()
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	double time = ((double)tv.tv_sec) + ((double)tv.tv_usec) * 1.0e-6;
+	return time;
+}
 
 }
 

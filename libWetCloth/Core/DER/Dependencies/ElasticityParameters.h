@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef ELASTICPARAMETERS_H_
-#define ELASTICPARAMETERS_H_
+#ifndef ELASTICPARAMETERS_H
+#define ELASTICPARAMETERS_H
 
 #include "DependencyNode.h"
 #define PI_4 0.785398163397448309616
@@ -20,7 +20,7 @@ class PhysicalRadius: public DependencyNode< VecX >
 {
 public:
     PhysicalRadius( VecX radius ) :
-            DependencyNode< VecX >( radius )
+        DependencyNode< VecX >( radius )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
@@ -46,7 +46,7 @@ class BaseRotation: public DependencyNode<scalar>
 {
 public:
     BaseRotation( scalar baseRotation ) :
-            DependencyNode<scalar>( baseRotation )
+        DependencyNode<scalar>( baseRotation )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
@@ -75,9 +75,9 @@ class BendingMatrixBase: public DependencyNode<MatX>
 {
 public:
     BendingMatrixBase( PhysicalRadius& rad, BaseRotation& baseRotation ) :
-            DependencyNode<MatX>( MatX() ), //
-            m_physicalRadius( rad ), //
-            m_baseRotation( baseRotation )
+        DependencyNode<MatX>( MatX() ), //
+        m_physicalRadius( rad ), //
+        m_baseRotation( baseRotation )
     {
 #ifdef VERBOSE_DEPENDENCY_NODE
         std::cout << "Creating " << name() << ' ' << this << '\n';
@@ -99,7 +99,7 @@ protected:
     {
         const int nverts = m_value.rows() / 2;
 
-        for(int i = 0; i < nverts; ++i) {
+        for (int i = 0; i < nverts; ++i) {
             const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
             const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
             const scalar baseRotation = m_baseRotation.get();
@@ -129,7 +129,7 @@ class YoungsModulus: public DependencyNode<scalar>
 {
 public:
     YoungsModulus( scalar youngsModulus ) :
-            DependencyNode<scalar>( youngsModulus )
+        DependencyNode<scalar>( youngsModulus )
     {
         setClean();
     }
@@ -151,7 +151,7 @@ class ShearModulus: public DependencyNode<scalar>
 {
 public:
     ShearModulus( scalar shearModulus ) :
-            DependencyNode<scalar>( shearModulus )
+        DependencyNode<scalar>( shearModulus )
     {
         setClean();
     }
@@ -173,9 +173,9 @@ class ElasticKs: public DependencyNode<VecX>
 {
 public:
     ElasticKs( PhysicalRadius& rad, YoungsModulus& ym ) :
-            DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
-            m_physicalRadius( rad ), //
-            m_youngsModulus( ym ) //
+        DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
+        m_physicalRadius( rad ), //
+        m_youngsModulus( ym ) //
     {
         m_physicalRadius.addDependent( this );
         m_youngsModulus.addDependent( this );
@@ -192,7 +192,7 @@ protected:
         const int nverts = m_value.size();
         assert(nverts * 2 == (int) m_physicalRadius.get().size());
 
-        for(int i = 0; i < nverts; ++i) {
+        for (int i = 0; i < nverts; ++i) {
             const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
             const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
 
@@ -215,9 +215,9 @@ class ElasticKt: public DependencyNode<VecX>
 {
 public:
     ElasticKt( PhysicalRadius& rad, ShearModulus& sm ) :
-            DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
-            m_physicalRadius( rad ), //
-            m_shearModulus( sm )
+        DependencyNode<VecX>( VecX::Zero(rad.get().size() / 2) ), //
+        m_physicalRadius( rad ), //
+        m_shearModulus( sm )
     {
         m_physicalRadius.addDependent( this );
         m_shearModulus.addDependent( this );
@@ -234,14 +234,14 @@ protected:
         const int nverts = m_value.size();
         assert(nverts * 2 == (int) m_physicalRadius.get().size());
 
-        for(int i = 0; i < nverts; ++i) {
+        for (int i = 0; i < nverts; ++i) {
             const scalar& radiusA = m_physicalRadius.get()(i * 2 + 0);
             const scalar& radiusB = m_physicalRadius.get()(i * 2 + 1);
 
             const scalar shearModulus = m_shearModulus.get();
 
             m_value(i) = PI_4 * radiusA * radiusB
-                    * ( radiusA * radiusA + radiusB * radiusB ) * shearModulus;
+                         * ( radiusA * radiusA + radiusB * radiusB ) * shearModulus;
         }
         setDependentsDirty();
     }

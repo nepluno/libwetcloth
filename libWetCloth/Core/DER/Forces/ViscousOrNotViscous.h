@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef VISCOUS_OR_NOT_VISCOUS_H_
-#define VISCOUS_OR_NOT_VISCOUS_H_
+#ifndef VISCOUS_OR_NOT_VISCOUS_H
+#define VISCOUS_OR_NOT_VISCOUS_H
 
 #include "../StrandForce.h"
 #include "../StrandParameters.h"
@@ -83,7 +83,7 @@ public:
         return strand.m_twisting_multipliers( vtx );
     }
 
-    class NonDissipativeForce{};
+    class NonDissipativeForce {};
 };
 
 class Viscous
@@ -151,7 +151,7 @@ public:
         return strand.m_viscous_twisting_multipliers( vtx );
     }
 
-    class DissipativeForce{};
+    class DissipativeForce {};
 };
 
 #endif

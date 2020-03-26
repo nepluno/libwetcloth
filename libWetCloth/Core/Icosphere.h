@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef ICOSPHERE_H__
-#define ICOSPHERE_H__
+#ifndef ICOSPHERE_H
+#define ICOSPHERE_H
 
 /* Icosphere generation algorithm.
  * Adapted from Andreas Kahler's C# implementation found here:
@@ -22,14 +22,14 @@
 
 class Icosphere : public SolidMesh
 {
-  std::unordered_map<uint64, int> middlePointIndexCache;
-  int index;
-  
-  int addVertex(const Vector3s& p);
-  int getMiddlePoint(int p1, int p2);
+	std::unordered_map<uint64, int> middlePointIndexCache;
+	int index;
+
+	int addVertex(const Vector3s& p);
+	int getMiddlePoint(int p1, int p2);
 
 public:
-  Icosphere(int recursionLevel, const scalar& radius);
+	Icosphere(int recursionLevel, const scalar& radius);
 };
 
 #endif

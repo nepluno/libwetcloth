@@ -18,27 +18,27 @@
 
 namespace robertbridson {
 
-namespace BLAS{
+namespace BLAS {
 // dot products ==============================================================
 
 inline double dot(const std::vector<double> &x, const std::vector<double> &y)
 {
-   double sum = 0;
-   size_t n = x.size() < y.size() ? x.size() : y.size();
-   return Eigen::Map<Eigen::VectorXd>((double*) &y[0], n).dot(Eigen::Map<Eigen::VectorXd>((double*) &x[0], n));
+	double sum = 0;
+	size_t n = x.size() < y.size() ? x.size() : y.size();
+	return Eigen::Map<Eigen::VectorXd>((double*) &y[0], n).dot(Eigen::Map<Eigen::VectorXd>((double*) &x[0], n));
 }
 
 // inf-norm (maximum absolute value: index of max returned) ==================
 
 inline int index_abs_max(const std::vector<double> &x)
 {
-   int maxind = 0;
-   int col = 0;
+	int maxind = 0;
+	int col = 0;
 
-   size_t n = x.size();
-   Eigen::Map<Eigen::VectorXd>((double*) &x[0], n).cwiseAbs().maxCoeff(&maxind, &col);
+	size_t n = x.size();
+	Eigen::Map<Eigen::VectorXd>((double*) &x[0], n).cwiseAbs().maxCoeff(&maxind, &col);
 
-   return maxind;
+	return maxind;
 }
 
 // inf-norm (maximum absolute value) =========================================
@@ -51,8 +51,8 @@ inline double abs_max(const std::vector<double> &x)
 
 inline void add_scaled(double alpha, const std::vector<double> &x, std::vector<double> &y)
 {
-    size_t n = x.size() < y.size() ? x.size() : y.size();
-    Eigen::Map<Eigen::VectorXd>((double*) &y[0], n) += Eigen::Map<const Eigen::VectorXd>((const double*) &x[0], n) * alpha;
+	size_t n = x.size() < y.size() ? x.size() : y.size();
+	Eigen::Map<Eigen::VectorXd>((double*) &y[0], n) += Eigen::Map<const Eigen::VectorXd>((const double*) &x[0], n) * alpha;
 }
 }
 }

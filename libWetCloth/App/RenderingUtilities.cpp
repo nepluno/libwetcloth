@@ -12,8 +12,8 @@
 
 namespace renderingutils
 {
-	bool checkGLErrors()
-	{
+bool checkGLErrors()
+{
 //#ifdef RENDER_ENABLED
 //        GLenum errCode;
 //        const GLubyte *errString;
@@ -26,28 +26,28 @@ namespace renderingutils
 //            return false;
 //        }
 //#endif
-		return true;
-	}
-	
-	
-	Color::Color( const Vector3s& c )
-	:r(c(0)), g(c(1)), b(c(2))
-	{}
-	
-	Color::Color()
+	return true;
+}
+
+
+Color::Color( const Vector3s& c )
+	: r(c(0)), g(c(1)), b(c(2))
+{}
+
+Color::Color()
 	: r(0.0), g(0.0), b(0.0)
-	{}
-	
-	Color::Color( double r, double g, double b )
+{}
+
+Color::Color( double r, double g, double b )
 	: r(r), g(g), b(b)
-	{
-		assert( r >= 0.0 ); assert( r <= 1.0 );
-		assert( g >= 0.0 ); assert( g <= 1.0 );
-		assert( b >= 0.0 ); assert( b <= 1.0 );
-	}
-	
-	Vector3s Color::toVector() const
-	{
-		return Vector3s(r, g, b);
-	}
+{
+	assert( r >= 0.0 ); assert( r <= 1.0 );
+	assert( g >= 0.0 ); assert( g <= 1.0 );
+	assert( b >= 0.0 ); assert( b <= 1.0 );
+}
+
+Vector3s Color::toVector() const
+{
+	return Vector3s(r, g, b);
+}
 }

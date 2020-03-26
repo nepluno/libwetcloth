@@ -7,13 +7,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef __TIMING_UTILS_H__
-#define __TIMING_UTILS_H__
+#ifndef TIMING_UTILS_H
+#define TIMING_UTILS_H
 
 #include <time.h>
 #include <iostream>
 
-namespace timingutils 
+namespace timingutils
 {
 
 double seconds();

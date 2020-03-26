@@ -9,62 +9,62 @@
 
 #ifdef PNGOUT
 
-#ifndef __YImage_h__
-#define __YImage_h__
+#ifndef YIMAGE_H
+#define YIMAGE_H
 
 // file loading/saving automatically picks up changes to this struct.
 // The possibilities are: ARGB, ABGR, RGBA, BGRA.
 
 struct YPixel
 {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
-  unsigned char a;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+	unsigned char a;
 };
 
 class YImage
 {
 public:
-  YImage();
+	YImage();
 
-  YImage(const YImage&);
+	YImage(const YImage&);
 
-  virtual ~YImage();
+	virtual ~YImage();
 
-  YImage& operator=(const YImage&);
+	YImage& operator=(const YImage&);
 
-  bool save(const char* fname) const;
+	bool save(const char* fname) const;
 
-  bool load(const char* fname);
+	bool load(const char* fname);
 
-  YPixel* data();
+	YPixel* data();
 
-  const YPixel* data() const;
+	const YPixel* data() const;
 
-  YPixel& at(int i, int j);
+	YPixel& at(int i, int j);
 
-  const YPixel& at(int i, int j) const;
+	const YPixel& at(int i, int j) const;
 
-  int width() const;
+	int width() const;
 
-  int height() const;
+	int height() const;
 
-  void resize(int width, int height);
+	void resize(int width, int height);
 
-  // flip vertically
-  void flip();
+// flip vertically
+	void flip();
 
-  // flip horizontally
-  void mirror();
+// flip horizontally
+	void mirror();
 
-  // average rgb
-  void greyscale();
+// average rgb
+	void greyscale();
 
 protected:
-  int m_width;
-  int m_height;
-  YPixel* m_data; // raw image data
+	int m_width;
+	int m_height;
+	YPixel* m_data; // raw image data
 };
 
 #endif /* __YImage_h__ */

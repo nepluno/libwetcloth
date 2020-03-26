@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef ELASTICSTRANDUTILS_H_
-#define ELASTICSTRANDUTILS_H_
+#ifndef ELASTICSTRANDUTILS_H
+#define ELASTICSTRANDUTILS_H
 
 #include <limits>
 #include <stdexcept>
@@ -24,9 +24,9 @@
 template<typename MatrixT>
 inline bool isSymmetric( const MatrixT& A )
 {
-    for( int i = 0; i < A.rows(); ++i ){
-        for( int j = i + 1; j < A.cols(); ++j ){
-            if( !isSmall( A( i, j ) - A( j, i ) ) )
+    for ( int i = 0; i < A.rows(); ++i ) {
+        for ( int j = i + 1; j < A.cols(); ++j ) {
+            if ( !isSmall( A( i, j ) - A( j, i ) ) )
             {
                 std::cerr << "isSymmetric failing by " << fabs( A( i, j ) - A( j, i ) ) << '\n';
                 return false;
@@ -107,18 +107,18 @@ inline Eigen::Matrix<scalar, Eigen::Dynamic, 1> findNormal( const Eigen::Matrix<
 {
     assert( u.norm() != 0 );
     Eigen::Matrix<scalar, Eigen::Dynamic, 1> v(u.size());
-	v.setZero();
+    v.setZero();
 
     int maxCoordinate = 0;
-	int n = u.size();
-    for( int i = 0; i < n; ++i )
+    int n = u.size();
+    for ( int i = 0; i < n; ++i )
     {
-        if( isSmall( u[i] ) )
+        if ( isSmall( u[i] ) )
         {
             v[i] = 1;
             goto finished;
         }
-        if( fabs( u[i] ) > fabs( u[maxCoordinate] ) )
+        if ( fabs( u[i] ) > fabs( u[maxCoordinate] ) )
             maxCoordinate = i;
     }
     {
@@ -128,7 +128,7 @@ inline Eigen::Matrix<scalar, Eigen::Dynamic, 1> findNormal( const Eigen::Matrix<
     }
     v.normalize();
 
-    finished: assert( isSmall( u.dot( v ) ) );
+finished: assert( isSmall( u.dot( v ) ) );
 
     return v;
 }
@@ -146,7 +146,7 @@ inline scalar signedAngle( const Vec3& u, const Vec3& v, const Vec3& n )
 {
     Vec3 w = u.cross( v );
     scalar angle = atan2( w.norm(), u.dot( v ) );
-    if( n.dot( w ) < 0 )
+    if ( n.dot( w ) < 0 )
         return -angle;
     return angle;
 }
@@ -161,11 +161,11 @@ inline scalar signedAngle( const Vec3& u, const Vec3& v, const Vec3& n )
  */
 template<typename scalarT>
 inline void rotateAxisAngle( typename Eigen::Matrix<scalarT, 3, 1> & v,
-        const typename Eigen::Matrix<scalarT, 3, 1> & z, const scalarT theta )
+                             const typename Eigen::Matrix<scalarT, 3, 1> & z, const scalarT theta )
 {
     assert( isApproxUnit( z ) );
 
-    if( theta == 0 )
+    if ( theta == 0 )
         return;
 
     const scalarT c = cos( theta );
@@ -203,7 +203,7 @@ inline scalar innerBProduct( const Mat2& B, const Vec2& u, const Vec2& v )
     assert( isSymmetric( B ) );
 
     return B( 0, 0 ) * u[0] * v[0] + B( 0, 1 ) * ( u[0] * v[1] + u[1] * v[0] )
-            + B( 1, 1 ) * u[1] * v[1]; // Good
+           + B( 1, 1 ) * u[1] * v[1]; // Good
 }
 
 /**
@@ -211,15 +211,15 @@ inline scalar innerBProduct( const Mat2& B, const Vec2& u, const Vec2& v )
  */
 template<int n>
 inline void symBProduct( Eigen::Matrix<scalar, n, n>& result, const Mat2& B,
-        const Eigen::Matrix<scalar, n, 2>& Q )
+                         const Eigen::Matrix<scalar, n, 2>& Q )
 {
     assert( isSymmetric( B ) );
 
-    for( int i = 0; i < n; ++i )
+    for ( int i = 0; i < n; ++i )
     {
         const Vec2& Qrow_i = Q.row( i );
         result( i, i ) = innerBProduct( B, Qrow_i, Qrow_i );
-        for( int j = 0; j < i; ++j )
+        for ( int j = 0; j < i; ++j )
             result( i, j ) = result( j, i ) = innerBProduct( B, Qrow_i, Q.row( j ) );
     }
 }
@@ -231,7 +231,7 @@ template<typename VectorT, typename scalarT>
 inline VectorT vectorSlerp( const VectorT& v0, const VectorT &v1, scalarT t )
 {
     const scalarT angle = std::acos( clamp( v0.dot( v1 ), -1., 1. ) );
-    if( isSmall( angle ) )
+    if ( isSmall( angle ) )
         return v0;
     const scalarT invSin = 1. / std::sin( angle );
     return invSin * ( std::sin( ( 1. - t ) * angle ) * v0 + std::sin( t * angle ) * v1 );

@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef __STRAND_FORCE_H__
-#define __STRAND_FORCE_H__
+#ifndef STRAND_FORCE_H
+#define STRAND_FORCE_H
 
 #include <Eigen/Core>
 #include <iostream>
@@ -29,7 +29,7 @@
 struct StrandState
 {
 	StrandState( const VecX& initDofs, BendingMatrixBase& bendingMatrixBase );
-	
+
 	DOFs m_dofs;
 	Edges m_edges;
 	Lengths m_lengths;
@@ -52,9 +52,9 @@ struct StrandState
 };
 
 struct StartState
-{ // used for Viscous updates that depend of start of step state
+{	// used for Viscous updates that depend of start of step state
 	StartState( const VecX& initDofs );
-	
+
 	DOFs m_dofs;
 	Edges m_edges;
 	Lengths m_lengths;
@@ -73,68 +73,68 @@ struct StartState
 class StrandForce : public Force
 {
 public:
-	
+
 	StrandForce( const std::shared_ptr<TwoDScene>& scene, const std::vector<int>& consecutiveVertices, const int& parameterIndex, int globalIndex );
-	
+
 	virtual ~StrandForce();
-	
+
 	virtual Force* createNewCopy();
-	
+
 	virtual void preCompute();
-	
+
 	virtual void updateStartState();
 
 	virtual void updateMultipliers( const VectorXs& x, const VectorXs& vplus, const VectorXs& m, const VectorXs& psi, const scalar& lambda, const scalar& dt );
-	
+
 	virtual void addEnergyToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, scalar& E );
-	
+
 	virtual void addGradEToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, VectorXs& gradE );
-	
+
 	virtual void addHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
-	
+
 	virtual void addAngularHessXToTotal( const VectorXs& x, const VectorXs& v, const VectorXs& m, const VectorXs& psi, const scalar& lambda, TripletXs& hessE, int hessE_index, const scalar& dt );
 
 	virtual int numHessX();
-	
+
 	virtual int numAngularHessX();
 
 	virtual int flag() const;
-	
+
 	virtual const char* name();
-	
+
 	int getGlobalIndex() const { return m_globalIndex; }
 	int getNumVertices() const { return (int) m_verts.size(); }
-	
+
 	Vec2Array& alterRestKappas()
 	{
 		return m_restKappas;
 	}
-	
 
-    void updateStrandState();
-	
+
+	void updateStrandState();
+
 	// private: //todo need to make get/set calls for twodscene in order to make this private again.
-	
+
 	int getNumEdges() const { return (int) m_verts.size() - 1; }
-	
+
 	void resizeInternals();
 	void freezeRestShape( unsigned begin, unsigned end, scalar damping = 0. );
 	void updateRestShape( const VecX& x_restshape, scalar damping = 0. );
-	
+
 	void updateEverythingThatDependsOnRestLengths();
-	
+
 	int numConstraintNonViscous();
 	int numConstraintViscous();
-	
+
 	void recomputeGlobal();
 	void clearStored();
-	void getLocalAffectedVars( int colidx, std::vector< std::pair<int,int> >& vars );
-	
+	void getLocalAffectedVars( int colidx, std::vector< std::pair<int, int> >& vars );
+
 	template<typename AccumulatedT>
 	void accumulateQuantity( AccumulatedT& accumulated );
 
-	void accumulateHessian( TripletXs& accumulated, TripletXs& accumulated_twist );	
-	
+	void accumulateHessian( TripletXs& accumulated, TripletXs& accumulated_twist );
+
 	//// FOSSSim related //////////////////////////////////////////////////
 	std::vector< int > m_verts; // in order root to tip
 	VectorXs m_packing_fraction;
@@ -147,23 +147,23 @@ public:
 
 	VectorXs m_viscous_stretching_multipliers;
 	VectorXs m_viscous_bending_multipliers;
-	VectorXs m_viscous_twisting_multipliers;	
+	VectorXs m_viscous_twisting_multipliers;
 
 	int m_globalIndex; // Global index amongst the hairs
 	std::shared_ptr<StrandParameters> m_strandParams;
 	std::shared_ptr<TwoDScene> m_scene;
 	bool m_requiresExactForceJacobian;
-	
+
 	// increase memory, reduce re-computation
 	scalar m_strandEnergyUpdate;
 	VecX m_strandForceUpdate;
 	TripletXs m_strandHessianUpdate;
-	TripletXs m_strandAngularHessianUpdate;	
-	
+	TripletXs m_strandAngularHessianUpdate;
+
 	//// Strand State (implicitly the end of timestep state, evolved from rest config) ////////////////////////
 	StrandState* m_strandState; // future state
 	StartState* m_startState; // current state
-	
+
 	//// Rest shape //////////////////////////////////////////////////////
 	std::vector<scalar> m_restLengths; // The following four members depend on m_restLengths, which is why updateEverythingThatDependsOnRestLengths() must be called
 	scalar m_totalRestLength;
@@ -172,7 +172,7 @@ public:
 	std::vector<scalar> m_vertexMasses;
 	Vec2Array m_restKappas;
 	std::vector<scalar> m_restTwists;
-	
+
 	//// Friends /////////////////////////////////////////////////////////
 	friend class Viscous;
 	friend class NonViscous;

@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef DEGREESOFFREEDOM_H_
-#define DEGREESOFFREEDOM_H_
+#ifndef DEGREESOFFREEDOM_H
+#define DEGREESOFFREEDOM_H
 
 #include "DependencyNode.h"
 
@@ -19,7 +19,7 @@ class DOFs: public DependencyNode<VecX>
 {
 public:
     DOFs( const VecX& dofValues ) :
-            DependencyNode<VecX>( dofValues )
+        DependencyNode<VecX>( dofValues )
     {
         assert( dofValues.size() % 4 == 3 );
         m_numEdges = dofValues.size() / 4;
@@ -33,7 +33,7 @@ public:
         return m_value;
     }
 
-    VecX& get() 
+    VecX& get()
     {
         return m_value;
     }
@@ -61,7 +61,7 @@ public:
     const Eigen::Map<const VecX, Eigen::Unaligned, Eigen::InnerStride<4> > getThetas() const
     {
         return Eigen::Map<const VecX, Eigen::Unaligned, Eigen::InnerStride<4> >(
-                m_value.data() + 3, m_numEdges );
+                   m_value.data() + 3, m_numEdges );
     }
 
     scalar getTheta( IndexType vtx ) const
@@ -73,10 +73,10 @@ public:
 
     void setThetas( const VecX& thetas, int numberOfFixedThetas = 0 )
     {
-        assert( thetas.size()==m_numEdges );
+        assert( thetas.size() == m_numEdges );
 
         Eigen::Map<VecX, Eigen::Unaligned, Eigen::InnerStride<4> >(
-                m_value.data() + 4 * numberOfFixedThetas + 3, m_numEdges - numberOfFixedThetas ) =
+            m_value.data() + 4 * numberOfFixedThetas + 3, m_numEdges - numberOfFixedThetas ) =
                 thetas.tail( m_numEdges - numberOfFixedThetas );
         setDependentsDirty();
     }
@@ -119,8 +119,8 @@ class Edges: public DependencyNode<Vec3Array>
 {
 public:
     Edges( DOFs& dofs ) :
-            DependencyNode<Vec3Array>( 0, dofs.getNumEdges() ), 
-            m_dofs( dofs )
+        DependencyNode<Vec3Array>( 0, dofs.getNumEdges() ),
+        m_dofs( dofs )
     {
         m_dofs.addDependent( this );
     }
@@ -143,8 +143,8 @@ class Lengths: public DependencyNode<std::vector<scalar> >
 {
 public:
     Lengths( Edges& edges ) :
-            DependencyNode<std::vector<scalar> >( 0, edges.size() ), 
-            m_edges( edges )
+        DependencyNode<std::vector<scalar> >( 0, edges.size() ),
+        m_edges( edges )
     {
         m_edges.addDependent( this );
     }
@@ -167,9 +167,9 @@ class Tangents: public DependencyNode<Vec3Array>
 {
 public:
     Tangents( Edges& edges, Lengths& lengths ) :
-            DependencyNode<Vec3Array>( 0, edges.size() ), 
-            m_edges( edges ), 
-            m_lengths( lengths )
+        DependencyNode<Vec3Array>( 0, edges.size() ),
+        m_edges( edges ),
+        m_lengths( lengths )
     {
         m_edges.addDependent( this );
         m_lengths.addDependent( this );
@@ -194,8 +194,8 @@ class CurvatureBinormals: public DependencyNode<Vec3Array>
 {
 public:
     CurvatureBinormals( Tangents& tangents ) :
-            DependencyNode<Vec3Array>( 1, tangents.size() ), 
-            m_tangents( tangents )
+        DependencyNode<Vec3Array>( 1, tangents.size() ),
+        m_tangents( tangents )
     {
         m_tangents.addDependent( this );
     }
@@ -218,8 +218,8 @@ class TrigThetas: public DependencyNode<std::pair<VecX, VecX> >
 {
 public:
     TrigThetas( DOFs& dofs ) :
-            DependencyNode<std::pair<VecX, VecX> >( std::make_pair( VecX(), VecX() ) ), 
-            m_dofs( dofs )
+        DependencyNode<std::pair<VecX, VecX> >( std::make_pair( VecX(), VecX() ) ),
+        m_dofs( dofs )
     {
         m_dofs.addDependent( this );
     }

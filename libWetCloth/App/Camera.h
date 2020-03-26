@@ -16,11 +16,11 @@
 class Camera
 {
 public:
-  Eigen::Quaterniond rotation_;	// rotation
-  Eigen::Vector3d center_;	// center point
-  double	 dist_;			// point of view to center
-  double   radius_;		// bounding sphere
-  double   fov_;			// angle
+  Eigen::Quaterniond rotation_; // rotation
+  Eigen::Vector3d center_;  // center point
+  double   dist_;     // point of view to center
+  double   radius_;   // bounding sphere
+  double   fov_;      // angle
   Camera ( const Camera& that );
   void operator = ( const Camera& that );
 

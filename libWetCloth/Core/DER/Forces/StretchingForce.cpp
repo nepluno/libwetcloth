@@ -30,7 +30,7 @@ scalar StretchingForce<ViscousT>::localEnergy( const StrandForce& strand, const 
     const scalar restLength = ViscousT::ellBar( strand, vtx );
 
     const scalar length = strand.m_strandState->m_lengths[vtx];
-	const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
+    const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
 
     return 0.5 * ks * square( length / restLength - 1.0 ) * restLength * psi_coeff;
 }
@@ -43,7 +43,7 @@ void StretchingForce<ViscousT>::computeLocal(Eigen::Matrix<scalar, 6, 1>& localF
 
     const scalar length = strand.m_strandState->m_lengths[vtx];
     const Vec3& edge = strand.m_strandState->m_tangents[ vtx ];
-	const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
+    const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
 
     Vec3 f = ks * ( length / restLength - 1.0 ) * edge * psi_coeff;
 
@@ -60,14 +60,14 @@ void StretchingForce<ViscousT>::computeLocal(Eigen::Matrix<scalar, 6, 6>& localJ
 
     const scalar length = strand.m_strandState->m_lengths[vtx];
     const Vec3& edge = strand.m_strandState->m_tangents[ vtx ];
-	const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
+    const scalar psi_coeff = strand.m_packing_fraction[ vtx ];
 
     bool useApprox = !strand.m_requiresExactForceJacobian && length < restLength;
 
     Mat3 M = ks * psi_coeff / restLength * edge * edge.transpose();
-    if( !useApprox ){
+    if ( !useApprox ) {
         const scalar localL = ViscousT::stretchingMultiplier( strand, vtx );
-		M -= (Mat3::Identity() - edge * edge.transpose()) / (length * restLength) * localL;
+        M -= (Mat3::Identity() - edge * edge.transpose()) / (length * restLength) * localL;
     }
 
     localJ.block<3, 3>( 0, 0 ) = localJ.block<3, 3>( 3, 3 ) = -M;
@@ -90,7 +90,7 @@ void StretchingForce<ViscousT>::addInPosition( VecX& globalMultiplier, const Ind
 template<typename ViscousT>
 void StretchingForce<ViscousT>::accumulateCurrentE( scalar& energy, StrandForce& strand )
 {
-    for( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
+    for ( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
     {
         energy += localEnergy( strand, vtx );
     }
@@ -99,7 +99,7 @@ void StretchingForce<ViscousT>::accumulateCurrentE( scalar& energy, StrandForce&
 template<typename ViscousT>
 void StretchingForce<ViscousT>::accumulateCurrentF( VecX& force, StrandForce& strand )
 {
-    for( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
+    for ( IndexType vtx = s_first; vtx < strand.getNumVertices() - s_last; ++vtx )
     {
         LocalForceType localF;
         computeLocal( localF, strand, vtx );

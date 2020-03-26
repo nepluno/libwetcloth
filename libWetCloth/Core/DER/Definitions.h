@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef _DER_DEFINITIONS_H_
-#define _DER_DEFINITIONS_H_
+#ifndef DER_DEFINITIONS_H
+#define DER_DEFINITIONS_H
 
 #include <iostream>
 
@@ -33,8 +33,8 @@
 
 namespace Eigen
 {
-    template<typename _scalar, int _Options, typename _Index>
-    class SparseMatrix;
+template<typename _scalar, int _Options, typename _Index>
+class SparseMatrix;
 }
 
 typedef double scalar; ///< the scalar type
@@ -114,19 +114,19 @@ EIGEN_STRONG_INLINE bool isApproxUnit( const NormableT& x )
 
 namespace std
 {
-    template < typename Derived >
-    inline void swap ( Eigen::DenseBase< Derived >& a, Eigen::DenseBase< Derived >& b )
-    {
-        a.swap( b ) ;
-    }
-
-    template < typename Derived >
-    inline void swap ( pair< Eigen::DenseBase< Derived >, Eigen::DenseBase< Derived > >& a,
-                       pair< Eigen::DenseBase< Derived >, Eigen::DenseBase< Derived > >& b )
-    {
-        a.first.swap( b.first ) ;
-        a.second.swap( b.second ) ;
-    }
+template < typename Derived >
+inline void swap ( Eigen::DenseBase< Derived >& a, Eigen::DenseBase< Derived >& b )
+{
+    a.swap( b ) ;
 }
 
-#endif 
+template < typename Derived >
+inline void swap ( pair< Eigen::DenseBase< Derived >, Eigen::DenseBase< Derived > >& a,
+                   pair< Eigen::DenseBase< Derived >, Eigen::DenseBase< Derived > >& b )
+{
+    a.first.swap( b.first ) ;
+    a.second.swap( b.second ) ;
+}
+}
+
+#endif

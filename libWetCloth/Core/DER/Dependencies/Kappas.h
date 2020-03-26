@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef KAPPAS_H_
-#define KAPPAS_H_
+#ifndef KAPPAS_H
+#define KAPPAS_H
 
 //#define USE_APPROX_GRAD_KAPPA
 
@@ -22,9 +22,9 @@ class Kappas: public DependencyNode<Vec2Array>
 public:
     Kappas( CurvatureBinormals& curvatureBinormals, MaterialFrames<1>& materialFrames1,
             MaterialFrames<2>& materialFrames2 ) :
-            DependencyNode<Vec2Array>( 1, curvatureBinormals.size() ), m_curvatureBinormals(
-                    curvatureBinormals ), m_materialFrames1( materialFrames1 ), m_materialFrames2(
-                    materialFrames2 )
+        DependencyNode<Vec2Array>( 1, curvatureBinormals.size() ), m_curvatureBinormals(
+            curvatureBinormals ), m_materialFrames1( materialFrames1 ), m_materialFrames2(
+                materialFrames2 )
     {
         m_curvatureBinormals.addDependent( this );
         m_materialFrames1.addDependent( this );
@@ -54,14 +54,14 @@ class GradKappas: public DependencyNode<GradKArrayType>
 {
 public:
     GradKappas( Lengths& lengths, Tangents& tangents, CurvatureBinormals& curvatureBinormals,
-            MaterialFrames<1>& materialFrames1, MaterialFrames<2>& materialFrames2, Kappas& kappas ) :
-            DependencyNode<GradKArrayType>( 1, curvatureBinormals.size() ), //
-            m_lengths( lengths ), //
-            m_tangents( tangents ), //
-            m_curvatureBinormals( curvatureBinormals ), //
-            m_materialFrames1( materialFrames1 ), //
-            m_materialFrames2( materialFrames2 ), //
-            m_kappas( kappas )
+                MaterialFrames<1>& materialFrames1, MaterialFrames<2>& materialFrames2, Kappas& kappas ) :
+        DependencyNode<GradKArrayType>( 1, curvatureBinormals.size() ), //
+        m_lengths( lengths ), //
+        m_tangents( tangents ), //
+        m_curvatureBinormals( curvatureBinormals ), //
+        m_materialFrames1( materialFrames1 ), //
+        m_materialFrames2( materialFrames2 ), //
+        m_kappas( kappas )
     {
         m_lengths.addDependent( this );
         m_tangents.addDependent( this );
@@ -105,14 +105,14 @@ class HessKappas: public DependencyNode<HessKArrayType>
 {
 public:
     HessKappas( Lengths& lengths, Tangents& tangents, CurvatureBinormals& curvatureBinormals,
-            MaterialFrames<1>& materialFrames1, MaterialFrames<2>& materialFrames2, Kappas& kappas ) :
-            DependencyNode<HessKArrayType>( 1, curvatureBinormals.size() ), //
-            m_lengths( lengths ), //
-            m_tangents( tangents ), //
-            m_curvatureBinormals( curvatureBinormals ), //
-            m_materialFrames1( materialFrames1 ), //
-            m_materialFrames2( materialFrames2 ), //
-            m_kappas( kappas )
+                MaterialFrames<1>& materialFrames1, MaterialFrames<2>& materialFrames2, Kappas& kappas ) :
+        DependencyNode<HessKArrayType>( 1, curvatureBinormals.size() ), //
+        m_lengths( lengths ), //
+        m_tangents( tangents ), //
+        m_curvatureBinormals( curvatureBinormals ), //
+        m_materialFrames1( materialFrames1 ), //
+        m_materialFrames2( materialFrames2 ), //
+        m_kappas( kappas )
     {
         m_lengths.addDependent( this );
         m_tangents.addDependent( this );
@@ -156,11 +156,11 @@ class ThetaHessKappas: public DependencyNode<ThetaHessKArrayType>
 {
 public:
     ThetaHessKappas( CurvatureBinormals& curvatureBinormals, MaterialFrames<1>& materialFrames1,
-            MaterialFrames<2>& materialFrames2 ) :
-            DependencyNode<ThetaHessKArrayType>( 1, curvatureBinormals.size() ), //
-            m_curvatureBinormals( curvatureBinormals ), //
-            m_materialFrames1( materialFrames1 ), //
-            m_materialFrames2( materialFrames2 )
+                     MaterialFrames<2>& materialFrames2 ) :
+        DependencyNode<ThetaHessKArrayType>( 1, curvatureBinormals.size() ), //
+        m_curvatureBinormals( curvatureBinormals ), //
+        m_materialFrames1( materialFrames1 ), //
+        m_materialFrames2( materialFrames2 )
     {
         m_curvatureBinormals.addDependent( this );
         m_materialFrames1.addDependent( this );

@@ -1,5 +1,5 @@
-#ifndef __MEM_UTILITIES_H__
-#define __MEM_UTILITIES_H__
+#ifndef MEM_UTILITIES_H
+#define MEM_UTILITIES_H
 
 //
 // This file is part of the libWetCloth open source project
@@ -34,18 +34,18 @@
 #endif
 
 namespace memutils {
-    /**
-     * Returns the peak (maximum so far) resident set size (physical
-     * memory use) measured in bytes, or zero if the value cannot be
-     * determined on this OS.
-     */
-    size_t getPeakRSS( );
+/**
+ * Returns the peak (maximum so far) resident set size (physical
+ * memory use) measured in bytes, or zero if the value cannot be
+ * determined on this OS.
+ */
+size_t getPeakRSS( );
 
-    /**
-     * Returns the current resident set size (physical memory use) measured
-     * in bytes, or zero if the value cannot be determined on this OS.
-     */
-    size_t getCurrentRSS( );
+/**
+ * Returns the current resident set size (physical memory use) measured
+ * in bytes, or zero if the value cannot be determined on this OS.
+ */
+size_t getCurrentRSS( );
 }
 
 #endif

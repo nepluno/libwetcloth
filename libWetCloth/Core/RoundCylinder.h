@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef ROUNDCYLINDER_H__
-#define ROUNDCYLINDER_H__
+#ifndef ROUND_CYLINDER_H
+#define ROUND_CYLINDER_H
 
 /* Rounded Cylinder generation algorithm.
  */

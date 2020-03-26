@@ -46,12 +46,12 @@ void MaterialFrames<1>::compute()
     const VecX& sinThetas = m_trigThetas.getSines();
     const VecX& cosThetas = m_trigThetas.getCosines();
 
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         const Vec3& u = referenceFrames1[vtx];
         const Vec3& v = referenceFrames2[vtx];
@@ -73,12 +73,12 @@ void MaterialFrames<2>::compute()
     const VecX& sinThetas = m_trigThetas.getSines();
     const VecX& cosThetas = m_trigThetas.getCosines();
 
-	for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
-	{
-		m_value[vtx].setZero();
-	}
+    for (IndexType vtx = 0; vtx < m_firstValidIndex; ++vtx)
+    {
+        m_value[vtx].setZero();
+    }
 
-    for( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
+    for ( IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx )
     {
         const Vec3& u = referenceFrames1[vtx];
         const Vec3& v = referenceFrames2[vtx];

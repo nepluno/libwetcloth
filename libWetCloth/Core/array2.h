@@ -15,7 +15,7 @@
 #include <cassert>
 #include <vector>
 
-template<class T, class ArrayT=std::vector<T> >
+template<class T, class ArrayT = std::vector<T> >
 struct Array2
 {
    // STL-friendly typedefs
@@ -44,28 +44,28 @@ struct Array2
    {}
 
    Array2(int ni_, int nj_)
-      : ni(ni_), nj(nj_), a(ni_*nj_)
-   { assert(ni_>=0 && nj>=0); }
+      : ni(ni_), nj(nj_), a(ni_ * nj_)
+   { assert(ni_ >= 0 && nj >= 0); }
 
    Array2(int ni_, int nj_, ArrayT& a_)
       : ni(ni_), nj(nj_), a(a_)
-   { assert(ni_>=0 && nj>=0); }
+   { assert(ni_ >= 0 && nj >= 0); }
 
    Array2(int ni_, int nj_, const T& value)
-      : ni(ni_), nj(nj_), a(ni_*nj_, value)
-   { assert(ni_>=0 && nj>=0); }
+      : ni(ni_), nj(nj_), a(ni_ * nj_, value)
+   { assert(ni_ >= 0 && nj >= 0); }
 
    Array2(int ni_, int nj_, const T& value, size_type max_n_)
-      : ni(ni_), nj(nj_), a(ni_*nj_, value, max_n_)
-   { assert(ni_>=0 && nj>=0); }
+      : ni(ni_), nj(nj_), a(ni_ * nj_, value, max_n_)
+   { assert(ni_ >= 0 && nj >= 0); }
 
    Array2(int ni_, int nj_, T* data_)
-      : ni(ni_), nj(nj_), a(ni_*nj_, data_)
-   { assert(ni_>=0 && nj>=0); }
+      : ni(ni_), nj(nj_), a(ni_ * nj_, data_)
+   { assert(ni_ >= 0 && nj >= 0); }
 
    Array2(int ni_, int nj_, T* data_, size_type max_n_)
-      : ni(ni_), nj(nj_), a(ni_*nj_, data_, max_n_)
-   { assert(ni_>=0 && nj>=0); }
+      : ni(ni_), nj(nj_), a(ni_ * nj_, data_, max_n_)
+   { assert(ni_ >= 0 && nj >= 0); }
 
    template<class OtherArrayT>
    Array2(Array2<T, OtherArrayT>& other)
@@ -75,54 +75,54 @@ struct Array2
    ~Array2(void)
    {
 #ifndef NDEBUG
-      ni=nj=0;
+      ni = nj = 0;
 #endif
    }
 
    const T& operator()(int i, int j) const
    {
-     if(!(i>=0 && i<ni && j>=0 && j<nj)) {std::cout << "OUTBOUND ACCESS: "<< i << " " << j << std::endl; exit(0);}
-      return a[i+ni*j];
+      if (!(i >= 0 && i < ni && j >= 0 && j < nj)) {std::cout << "OUTBOUND ACCESS: " << i << " " << j << std::endl; exit(0);}
+      return a[i + ni * j];
    }
 
    T& operator()(int i, int j)
    {
-     if(!(i>=0 && i<ni && j>=0 && j<nj)) {std::cout << "OUTBOUND ACCESS: "<< i << " " << j << std::endl; exit(0);}
-      return a[i+ni*j];
+      if (!(i >= 0 && i < ni && j >= 0 && j < nj)) {std::cout << "OUTBOUND ACCESS: " << i << " " << j << std::endl; exit(0);}
+      return a[i + ni * j];
    }
 
    bool operator==(const Array2<T>& x) const
-   { return ni==x.ni && nj==x.nj && a==x.a; }
+   { return ni == x.ni && nj == x.nj && a == x.a; }
 
    bool operator!=(const Array2<T>& x) const
-   { return ni!=x.ni || nj!=x.nj || a!=x.a; }
+   { return ni != x.ni || nj != x.nj || a != x.a; }
 
    bool operator<(const Array2<T>& x) const
    {
-      if(ni<x.ni) return true; else if(ni>x.ni) return false;
-      if(nj<x.nj) return true; else if(nj>x.nj) return false;
-      return a<x.a;
+      if (ni < x.ni) return true; else if (ni > x.ni) return false;
+      if (nj < x.nj) return true; else if (nj > x.nj) return false;
+      return a < x.a;
    }
 
    bool operator>(const Array2<T>& x) const
    {
-      if(ni>x.ni) return true; else if(ni<x.ni) return false;
-      if(nj>x.nj) return true; else if(nj<x.nj) return false;
-      return a>x.a;
+      if (ni > x.ni) return true; else if (ni < x.ni) return false;
+      if (nj > x.nj) return true; else if (nj < x.nj) return false;
+      return a > x.a;
    }
 
    bool operator<=(const Array2<T>& x) const
    {
-      if(ni<x.ni) return true; else if(ni>x.ni) return false;
-      if(nj<x.nj) return true; else if(nj>x.nj) return false;
-      return a<=x.a;
+      if (ni < x.ni) return true; else if (ni > x.ni) return false;
+      if (nj < x.nj) return true; else if (nj > x.nj) return false;
+      return a <= x.a;
    }
 
    bool operator>=(const Array2<T>& x) const
    {
-      if(ni>x.ni) return true; else if(ni<x.ni) return false;
-      if(nj>x.nj) return true; else if(nj<x.nj) return false;
-      return a>=x.a;
+      if (ni > x.ni) return true; else if (ni < x.ni) return false;
+      if (nj > x.nj) return true; else if (nj < x.nj) return false;
+      return a >= x.a;
    }
 
    void assign(const T& value)
@@ -130,32 +130,32 @@ struct Array2
 
    void assign(int ni_, int nj_, const T& value)
    {
-      a.assign(ni_*nj_, value);
-      ni=ni_;
-      nj=nj_;
+      a.assign(ni_ * nj_, value);
+      ni = ni_;
+      nj = nj_;
    }
-    
+
    void assign(int ni_, int nj_, const T* copydata)
    {
-      a.assign(ni_*nj_, copydata);
-      ni=ni_;
-      nj=nj_;
+      a.assign(ni_ * nj_, copydata);
+      ni = ni_;
+      nj = nj_;
    }
-    
+
    const T& at(int i, int j) const
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj);
-      return a[i+ni*j];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj);
+      return a[i + ni * j];
    }
 
    T& at(int i, int j)
    {
-      assert(i>=0 && i<ni && j>=0 && j<nj);
-      return a[i+ni*j];
+      assert(i >= 0 && i < ni && j >= 0 && j < nj);
+      return a[i + ni * j];
    }
 
    const T& back(void) const
-   { 
+   {
       assert(a.size());
       return a.back();
    }
@@ -178,7 +178,7 @@ struct Array2
    void clear(void)
    {
       a.clear();
-      ni=nj=0;
+      ni = nj = 0;
    }
 
    bool empty(void) const
@@ -192,11 +192,11 @@ struct Array2
 
    void fill(int ni_, int nj_, const T& value)
    {
-      a.fill(ni_*nj_, value);
-      ni=ni_;
-      nj=nj_;
+      a.fill(ni_ * nj_, value);
+      ni = ni_;
+      nj = nj_;
    }
-    
+
    const T& front(void) const
    {
       assert(a.size());
@@ -225,22 +225,22 @@ struct Array2
    { return const_reverse_iterator(begin()); }
 
    void reserve(int reserve_ni, int reserve_nj)
-   { a.reserve(reserve_ni*reserve_nj); }
+   { a.reserve(reserve_ni * reserve_nj); }
 
    void resize(int ni_, int nj_)
    {
-      assert(ni_>=0 && nj_>=0);
-      a.resize(ni_*nj_);
-      ni=ni_;
-      nj=nj_;
+      assert(ni_ >= 0 && nj_ >= 0);
+      a.resize(ni_ * nj_);
+      ni = ni_;
+      nj = nj_;
    }
 
    void resize(int ni_, int nj_, const T& value)
    {
-      assert(ni_>=0 && nj_>=0);
-      a.resize(ni_*nj_, value);
-      ni=ni_;
-      nj=nj_;
+      assert(ni_ >= 0 && nj_ >= 0);
+      a.resize(ni_ * nj_, value);
+      ni = ni_;
+      nj = nj_;
    }
 
    void set_zero(void)

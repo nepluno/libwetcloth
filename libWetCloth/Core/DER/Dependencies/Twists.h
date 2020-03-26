@@ -7,8 +7,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef TWISTS_H_
-#define TWISTS_H_
+#ifndef TWISTS_H
+#define TWISTS_H
 
 #include "ReferenceFrames.h"
 
@@ -19,10 +19,10 @@ class Twists: public DependencyNode<std::vector<scalar> >
 {
 public:
     Twists( ReferenceTwists& refTwists, DOFs& dofs ) :
-            DependencyNode<std::vector<scalar> >( 1, dofs.getNumEdges() ), m_refTwists( refTwists ), m_dofs(
-                    dofs )
+        DependencyNode<std::vector<scalar> >( 1, dofs.getNumEdges() ), m_refTwists( refTwists ), m_dofs(
+            dofs )
     {
-        assert( size()==m_refTwists.size() );
+        assert( size() == m_refTwists.size() );
 
         m_refTwists.addDependent( this );
         m_dofs.addDependent( this );
@@ -47,8 +47,8 @@ class GradTwists: public DependencyNode<Vec11Array>
 {
 public:
     GradTwists( Lengths& lengths, CurvatureBinormals& curvatureBinormals ) :
-            DependencyNode<Vec11Array>( 1, lengths.size() ), m_lengths( lengths ), m_curvatureBinormals(
-                    curvatureBinormals )
+        DependencyNode<Vec11Array>( 1, lengths.size() ), m_lengths( lengths ), m_curvatureBinormals(
+            curvatureBinormals )
     {
         m_lengths.addDependent( this );
         m_curvatureBinormals.addDependent( this );
@@ -73,7 +73,7 @@ class GradTwistsSquared: public DependencyNode<Mat11Array>
 {
 public:
     GradTwistsSquared( GradTwists& gradTwists ) :
-            DependencyNode<Mat11Array>( 1, gradTwists.size() ), m_gradTwists( gradTwists )
+        DependencyNode<Mat11Array>( 1, gradTwists.size() ), m_gradTwists( gradTwists )
     {
         m_gradTwists.addDependent(this);
     }
@@ -96,8 +96,8 @@ class HessTwists: public DependencyNode<Mat11Array>
 {
 public:
     HessTwists( Tangents&tangents, Lengths& lengths, CurvatureBinormals& curvatureBinormals ) :
-            DependencyNode<Mat11Array>( 1, lengths.size() ), m_tangents( tangents ), m_lengths(
-                    lengths ), m_curvatureBinormals( curvatureBinormals )
+        DependencyNode<Mat11Array>( 1, lengths.size() ), m_tangents( tangents ), m_lengths(
+            lengths ), m_curvatureBinormals( curvatureBinormals )
     {
         m_tangents.addDependent( this );
         m_lengths.addDependent( this );

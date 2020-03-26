@@ -35,6 +35,6 @@
 // be to the closest triangle - just one nearby.
 void make_level_set3(const std::vector<Vector3i> &tri, const std::vector<Vector3s> &x,
                      const Vector3s &origin, scalar dx, int nx, int ny, int nz,
-                     Array3d &phi, const int exact_band=1);
+                     Array3d &phi, const int exact_band = 1);
 
 #endif
