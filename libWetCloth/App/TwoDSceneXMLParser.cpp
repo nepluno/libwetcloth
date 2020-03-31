@@ -10,6 +10,9 @@
 #include "TwoDSceneXMLParser.h"
 #include "MathDefs.h"
 
+#include <fstream>
+#include <string>
+
 void TwoDSceneXMLParser::loadExecutableSimulation( const std::string& file_name, bool rendering_enabled, std::shared_ptr<ParticleSimulation>& execsim, Camera& cam, scalar& dt, scalar& max_time, scalar& steps_per_sec_cap, renderingutils::Color& bgcolor, std::string& description, std::string& scenetag, bool& cam_inited, const std::string& input_bin )
 {
 	// Load the xml document
@@ -571,6 +574,7 @@ void TwoDSceneXMLParser::loadParticleSimulation(bool rendering_enabled, std::sha
 
 	loadClothes(node, scene);
 	loadHairs(node, scene, dt);
+	loadHairPose( node, scene );
 	loadScripts( node, scene );
 
 	scene->initGaussSystem();
@@ -1244,6 +1248,121 @@ void TwoDSceneXMLParser::loadClothes(rapidxml::xml_node<>* node, const std::shar
 		// leave radius empty since we don't need it for thin-shell model
 
 	}
+}
+
+
+void TwoDSceneXMLParser::loadHairPose( rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene )
+{
+	for ( rapidxml::xml_node<>* nd = node->first_node("pose"); nd; nd = nd->next_sibling("pose") )
+	{
+		if ( nd->first_attribute("path") )
+		{
+			std::string file_path(nd->first_attribute("path")->value());
+
+			std::ifstream ifs( file_path.c_str() );
+
+			if (ifs.fail()) {
+				std::cerr << outputmod::startred << "ERROR IN XMLSCENEPARSER:" << outputmod::endred << " Failed to read file: " << file_path << ". Exiting." << std::endl;
+				exit(1);
+			}
+
+			std::string line;
+			bool start_data = false;
+			std::vector< Vector4s > pos;
+
+			int idx_x = 0;
+			int idx_y = 1;
+			int idx_z = 2;
+			int idx_theta = 3;
+			int idx_seg = 4;
+			int idx_ra = 5;
+			int idx_ha = 7;
+			int idx_actual = 10;
+
+			int prop_order = 0;
+
+			while (getline(ifs, line))
+			{
+				std::vector< std::string > data;
+				stringutils::split(line, ' ', data);
+
+				if (start_data) {
+					if (data.size() < 8)
+						continue;
+
+					Vector4s p;
+					scalar r, h, area;
+					int seg;
+					int actual;
+
+					stringutils::extractFromString(data[idx_actual], actual);
+					if (!actual)
+						continue;
+
+					stringutils::extractFromString(data[idx_x], p(0));
+					stringutils::extractFromString(data[idx_y], p(1));
+					stringutils::extractFromString(data[idx_z], p(2));
+					stringutils::extractFromString(data[idx_theta], p(3));
+					stringutils::extractFromString(data[idx_seg], seg);
+					stringutils::extractFromString(data[idx_ra], r);
+					stringutils::extractFromString(data[idx_ha], h);
+
+					h -= r;
+					area = M_PI * (h + 2.0 * r) * h;
+
+					pos.push_back(p);
+				} else if (line.substr(0, 10) == "end_header") {
+					start_data = true;
+				}
+				else {
+					if (data.size() == 0)
+						continue;
+
+					if (data[0] == "property")
+					{
+						if (data.size() != 3)
+							continue;
+
+						if (data[2] == "x")
+							idx_x = prop_order;
+						else if (data[2] == "y")
+							idx_y = prop_order;
+						else if (data[2] == "z")
+							idx_z = prop_order;
+						else if (data[2] == "theta")
+							idx_theta = prop_order;
+						else if (data[2] == "segment")
+							idx_seg = prop_order;
+						else if (data[2] == "ra")
+							idx_ra = prop_order;
+						else if (data[2] == "ha")
+							idx_ha = prop_order;
+						else if (data[2] == "actual")
+							idx_actual = prop_order;
+
+						prop_order++;
+					}
+					else if (data[0] == "comment") {
+						continue;
+					}
+				}
+			}
+
+			const int total_num_verts = pos.size();
+			for (int i = 0; i < total_num_verts; ++i)
+			{
+				twodscene->setPosition(i, pos[i].segment<3>(0));
+				twodscene->setTwist(i, pos[i](3));
+			}
+
+
+			ifs.close();
+		} else {
+			continue;
+		}
+	}
+
+	twodscene->updateRestPos();
 }
 
 void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene, const scalar& dt) {

@@ -75,6 +75,8 @@ private:
 
 	void loadHairs(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene, const scalar& dt);
 
+	void loadHairPose( rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene );
+
 	void loadClothes(rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene);
 
 	void loadSpringForces( rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene );
