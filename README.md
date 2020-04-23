@@ -24,10 +24,11 @@ libWetCloth depends on following libraries (some of them have been included in t
 - Intel TBB (https://www.threadingbuildingblocks.org)
 - GLUT (https://www.opengl.org/resources/libraries/glut/)
 - libPNG (https://libpng.sourceforge.io/)
+- zlib (https://www.zlib.net/)
 
-On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For Intel TBB, you may download and install from the link provided above, or from Intel website (https://software.intel.com/en-us/parallel-studio-xe/choose-download).
+On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For Intel TBB, you may download and install from the link provided above, or from Intel website (https://software.intel.com/en-us/parallel-studio-xe/choose-download). 
 
-On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For more details refer to the compilation section below.
+On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For libPNG and zlib, please make sure the pnglibconf.h and zconf.h have been copied to their "include" directories (i.e., the directories containing png.h and zlib.h, correspondingly). For more details, please refer to the compilation section below.
 
 Compilation
 -----------------
