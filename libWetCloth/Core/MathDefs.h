@@ -11,6 +11,7 @@
 
 #ifdef WIN32
 #define _USE_MATH_DEFINES
+#define NOMINMAX
 #endif
 #include <cmath>
 

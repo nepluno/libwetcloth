@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <numeric>
 
 using namespace robertbridson;
 
