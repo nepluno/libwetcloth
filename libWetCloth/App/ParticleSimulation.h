@@ -1,7 +1,8 @@
 //
 // This file is part of the libWetCloth open source project
 //
-// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and Changxi Zheng
+// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and
+// Changxi Zheng
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,9 +11,9 @@
 #ifndef PARTICLE_SIMULATION_H
 #define PARTICLE_SIMULATION_H
 
+#include "SceneStepper.h"
 #include "TwoDScene.h"
 #include "TwoDSceneRenderer.h"
-#include "SceneStepper.h"
 #include "TwoDSceneSerializer.h"
 #include "TwoDimensionalDisplayController.h"
 #include "WetClothCore.h"
@@ -20,88 +21,86 @@
 // TODO: Move code out of header!
 extern bool g_rendering_enabled;
 
-class ParticleSimulation
-{
-public:
+class ParticleSimulation {
+ public:
+  ParticleSimulation(const std::shared_ptr<TwoDScene>& scene,
+                     const std::shared_ptr<SceneStepper>& scene_stepper,
+                     const std::shared_ptr<TwoDSceneRenderer>& scene_renderer);
 
-	ParticleSimulation( const std::shared_ptr<TwoDScene>& scene, const std::shared_ptr<SceneStepper>& scene_stepper, const std::shared_ptr<TwoDSceneRenderer>& scene_renderer);
+  virtual ~ParticleSimulation();
+  /////////////////////////////////////////////////////////////////////////////
+  // Simulation Control Functions
 
-	virtual ~ParticleSimulation();
-	/////////////////////////////////////////////////////////////////////////////
-	// Simulation Control Functions
+  void stepSystem(const scalar& dt);
 
-	void stepSystem( const scalar& dt );
+  /////////////////////////////////////////////////////////////////////////////
+  // Rendering Functions
 
-	/////////////////////////////////////////////////////////////////////////////
-	// Rendering Functions
+  void initializeOpenGLRenderer();
+  void renderSceneOpenGL(const scalar& dt);
+  void updateOpenGLRendererState();
+  void computeCameraCenter(renderingutils::Viewport& view);
 
-	void initializeOpenGLRenderer();
-	void renderSceneOpenGL(const scalar& dt);
-	void updateOpenGLRendererState();
-	void computeCameraCenter(renderingutils::Viewport& view);
+  /////////////////////////////////////////////////////////////////////////////
+  // Serialization Functions
+  void serializeScene(const std::string& fn_clothes,
+                      const std::string& fn_hairs, const std::string& fn_fluid,
+                      const std::string& fn_internal_boundaries,
+                      const std::string& fn_external_boundaries,
+                      const std::string& fn_spring);
 
+  void serializePositionOnly(const std::string& fn_pos);
 
-	/////////////////////////////////////////////////////////////////////////////
-	// Serialization Functions
-	void serializeScene( const std::string& fn_clothes,
-	                     const std::string& fn_hairs,
-	                     const std::string& fn_fluid,
-	                     const std::string& fn_internal_boundaries,
-	                     const std::string& fn_external_boundaries,
-	                     const std::string& fn_spring);
+  void readPos(const std::string& fn_pos);
+  /////////////////////////////////////////////////////////////////////////////
+  // Status Functions
 
-	void serializePositionOnly( const std::string& fn_pos );
+  std::string getSolverName();
 
-	void readPos( const std::string& fn_pos );
-	/////////////////////////////////////////////////////////////////////////////
-	// Status Functions
+  void centerCamera(bool b_reshape = true);
+  void keyboard(unsigned char key, int x, int y);
+  void reshape(int w, int h);
 
-	std::string getSolverName();
+  void special(int key, int x, int y);
 
-	void centerCamera(bool b_reshape = true);
-	void keyboard( unsigned char key, int x, int y );
-	void reshape( int w, int h );
+  void mouse(int button, int state, int x, int y);
 
-	void special( int key, int x, int y );
+  void translateView(double dx, double dy);
 
-	void mouse( int button, int state, int x, int y );
+  void zoomView(double dx, double dy);
 
-	void translateView( double dx, double dy );
+  void motion(int x, int y);
 
-	void zoomView( double dx, double dy );
+  int getWindowWidth() const;
+  int getWindowHeight() const;
 
-	void motion( int x, int y );
+  void setWindowWidth(int w);
+  void setWindowHeight(int h);
 
-	int getWindowWidth() const;
-	int getWindowHeight() const;
+  const std::shared_ptr<TwoDimensionalDisplayController>& getDC() const;
 
-	void setWindowWidth(int w);
-	void setWindowHeight(int h);
+  void setCenterX(double x);
+  void setCenterY(double y);
+  void setCenterZ(double z);
+  void setScaleFactor(double scale);
 
-	const std::shared_ptr<TwoDimensionalDisplayController>& getDC() const;
+  void setCamera(const Camera& cam);
+  void setView(const renderingutils::Viewport& view);
 
-	void setCenterX( double x );
-	void setCenterY( double y );
-	void setCenterZ( double z );
-	void setScaleFactor( double scale );
+  int currentCameraIndex() const;
 
-	void setCamera( const Camera& cam );
-	void setView( const renderingutils::Viewport& view );
+  void finalInit();
 
-	int currentCameraIndex() const;
+  void printDDA();
 
-	void finalInit();
+  const LiquidInfo& getLiquidInfo();
 
-	void printDDA();
+ private:
+  std::shared_ptr<WetClothCore> m_core;
+  std::shared_ptr<TwoDSceneRenderer> m_scene_renderer;
+  std::shared_ptr<TwoDimensionalDisplayController> m_display_controller;
 
-	const LiquidInfo& getLiquidInfo();
-
-private:
-	std::shared_ptr<WetClothCore> m_core;
-	std::shared_ptr<TwoDSceneRenderer> m_scene_renderer;
-	std::shared_ptr<TwoDimensionalDisplayController> m_display_controller;
-
-	TwoDSceneSerializer m_scene_serializer;
+  TwoDSceneSerializer m_scene_serializer;
 };
 
 #endif

@@ -7,18 +7,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
-
 #ifndef ARRAY3_UTILS_H
 #define ARRAY3_UTILS_H
 
-#include "array3.h"
 #include "MathUtilities.h"
+#include "array3.h"
 
 using namespace mathutils;
 
-template<class S, class T>
-T interpolate_value(const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<T> >& grid) {
+template <class S, class T>
+T interpolate_value(const Eigen::Matrix<S, 3, 1>& point,
+                    const Array3<T, Array1<T> >& grid) {
   int i, j, k;
   S fi, fj, fk;
 
@@ -26,22 +25,24 @@ T interpolate_value(const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<
   get_barycentric(point[1], j, fj, 0, grid.nj);
   get_barycentric(point[2], k, fk, 0, grid.nk);
 
-  return trilerp(
-           grid(i, j, k), grid(i + 1, j, k), grid(i, j + 1, k), grid(i + 1, j + 1, k),
-           grid(i, j, k + 1), grid(i + 1, j, k + 1), grid(i, j + 1, k + 1), grid(i + 1, j + 1, k + 1),
-           fi, fj, fk);
+  return trilerp(grid(i, j, k), grid(i + 1, j, k), grid(i, j + 1, k),
+                 grid(i + 1, j + 1, k), grid(i, j, k + 1),
+                 grid(i + 1, j, k + 1), grid(i, j + 1, k + 1),
+                 grid(i + 1, j + 1, k + 1), fi, fj, fk);
 }
 
-template<class S, class T>
-T interpolate_value(const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<T> >& grid, const Eigen::Matrix<S, 3, 1>& origin, const S dx)
-{
-  S inv_dx = (S) 1. / dx;
+template <class S, class T>
+T interpolate_value(const Eigen::Matrix<S, 3, 1>& point,
+                    const Array3<T, Array1<T> >& grid,
+                    const Eigen::Matrix<S, 3, 1>& origin, const S dx) {
+  S inv_dx = (S)1. / dx;
   Eigen::Matrix<S, 3, 1> temp = (point - origin) * inv_dx;
   return interpolate_value(temp, grid);
 }
 
-template<class S, class T>
-T interpolate_value(const Eigen::Matrix<S, 3, 1>& point, const std::vector<T>& grid, int ni, int nj, int nk) {
+template <class S, class T>
+T interpolate_value(const Eigen::Matrix<S, 3, 1>& point,
+                    const std::vector<T>& grid, int ni, int nj, int nk) {
   int i, j, k;
   S fi, fj, fk;
 
@@ -49,20 +50,19 @@ T interpolate_value(const Eigen::Matrix<S, 3, 1>& point, const std::vector<T>& g
   get_barycentric(point[1], j, fj, 0, nj);
   get_barycentric(point[2], k, fk, 0, nk);
 
-  return trilerp(
-           grid[k * ni * nj + j * ni + i],
-           grid[k * ni * nj + j * ni + i + 1],
-           grid[k * ni * nj + (j + 1) * ni + i],
-           grid[k * ni * nj + (j + 1) * ni + i + 1],
-           grid[(k + 1) * ni * nj + j * ni + i],
-           grid[(k + 1) * ni * nj + j * ni + i + 1],
-           grid[(k + 1) * ni * nj + (j + 1) * ni + i],
-           grid[(k + 1) * ni * nj + (j + 1) * ni + i + 1],
-           fi, fj, fk);
+  return trilerp(grid[k * ni * nj + j * ni + i],
+                 grid[k * ni * nj + j * ni + i + 1],
+                 grid[k * ni * nj + (j + 1) * ni + i],
+                 grid[k * ni * nj + (j + 1) * ni + i + 1],
+                 grid[(k + 1) * ni * nj + j * ni + i],
+                 grid[(k + 1) * ni * nj + j * ni + i + 1],
+                 grid[(k + 1) * ni * nj + (j + 1) * ni + i],
+                 grid[(k + 1) * ni * nj + (j + 1) * ni + i + 1], fi, fj, fk);
 }
 
-template<class T>
-Eigen::Matrix<T, 3, 1> affine_interpolate_value(const Eigen::Matrix<T, 3, 1>& point, const Array3<T, Array1<T> >& grid) {
+template <class T>
+Eigen::Matrix<T, 3, 1> affine_interpolate_value(
+    const Eigen::Matrix<T, 3, 1>& point, const Array3<T, Array1<T> >& grid) {
   int i, j, k;
   T fx, fy, fz;
 
@@ -70,16 +70,16 @@ Eigen::Matrix<T, 3, 1> affine_interpolate_value(const Eigen::Matrix<T, 3, 1>& po
   get_barycentric(point[1], j, fy, 0, grid.nj);
   get_barycentric(point[2], k, fz, 0, grid.nk);
 
-  return grad_trilerp(
-           grid(i, j, k), grid(i + 1, j, k),
-           grid(i, j + 1, k), grid(i + 1, j + 1, k),
-           grid(i, j, k + 1), grid(i + 1, j, k + 1),
-           grid(i, j + 1, k + 1), grid(i + 1, j + 1, k + 1),
-           fx, fy, fz);
+  return grad_trilerp(grid(i, j, k), grid(i + 1, j, k), grid(i, j + 1, k),
+                      grid(i + 1, j + 1, k), grid(i, j, k + 1),
+                      grid(i + 1, j, k + 1), grid(i, j + 1, k + 1),
+                      grid(i + 1, j + 1, k + 1), fx, fy, fz);
 }
 
-template<class S, class T>
-T interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<T> >& grid) {
+template <class S, class T>
+T interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient,
+                       const Eigen::Matrix<S, 3, 1>& point,
+                       const Array3<T, Array1<T> >& grid) {
   int i, j, k;
   S fx, fy, fz;
 
@@ -118,18 +118,14 @@ T interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<S, 
   gradient[1] = dv_dy;
   gradient[2] = dv_dz;
 
-  //return value for good measure.
-  return trilerp(
-           v000, v100,
-           v010, v110,
-           v001, v101,
-           v011, v111,
-           fx, fy, fz);
+  // return value for good measure.
+  return trilerp(v000, v100, v010, v110, v001, v101, v011, v111, fx, fy, fz);
 }
 
-
-template<class S, class T>
-void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<T> >& grid, S cellSize) {
+template <class S, class T>
+void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient,
+                          const Eigen::Matrix<S, 3, 1>& point,
+                          const Array3<T, Array1<T> >& grid, S cellSize) {
   int i, j, k;
   S fx, fy, fz;
 
@@ -169,9 +165,11 @@ void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<
   gradient[2] = dv_dz / cellSize;
 }
 
-
-template<class S, class T>
-void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<S, 3, 1>& point, const std::vector<T>& grid, int ni, int nj, int nk, S cellSize) {
+template <class S, class T>
+void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient,
+                          const Eigen::Matrix<S, 3, 1>& point,
+                          const std::vector<T>& grid, int ni, int nj, int nk,
+                          S cellSize) {
   int i, j, k;
   S fx, fy, fz;
 
@@ -211,8 +209,10 @@ void interpolate_gradient(Eigen::Matrix<T, 3, 1>& gradient, const Eigen::Matrix<
   gradient[2] = dv_dz / cellSize;
 }
 
-template<typename S, typename T>
-void interpolate_hessian(Eigen::Matrix<S, 3, 3>& hessian, const Eigen::Matrix<S, 3, 1>& point, const Array3<T, Array1<T> >& grid, S cellSize) {
+template <typename S, typename T>
+void interpolate_hessian(Eigen::Matrix<S, 3, 3>& hessian,
+                         const Eigen::Matrix<S, 3, 1>& point,
+                         const Array3<T, Array1<T> >& grid, S cellSize) {
   Eigen::Matrix<S, 3, 1> gx0;
   Eigen::Matrix<S, 3, 1> gx1;
   Eigen::Matrix<S, 3, 1> gy0;
@@ -220,12 +220,18 @@ void interpolate_hessian(Eigen::Matrix<S, 3, 3>& hessian, const Eigen::Matrix<S,
   Eigen::Matrix<S, 3, 1> gz0;
   Eigen::Matrix<S, 3, 1> gz1;
 
-  Eigen::Matrix<S, 3, 1> px0 = point - Eigen::Matrix<S, 3, 1>(cellSize * (S) 0.5, (S) 0.0, (S) 0.0);
-  Eigen::Matrix<S, 3, 1> px1 = point + Eigen::Matrix<S, 3, 1>(cellSize * (S) 0.5, (S) 0.0, (S) 0.0);
-  Eigen::Matrix<S, 3, 1> py0 = point - Eigen::Matrix<S, 3, 1>((S) 0.0, cellSize * (S) 0.5, (S) 0.0);
-  Eigen::Matrix<S, 3, 1> py1 = point + Eigen::Matrix<S, 3, 1>((S) 0.0, cellSize * (S) 0.5, (S) 0.0);
-  Eigen::Matrix<S, 3, 1> pz0 = point - Eigen::Matrix<S, 3, 1>((S) 0.0, (S) 0.0, cellSize * (S) 0.5);
-  Eigen::Matrix<S, 3, 1> pz1 = point + Eigen::Matrix<S, 3, 1>((S) 0.0, (S) 0.0, cellSize * (S) 0.5);
+  Eigen::Matrix<S, 3, 1> px0 =
+      point - Eigen::Matrix<S, 3, 1>(cellSize * (S)0.5, (S)0.0, (S)0.0);
+  Eigen::Matrix<S, 3, 1> px1 =
+      point + Eigen::Matrix<S, 3, 1>(cellSize * (S)0.5, (S)0.0, (S)0.0);
+  Eigen::Matrix<S, 3, 1> py0 =
+      point - Eigen::Matrix<S, 3, 1>((S)0.0, cellSize * (S)0.5, (S)0.0);
+  Eigen::Matrix<S, 3, 1> py1 =
+      point + Eigen::Matrix<S, 3, 1>((S)0.0, cellSize * (S)0.5, (S)0.0);
+  Eigen::Matrix<S, 3, 1> pz0 =
+      point - Eigen::Matrix<S, 3, 1>((S)0.0, (S)0.0, cellSize * (S)0.5);
+  Eigen::Matrix<S, 3, 1> pz1 =
+      point + Eigen::Matrix<S, 3, 1>((S)0.0, (S)0.0, cellSize * (S)0.5);
 
   interpolate_gradient(gx0, px0, grid, cellSize);
   interpolate_gradient(gx1, px1, grid, cellSize);
@@ -240,45 +246,41 @@ void interpolate_hessian(Eigen::Matrix<S, 3, 3>& hessian, const Eigen::Matrix<S,
   hessian = (hessian + hessian.transpose()) * 0.5;
 }
 
-
-template<class T>
-void write_matlab_array(std::ostream &output, const Array3<T, Array1<T> >&a, const char *variable_name, bool transpose = false)
-{
+template <class T>
+void write_matlab_array(std::ostream& output, const Array3<T, Array1<T> >& a,
+                        const char* variable_name, bool transpose = false) {
   output << variable_name << "=[";
   for (int k = 0; k < a.nk; ++k) {
     for (int j = 0; j < a.nj; ++j) {
-      for (int i = 0; i < a.ni; ++i)  {
+      for (int i = 0; i < a.ni; ++i) {
         output << a(i, j, k) << " ";
       }
       output << ";";
     }
   }
   output << "]";
-  if (transpose)
-    output << "'";
+  if (transpose) output << "'";
   output << ";" << std::endl;
 }
 
-template<class T>
-void write_binary_array(std::ostream &output, const Array3<T, Array1<T> >&a)
-{
-  output.write((char*) &a.ni, sizeof(int));
-  output.write((char*) &a.nj, sizeof(int));
-  output.write((char*) &a.nk, sizeof(int));
+template <class T>
+void write_binary_array(std::ostream& output, const Array3<T, Array1<T> >& a) {
+  output.write((char*)&a.ni, sizeof(int));
+  output.write((char*)&a.nj, sizeof(int));
+  output.write((char*)&a.nk, sizeof(int));
 
-  output.write((char*) & (a.a[0]), a.ni * a.nj * a.nk * sizeof(T));
+  output.write((char*)&(a.a[0]), a.ni * a.nj * a.nk * sizeof(T));
 }
 
-template<class T>
-void read_binary_array(std::istream &input, Array3<T, Array1<T> >&a)
-{
+template <class T>
+void read_binary_array(std::istream& input, Array3<T, Array1<T> >& a) {
   int ni, nj, nk;
-  input.read((char*) &ni, sizeof(int));
-  input.read((char*) &nj, sizeof(int));
-  input.read((char*) &nk, sizeof(int));
+  input.read((char*)&ni, sizeof(int));
+  input.read((char*)&nj, sizeof(int));
+  input.read((char*)&nk, sizeof(int));
 
   a.resize(ni, nj, nk);
-  input.read((char*) & (a.a[0]), ni * nj * nk * sizeof(T));
+  input.read((char*)&(a.a[0]), ni * nj * nk * sizeof(T));
 }
 
 #endif

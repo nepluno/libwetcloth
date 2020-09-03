@@ -1,7 +1,8 @@
 //
 // This file is part of the libWetCloth open source project
 //
-// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and Changxi Zheng
+// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and
+// Changxi Zheng
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,14 +12,13 @@
 #define TIMING_UTILS_H
 
 #include <time.h>
+
 #include <iostream>
 
-namespace timingutils
-{
+namespace timingutils {
 
 double seconds();
 
 }
 
 #endif
-

@@ -1,7 +1,8 @@
 //
 // This file is part of the libWetCloth open source project
 //
-// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and Changxi Zheng
+// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and
+// Changxi Zheng
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,42 +14,48 @@
 #define _USE_MATH_DEFINES
 #define NOMINMAX
 #endif
-#include <cmath>
-
 #include <Eigen/Core>
-#include <Eigen/StdVector>
-#include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <Eigen/SparseQR>
+#include <Eigen/StdVector>
+#include <cmath>
 
 typedef double scalar;
 typedef unsigned long long uint64;
 
 struct int_scalar {
-	int i;
-	scalar v;
+  int i;
+  scalar v;
 
-	inline bool operator() (const int_scalar& struct1, const int_scalar& struct2)
-	{
-		return (struct1.v < struct2.v);
-	}
+  inline bool operator()(const int_scalar& struct1, const int_scalar& struct2) {
+    return (struct1.v < struct2.v);
+  }
 };
 
 struct int5_scalar {
-	int row_node;
-	int row_dir;
-	int col_bucket;
-	int col_node;
-	int col_dir;
-	scalar v;
+  int row_node;
+  int row_dir;
+  int col_bucket;
+  int col_node;
+  int col_dir;
+  scalar v;
 
-	int5_scalar(int rn, int rd, int cb, int cn, int cd, scalar value)
-		: row_node(rn), row_dir(rd), col_bucket(cb), col_node(cn), col_dir(cd), v(value)
-	{}
+  int5_scalar(int rn, int rd, int cb, int cn, int cd, scalar value)
+      : row_node(rn),
+        row_dir(rd),
+        col_bucket(cb),
+        col_node(cn),
+        col_dir(cd),
+        v(value) {}
 
-	int5_scalar()
-		: row_node(0), row_dir(0), col_bucket(0), col_node(0), col_dir(0), v(0.0)
-	{}
+  int5_scalar()
+      : row_node(0),
+        row_dir(0),
+        col_bucket(0),
+        col_node(0),
+        col_dir(0),
+        v(0.0) {}
 };
 
 typedef Eigen::Matrix<scalar, 2, 1> Vector2s;
@@ -550,9 +557,9 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> MatrixXi;
 typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> SparseXs;
 typedef Eigen::SparseMatrix<scalar, Eigen::RowMajor> SparseRXs;
 typedef Eigen::Triplet<scalar> Triplets;
-typedef std::vector< Triplets > TripletXs;
+typedef std::vector<Triplets> TripletXs;
 typedef Eigen::Triplet<int> Tripleti;
-typedef std::vector< Tripleti > TripletXi;
+typedef std::vector<Tripleti> TripletXi;
 
 template <unsigned N>
 using Vectors = Eigen::Matrix<scalar, N, 1>;
@@ -589,39 +596,33 @@ using Blocki = Eigen::Block<int, N, N>;
 
 template <unsigned N>
 using Blockf = Eigen::Block<float, N, N>;
-//typedef Matrix<int, 1, 2> RowVector2i;
+// typedef Matrix<int, 1, 2> RowVector2i;
 
-template<int DIM>
+template <int DIM>
 struct int_Vectors {
-	int i;
-	Vectors<DIM> v;
-	scalar d;
+  int i;
+  Vectors<DIM> v;
+  scalar d;
 
-	int_Vectors(int i_, const Vectors<DIM>& v_) :
-		i(i_), v(v_), d(v_.norm())
-	{}
+  int_Vectors(int i_, const Vectors<DIM>& v_) : i(i_), v(v_), d(v_.norm()) {}
 
-	inline bool operator() (const int_Vectors& struct1, const int_Vectors& struct2)
-	{
-		return (struct1.d < struct2.d);
-	}
+  inline bool operator()(const int_Vectors& struct1,
+                         const int_Vectors& struct2) {
+    return (struct1.d < struct2.d);
+  }
 };
 
-template<int DIM>
+template <int DIM>
 struct int_Vectors_scalar {
-	int i;
-	Vectors<DIM> v;
-	scalar d;
-	scalar eta;
+  int i;
+  Vectors<DIM> v;
+  scalar d;
+  scalar eta;
 
-	int_Vectors_scalar(int i_, const Vectors<DIM>& v_, const scalar& eta_) :
-		i(i_), v(v_), d(v_.norm()), eta(eta_)
-	{}
+  int_Vectors_scalar(int i_, const Vectors<DIM>& v_, const scalar& eta_)
+      : i(i_), v(v_), d(v_.norm()), eta(eta_) {}
 
-	bool operator<(const int_Vectors_scalar& b) const
-	{
-		return d < b.d;
-	}
+  bool operator<(const int_Vectors_scalar& b) const { return d < b.d; }
 };
 
 #endif

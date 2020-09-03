@@ -15,43 +15,44 @@
 class StrandForce;
 struct StrandParameters;
 
-template<typename ViscousT = NonViscous>
-class BendingForce
-{
-public:
-    BendingForce()
-    {}
+template <typename ViscousT = NonViscous>
+class BendingForce {
+ public:
+  BendingForce() {}
 
-    virtual ~BendingForce()
-    {}
+  virtual ~BendingForce() {}
 
-public:
-    static const IndexType s_first = 1; // The first index on which this force can apply
-    static const IndexType s_last = 1; // The last index (counting from the end)
+ public:
+  static const IndexType s_first =
+      1;  // The first index on which this force can apply
+  static const IndexType s_last = 1;  // The last index (counting from the end)
 
-    typedef Eigen::Matrix<scalar, 11, 1> LocalForceType; // Vec11
-    typedef Eigen::Matrix<scalar, 11, 11> LocalJacobianType;
-    typedef Eigen::Matrix<scalar, 2, 1> LocalMultiplierType;
+  typedef Eigen::Matrix<scalar, 11, 1> LocalForceType;  // Vec11
+  typedef Eigen::Matrix<scalar, 11, 11> LocalJacobianType;
+  typedef Eigen::Matrix<scalar, 2, 1> LocalMultiplierType;
 
-    static std::string getName()
-    {
-        return ViscousT::getName() + "bending";
-    }
+  static std::string getName() { return ViscousT::getName() + "bending"; }
 
-    static scalar localEnergy( const StrandForce& strand, const IndexType vtx );
+  static scalar localEnergy(const StrandForce& strand, const IndexType vtx);
 
-    static void computeLocal( LocalMultiplierType& localL, const StrandForce& strand, const IndexType vtx, const scalar& dt );
+  static void computeLocal(LocalMultiplierType& localL,
+                           const StrandForce& strand, const IndexType vtx,
+                           const scalar& dt);
 
-    static void computeLocal( LocalForceType& localF, const StrandForce& strand, const IndexType vtx );
+  static void computeLocal(LocalForceType& localF, const StrandForce& strand,
+                           const IndexType vtx);
 
-    static void computeLocal( LocalJacobianType& localJ, const StrandForce& strand, const IndexType vtx );
+  static void computeLocal(LocalJacobianType& localJ, const StrandForce& strand,
+                           const IndexType vtx);
 
-    static void addInPosition( VecX& globalForce, const IndexType vtx, const LocalForceType& localForce );
+  static void addInPosition(VecX& globalForce, const IndexType vtx,
+                            const LocalForceType& localForce);
 
-    static void addInPosition( VecX& globalMultiplier, const IndexType vtx, const LocalMultiplierType& localL );
+  static void addInPosition(VecX& globalMultiplier, const IndexType vtx,
+                            const LocalMultiplierType& localL);
 
-    static void accumulateCurrentE( scalar& energy, StrandForce& strand );
-    static void accumulateCurrentF( VecX& force, StrandForce& strand );
+  static void accumulateCurrentE(scalar& energy, StrandForce& strand);
+  static void accumulateCurrentF(VecX& force, StrandForce& strand);
 };
 
 #endif

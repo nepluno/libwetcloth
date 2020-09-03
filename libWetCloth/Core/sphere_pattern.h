@@ -1,7 +1,8 @@
 //
 // This file is part of the libWetCloth open source project
 //
-// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and Changxi Zheng
+// Copyright 2018 Yun (Raymond) Fei, Christopher Batty, Eitan Grinspun, and
+// Changxi Zheng
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,9 +11,10 @@
 #ifndef SPHERE_PATTERN_H
 #define SPHERE_PATTERN_H
 
-#include "MathDefs.h"
 #include <sstream>
 #include <string>
+
+#include "MathDefs.h"
 
 namespace sphere_pattern {
 
@@ -1070,24 +1072,22 @@ unsigned char templates_bin[] = {
     0xd5, 0x56, 0xc0, 0xfb, 0x48, 0xba, 0xbe, 0xbf, 0x6d, 0xf9, 0x11, 0x15,
     0xc7, 0x63, 0xed, 0xbf, 0xda, 0xfa, 0x65, 0x54, 0xb0, 0x1f, 0xd8, 0x3f,
     0x75, 0x83, 0xb3, 0xbc, 0x9f, 0xc8, 0xd1, 0xbf, 0xba, 0xed, 0xa7, 0x90,
-    0x5e, 0x07, 0x96, 0xbf, 0x9f, 0x7f, 0xbc, 0xad, 0x18, 0xce, 0xd2, 0x3f
-};
+    0x5e, 0x07, 0x96, 0xbf, 0x9f, 0x7f, 0xbc, 0xad, 0x18, 0xce, 0xd2, 0x3f};
 unsigned int templates_bin_len = 12648;
 unsigned int max_vector_length = 32;
 
-void generateSpherePattern( std::vector< VectorXs >& patterns )
-{
-    patterns.resize(max_vector_length + 1);
-    patterns[0] = VectorXs();
-    patterns[1] = Vector3s(0., 0., 0.);
+void generateSpherePattern(std::vector<VectorXs>& patterns) {
+  patterns.resize(max_vector_length + 1);
+  patterns[0] = VectorXs();
+  patterns[1] = Vector3s(0., 0., 0.);
 
-    unsigned int k = 0;
-    for (unsigned int i = 2; i <= max_vector_length; ++i)
-    {
-        patterns[i] = Eigen::Map<const VectorXs>((const scalar*) (templates_bin + k), i * 3);
-        k += (i * 3) * sizeof(scalar);
-    }
+  unsigned int k = 0;
+  for (unsigned int i = 2; i <= max_vector_length; ++i) {
+    patterns[i] =
+        Eigen::Map<const VectorXs>((const scalar*)(templates_bin + k), i * 3);
+    k += (i * 3) * sizeof(scalar);
+  }
 }
-};
+};  // namespace sphere_pattern
 
 #endif
