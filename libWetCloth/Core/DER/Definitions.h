@@ -53,6 +53,7 @@ typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> VecX;
 typedef std::vector<Vec2, Eigen::aligned_allocator<Vec2> >
     Vec2Array;  ///< an array of 2d scalar vectors
 typedef std::vector<Vec3, Eigen::aligned_allocator<Vec3> > Vec3Array;
+typedef std::vector<Vec4, Eigen::aligned_allocator<Vec4> > Vec4Array;
 typedef std::vector<Vec11, Eigen::aligned_allocator<Vec11> >
     Vec11Array;  ///< an array of 11d scalar vectors
 

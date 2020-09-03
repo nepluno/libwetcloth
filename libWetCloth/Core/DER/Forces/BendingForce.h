@@ -29,7 +29,7 @@ class BendingForce {
 
   typedef Eigen::Matrix<scalar, 11, 1> LocalForceType;  // Vec11
   typedef Eigen::Matrix<scalar, 11, 11> LocalJacobianType;
-  typedef Eigen::Matrix<scalar, 2, 1> LocalMultiplierType;
+  typedef Eigen::Matrix<scalar, 4, 1> LocalMultiplierType;
 
   static std::string getName() { return ViscousT::getName() + "bending"; }
 

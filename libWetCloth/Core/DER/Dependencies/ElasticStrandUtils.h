@@ -193,6 +193,15 @@ inline Eigen::Matrix<scalar, n, n> outerProd(
 }
 
 /**
+ * \brief Get the symmetric part of a matrix.
+ */
+template <int n>
+inline Eigen::Matrix<scalar, n, n> symPart(
+    const Eigen::Matrix<scalar, n, n>& a) {
+  return (a + a.transpose()) * 0.5;
+}
+
+/**
  * \brief Matrix representation of the cross product operator.
  */
 inline Mat3 crossMat(const Vec3& a) {
@@ -227,6 +236,26 @@ inline void symBProduct(Eigen::Matrix<scalar, n, n>& result, const Mat2& B,
     result(i, i) = innerBProduct(B, Qrow_i, Qrow_i);
     for (int j = 0; j < i; ++j)
       result(i, j) = result(j, i) = innerBProduct(B, Qrow_i, Q.row(j));
+  }
+}
+
+/**
+ * \brief Computes Q B Q^T, assuming B is symmetric 2x2 and Q is nx2. The result
+ * is then (exactly) symmetric nxn.
+ */
+template <int n>
+inline void symBProductAdd(Eigen::Matrix<scalar, n, n>& result, const Mat2& B,
+                           const Eigen::Matrix<scalar, n, 2>& Q) {
+  assert(isSymmetric(B));
+
+  for (int i = 0; i < n; ++i) {
+    const Vec2& Qrow_i = Q.row(i);
+    result(i, i) += innerBProduct(B, Qrow_i, Qrow_i);
+    for (int j = 0; j < i; ++j) {
+      const scalar val = innerBProduct(B, Qrow_i, Q.row(j));
+      result(i, j) += val;
+      result(j, i) += val;
+    }
   }
 }
 

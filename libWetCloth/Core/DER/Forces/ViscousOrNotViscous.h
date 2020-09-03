@@ -35,7 +35,7 @@ class NonViscous {
     return strand.m_strandParams->bendingMatrix(vtx);
   }
 
-  static const Vec2 kappaBar(const StrandForce& strand, int vtx) {
+  static const Vec4 kappaBar(const StrandForce& strand, int vtx) {
     return strand.m_restKappas[vtx];
   }
 
@@ -55,8 +55,8 @@ class NonViscous {
     return strand.m_restLengths[vtx];
   }
 
-  static const Vec2 bendingMultiplier(const StrandForce& strand, int vtx) {
-    return strand.m_bending_multipliers.segment<2>(vtx * 2);
+  static const Vec4 bendingMultiplier(const StrandForce& strand, int vtx) {
+    return strand.m_bending_multipliers.segment<4>(vtx * 4);
   }
 
   static scalar stretchingMultiplier(const StrandForce& strand, int vtx) {
@@ -87,7 +87,7 @@ class Viscous {
     return strand.m_strandParams->viscousBendingMatrix(vtx);
   }
 
-  static const Vec2 kappaBar(const StrandForce& strand, int vtx) {
+  static const Vec4 kappaBar(const StrandForce& strand, int vtx) {
     return strand.m_startState->m_kappas[vtx];
   }
 
@@ -107,8 +107,8 @@ class Viscous {
     return strand.m_startState->m_lengths[vtx];
   }
 
-  static const Vec2 bendingMultiplier(const StrandForce& strand, int vtx) {
-    return strand.m_viscous_bending_multipliers.segment<2>(vtx * 2);
+  static const Vec4 bendingMultiplier(const StrandForce& strand, int vtx) {
+    return strand.m_viscous_bending_multipliers.segment<4>(vtx * 4);
   }
 
   static scalar stretchingMultiplier(const StrandForce& strand, int vtx) {

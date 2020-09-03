@@ -56,7 +56,9 @@ class BendingProducts : public DependencyNode<Mat11Array> {
 
     for (IndexType vtx = m_firstValidIndex; vtx < size(); ++vtx) {
       symBProduct<11>(m_value[vtx], bendingMatrix.block<2, 2>(vtx * 2, 0),
-                      gradKappas[vtx]);
+                      gradKappas[vtx].block<11, 2>(0, 0));
+      symBProductAdd<11>(m_value[vtx], bendingMatrix.block<2, 2>(vtx * 2, 0),
+                         gradKappas[vtx].block<11, 2>(0, 2));
     }
 
     setDependentsDirty();

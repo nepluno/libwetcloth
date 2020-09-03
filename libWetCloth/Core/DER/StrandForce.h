@@ -116,7 +116,7 @@ class StrandForce : public Force {
   int getGlobalIndex() const { return m_globalIndex; }
   int getNumVertices() const { return (int)m_verts.size(); }
 
-  Vec2Array& alterRestKappas() { return m_restKappas; }
+  Vec4Array& alterRestKappas() { return m_restKappas; }
 
   void updateStrandState();
 
@@ -183,7 +183,7 @@ class StrandForce : public Force {
   std::vector<scalar> m_VoronoiLengths;     // rest length around each vertex
   std::vector<scalar> m_invVoronoiLengths;  // their inverses
   std::vector<scalar> m_vertexMasses;
-  Vec2Array m_restKappas;
+  Vec4Array m_restKappas;
   std::vector<scalar> m_restTwists;
 
   //// Friends /////////////////////////////////////////////////////////

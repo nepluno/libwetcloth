@@ -19,28 +19,36 @@ void BendingForce<ViscousT>::computeLocal(LocalMultiplierType& localL,
                                           const scalar& dt) {
   // B.ilen.(phi+hJv)
   const Mat2& B = ViscousT::bendingMatrix(strand, vtx);
-  const Vec2& kappaBar = ViscousT::kappaBar(strand, vtx);
+  const Vec4& kappaBar = ViscousT::kappaBar(strand, vtx);
   const scalar ilen = strand.m_invVoronoiLengths[vtx];
-  const Vec2& kappa = strand.m_strandState->m_kappas[vtx];
+  const Vec4& kappa = strand.m_strandState->m_kappas[vtx];
   const GradKType& gradKappa = strand.m_strandState->m_gradKappas[vtx];
   const scalar psi_coeff = strand.m_packing_fraction[vtx];
 
-  Vec2 Jv = gradKappa.transpose() * strand.m_v_plus.segment<11>(4 * (vtx - 1));
+  Vec4 Jv = gradKappa.transpose() * strand.m_v_plus.segment<11>(4 * (vtx - 1));
 
-  localL = -ilen * psi_coeff * B * (kappa - kappaBar + dt * Jv);
+  localL.segment<2>(0) =
+      -ilen * psi_coeff * B *
+      (kappa.segment<2>(0) - kappaBar.segment<2>(0) + dt * Jv.segment<2>(0));
+  localL.segment<2>(2) =
+      -ilen * psi_coeff * B *
+      (kappa.segment<2>(2) - kappaBar.segment<2>(2) + dt * Jv.segment<2>(2));
 }
 
 template <typename ViscousT>
 scalar BendingForce<ViscousT>::localEnergy(const StrandForce& strand,
                                            const IndexType vtx) {
   const Mat2& B = ViscousT::bendingMatrix(strand, vtx);
-  const Vec2& kappaBar = ViscousT::kappaBar(strand, vtx);
+  const Vec4& kappaBar = ViscousT::kappaBar(strand, vtx);
   const scalar ilen = strand.m_invVoronoiLengths[vtx];
-  const Vec2& kappa = strand.m_strandState->m_kappas[vtx];
+  const Vec4& kappa = strand.m_strandState->m_kappas[vtx];
   const scalar psi_coeff = strand.m_packing_fraction[vtx];
 
-  return 0.5 * ilen * psi_coeff *
-         (kappa - kappaBar).dot(Vec2(B * (kappa - kappaBar)));
+  return 0.25 * ilen *
+         ((kappa.segment<2>(0) - kappaBar.segment<2>(0))
+              .dot(Vec2(B * (kappa.segment<2>(0) - kappaBar.segment<2>(0)))) +
+          (kappa.segment<2>(2) - kappaBar.segment<2>(2))
+              .dot(Vec2(B * (kappa.segment<2>(2) - kappaBar.segment<2>(2)))));
 }
 
 template <typename ViscousT>
@@ -48,13 +56,17 @@ void BendingForce<ViscousT>::computeLocal(Eigen::Matrix<scalar, 11, 1>& localF,
                                           const StrandForce& strand,
                                           const IndexType vtx) {
   const Mat2& B = ViscousT::bendingMatrix(strand, vtx);
-  const Vec2& kappaBar = ViscousT::kappaBar(strand, vtx);
+  const Vec4& kappaBar = ViscousT::kappaBar(strand, vtx);
   const scalar ilen = strand.m_invVoronoiLengths[vtx];
-  const Vec2& kappa = strand.m_strandState->m_kappas[vtx];
+  const Vec4& kappa = strand.m_strandState->m_kappas[vtx];
   const GradKType& gradKappa = strand.m_strandState->m_gradKappas[vtx];
   const scalar psi_coeff = strand.m_packing_fraction[vtx];
 
-  localF = -ilen * psi_coeff * gradKappa * B * (kappa - kappaBar);
+  localF = -ilen * psi_coeff * 0.5 *
+           (gradKappa.block<11, 2>(0, 0) * B *
+                (kappa.segment<2>(0) - kappaBar.segment<2>(0)) +
+            gradKappa.block<11, 2>(0, 2) * B *
+                (kappa.segment<2>(2) - kappaBar.segment<2>(2)));
 }
 
 template <typename ViscousT>
@@ -63,26 +75,20 @@ void BendingForce<ViscousT>::computeLocal(Eigen::Matrix<scalar, 11, 11>& localJ,
                                           const IndexType vtx) {
   const scalar psi_coeff = strand.m_packing_fraction[vtx];
   const scalar ilen = strand.m_invVoronoiLengths[vtx];
-  localJ = -ilen * ViscousT::bendingCoefficient(strand, vtx) * psi_coeff *
-           strand.m_strandState->m_bendingProducts[vtx];
+  localJ = strand.m_strandState->m_bendingProducts[vtx] * 0.5;
+  localJ *= -ilen * ViscousT::bendingCoefficient(strand, vtx) * psi_coeff;
 
-#ifndef USE_APPROX_GRAD_KAPPA
   if (strand.m_requiresExactForceJacobian) {
-    // const Mat2& bendingMatrixBase =
-    // strand.m_strandParams->bendingMatrixBase(vtx); const Vec2& kappaBar =
-    // ViscousT::kappaBar( strand, vtx ); const Vec2& kappa =
-    // strand.m_strandState->m_kappas[vtx]; const std::pair<LocalJacobianType,
-    // LocalJacobianType>& hessKappa = strand.m_strandState->m_hessKappas[vtx];
-    // const Vec2& temp = bendingMatrixBase * ( kappa - kappaBar );
+    const LocalJacobianType& hessKappa0 = strand.m_strandState->m_hessKappas[vtx * 4 + 0];
+    const LocalJacobianType& hessKappa1 = strand.m_strandState->m_hessKappas[vtx * 4 + 1];
+    const LocalJacobianType& hessKappa2 = strand.m_strandState->m_hessKappas[vtx * 4 + 2];
+    const LocalJacobianType& hessKappa3 = strand.m_strandState->m_hessKappas[vtx * 4 + 3];
 
-    // localJ += temp( 0 ) * hessKappa.first + temp( 1 ) * hessKappa.second;
-
-    const std::pair<LocalJacobianType, LocalJacobianType>& hessKappa =
-        strand.m_strandState->m_hessKappas[vtx];
-    const Vec2 temp = ViscousT::bendingMultiplier(strand, vtx);
-    localJ += temp(0) * hessKappa.first + temp(1) * hessKappa.second;
+    const Vec4 temp = ViscousT::bendingMultiplier(strand, vtx);
+    localJ += (temp(0) * hessKappa0 + temp(1) * hessKappa1 +
+               temp(2) * hessKappa2 + temp(3) * hessKappa3) *
+              0.5;
   }
-#endif
 }
 
 template <typename ViscousT>
@@ -96,7 +102,7 @@ template <typename ViscousT>
 void BendingForce<ViscousT>::addInPosition(VecX& globalMultiplier,
                                            const IndexType vtx,
                                            const LocalMultiplierType& localL) {
-  globalMultiplier.segment<2>(2 * vtx) += localL;
+  globalMultiplier.segment<4>(4 * vtx) += localL;
 }
 
 template <typename ViscousT>

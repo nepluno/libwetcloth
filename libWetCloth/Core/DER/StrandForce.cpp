@@ -62,11 +62,11 @@ StrandForce::StrandForce(const std::shared_ptr<TwoDScene>& scene,
   m_v_plus.setZero();
 
   m_stretching_multipliers.resize(m_verts.size());
-  m_bending_multipliers.resize(m_verts.size() * 2);
+  m_bending_multipliers.resize(m_verts.size() * 4);
   m_twisting_multipliers.resize(m_verts.size());
 
   m_viscous_stretching_multipliers.resize(m_verts.size());
-  m_viscous_bending_multipliers.resize(m_verts.size() * 2);
+  m_viscous_bending_multipliers.resize(m_verts.size() * 4);
   m_viscous_twisting_multipliers.resize(m_verts.size());
 
   m_stretching_multipliers.setZero();
@@ -304,7 +304,7 @@ void StrandForce::preCompute() {
 
 int StrandForce::numConstraintNonViscous() {  // Spring = numEdges  //Twist =
                                               // NumVertices - 2  //Bending =
-                                              // 2*(NumVertices - 2)
+                                              // 4*(NumVertices - 2)
   int numConstraintNonViscous = 0;
 #ifdef STRETCH
   numConstraintNonViscous += getNumEdges();  // Stretch
@@ -315,7 +315,7 @@ int StrandForce::numConstraintNonViscous() {  // Spring = numEdges  //Twist =
 #endif
 
 #ifdef BEND
-  numConstraintNonViscous += 2 * (getNumVertices() - 2);  // Bend
+  numConstraintNonViscous += 4 * (getNumVertices() - 2);  // Bend
 #endif
   return numConstraintNonViscous;
 }
@@ -332,7 +332,7 @@ int StrandForce::numConstraintViscous() {
     numConstraintViscous += (getNumVertices() - 2);  // Twist
 #endif
 #ifdef BEND
-    numConstraintViscous += 2 * (getNumVertices() - 2);  // Bend
+    numConstraintViscous += 4 * (getNumVertices() - 2);  // Bend
 #endif
   }
   return numConstraintViscous;

@@ -17,11 +17,11 @@
 /**
  * Unit: no dimension.
  */
-class Kappas : public DependencyNode<Vec2Array> {
+class Kappas : public DependencyNode<Vec4Array> {
  public:
   Kappas(CurvatureBinormals& curvatureBinormals,
          MaterialFrames<1>& materialFrames1, MaterialFrames<2>& materialFrames2)
-      : DependencyNode<Vec2Array>(1, curvatureBinormals.size()),
+      : DependencyNode<Vec4Array>(1, curvatureBinormals.size()),
         m_curvatureBinormals(curvatureBinormals),
         m_materialFrames1(materialFrames1),
         m_materialFrames2(materialFrames2) {
@@ -40,7 +40,7 @@ class Kappas : public DependencyNode<Vec2Array> {
   MaterialFrames<2>& m_materialFrames2;
 };
 
-typedef Eigen::Matrix<scalar, 11, 2> GradKType;
+typedef Eigen::Matrix<scalar, 11, 4> GradKType;
 typedef std::vector<GradKType, Eigen::aligned_allocator<GradKType>>
     GradKArrayType;
 
@@ -81,8 +81,7 @@ class GradKappas : public DependencyNode<GradKArrayType> {
   Kappas& m_kappas;
 };
 
-typedef Mat11Pair HessKType;
-typedef std::vector<HessKType> HessKArrayType;
+typedef std::vector<Mat11> HessKArrayType;
 
 inline std::ostream& operator<<(std::ostream& os, const HessKType& HessKappa) {
   os << "Hess kappa1: " << HessKappa.first << '\n';
@@ -100,12 +99,12 @@ class HessKappas : public DependencyNode<HessKArrayType> {
              CurvatureBinormals& curvatureBinormals,
              MaterialFrames<1>& materialFrames1,
              MaterialFrames<2>& materialFrames2, Kappas& kappas)
-      : DependencyNode<HessKArrayType>(1, curvatureBinormals.size()),  //
-        m_lengths(lengths),                                            //
-        m_tangents(tangents),                                          //
-        m_curvatureBinormals(curvatureBinormals),                      //
-        m_materialFrames1(materialFrames1),                            //
-        m_materialFrames2(materialFrames2),                            //
+      : DependencyNode<HessKArrayType>(1, curvatureBinormals.size() * 4),  //
+        m_lengths(lengths),                                                //
+        m_tangents(tangents),                                              //
+        m_curvatureBinormals(curvatureBinormals),                          //
+        m_materialFrames1(materialFrames1),                                //
+        m_materialFrames2(materialFrames2),                                //
         m_kappas(kappas) {
     m_lengths.addDependent(this);
     m_tangents.addDependent(this);
@@ -127,43 +126,4 @@ class HessKappas : public DependencyNode<HessKArrayType> {
   MaterialFrames<2>& m_materialFrames2;
   Kappas& m_kappas;
 };
-
-typedef std::pair<Mat2, Mat2> ThetaHessKType;
-typedef std::vector<ThetaHessKType> ThetaHessKArrayType;
-
-inline std::ostream& operator<<(std::ostream& os,
-                                const ThetaHessKType& HessKappa) {
-  os << "ThetaHess kappa1: " << HessKappa.first << '\n';
-  os << "ThetaHess kappa2: " << HessKappa.second;
-
-  return os;
-}
-
-/**
- * Unit: no dimension
- */
-class ThetaHessKappas : public DependencyNode<ThetaHessKArrayType> {
- public:
-  ThetaHessKappas(CurvatureBinormals& curvatureBinormals,
-                  MaterialFrames<1>& materialFrames1,
-                  MaterialFrames<2>& materialFrames2)
-      : DependencyNode<ThetaHessKArrayType>(1, curvatureBinormals.size()),  //
-        m_curvatureBinormals(curvatureBinormals),                           //
-        m_materialFrames1(materialFrames1),                                 //
-        m_materialFrames2(materialFrames2) {
-    m_curvatureBinormals.addDependent(this);
-    m_materialFrames1.addDependent(this);
-    m_materialFrames2.addDependent(this);
-  }
-
-  virtual const char* name() const { return "ThetaHessKappas"; }
-
- protected:
-  virtual void compute();
-
-  CurvatureBinormals& m_curvatureBinormals;
-  MaterialFrames<1>& m_materialFrames1;
-  MaterialFrames<2>& m_materialFrames2;
-};
-
 #endif
