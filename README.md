@@ -8,7 +8,7 @@ It is the original implementation of paper A Multi-Scale Model for Simulating Li
 
  - A liquid simulator implementing the affine-particle-in-cell method.
  - A cloth simulator implementing the elastic thin shell model.
- - A yarn simulator implementing the discrete viscous thread model.
+ - A yarn simulator implementing the discrete elastic rod (DER) / viscous thread model.
  - A cloth/yarn collision handler based on anisotropic elastoplasticity, discretized with augmented, moving least sqaures material point method (AMLS-MPM). 
  - A two-way coupling method based on mixture theory, between the cloth, yarn and liquid, handling dragging, buoyancy, capturing and dripping effect.
 
@@ -50,9 +50,9 @@ On Windows:
 
 Run the Demo
 --------------------
-To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. For example, you may type
+To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. Besides of the libWetCloth library, we also have a user interface named libWetClothApp where you may watch and tune the simulation interactively. For example, you may type
 
-./libWetCloth -s assets/general_examples/splash_cloth_small.xml
+./libWetClothApp -s assets/general_examples/splash_cloth_small.xml
 
 to run the simulation of the scene containing a water ball splashes on a small cloth. 
 
@@ -60,7 +60,7 @@ All the parameters can be modified offline in the scene description XML files. S
 
 USAGE: 
 
-   ./libWetCloth -s <string> [-i <string>] [-o <integer>] [-g <integer>] [-d <boolean>] [-p <boolean>] [--] [--version] [-h]
+   ./libWetClothApp -s <string> [-i <string>] [-o <integer>] [-g <integer>] [-d <boolean>] [-p <boolean>] [--] [--version] [-h]
 
 
 Where: 
@@ -97,7 +97,7 @@ The Houdini projects are also provided in the "houdini" folder, which are used f
 
 You may run the demo with the "-o" option, *under the folder containing Houdini projects* (by default, [project source]/houdini/). For example, you may type
 
-../build/libWetCloth/libWetCloth -s ../assets/parameter_tests/pore_test_mid.xml -o 20
+../build/libWetCloth/libWetClothApp -s ../assets/parameter_tests/pore_test_mid.xml -o 20
 
 under the folder containing Houdini projects to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
 

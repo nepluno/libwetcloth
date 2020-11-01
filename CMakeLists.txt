@@ -17,7 +17,7 @@ endif (NOT CMAKE_BUILD_TYPE)
 add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 # Add warnings to the compiler flags
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -DEIGEN_DONT_ALIGN -DEIGEN_DONT_ALIGN_STATICALLY")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DEIGEN_DONT_ALIGN -DEIGEN_DONT_ALIGN_STATICALLY")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions (-DDEBUG)
@@ -60,5 +60,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/)
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/eigen/)
 add_subdirectory (libWetCloth)
 
-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/libWetCloth/assets )
+if (NOT WIN32)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/libWetCloth/assets )
+endif ()
 
