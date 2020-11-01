@@ -26,7 +26,7 @@ else (GLUT_FOUND)
   message (SEND_ERROR "Unable to locate GLUT")
 endif (GLUT_FOUND)
 
-find_package (PNG)
+find_package (PNG REQUIRED)
 if (PNG_FOUND)
   add_definitions (-DPNGOUT)
   add_definitions (${PNG_DEFINITIONS})

@@ -16,16 +16,20 @@ void TwistingForce<ViscousT>::computeLocal(LocalMultiplierType& localL,
                                            const StrandForce& strand,
                                            const IndexType vtx,
                                            const scalar& dt) {
-  const scalar kt = ViscousT::kt(strand, vtx);
-  const scalar undefTwist = ViscousT::thetaBar(strand, vtx);
-  const scalar ilen = strand.m_invVoronoiLengths[vtx];
-  const scalar twist = strand.m_strandState->m_twists[vtx];
-  const scalar psi_coeff = strand.m_packing_fraction[vtx];
+  if (strand.m_strandParams->m_useTournierJacobian) {
+    const scalar kt = ViscousT::kt(strand, vtx);
+    const scalar undefTwist = ViscousT::thetaBar(strand, vtx);
+    const scalar ilen = strand.m_invVoronoiLengths[vtx];
+    const scalar twist = strand.m_strandState->m_twists[vtx];
+    const scalar psi_coeff = strand.m_packing_fraction[vtx];
 
-  localL = -kt * ilen * psi_coeff *
-           (twist - undefTwist +
-            dt * strand.m_strandState->m_gradTwists[vtx].dot(
-                     strand.m_v_plus.segment<11>(4 * (vtx - 1))));
+    localL = -kt * ilen * psi_coeff *
+             (twist - undefTwist +
+              dt * strand.m_strandState->m_gradTwists[vtx].dot(
+                       strand.m_v_plus.segment<11>(4 * (vtx - 1))));
+  } else {
+    localL = 0.0;
+  }
 }
 
 template <typename ViscousT>
@@ -65,11 +69,18 @@ void TwistingForce<ViscousT>::computeLocal(
   const scalar psi_coeff = strand.m_packing_fraction[vtx];
 
   localJ = -kt * ilen * gradTwistSquared * psi_coeff;
-  if (strand.m_requiresExactForceJacobian) {
+  if (strand.m_strandParams->m_useApproxJacobian) {
+    return;
+  } else if (strand.m_strandParams->m_useTournierJacobian) {
     const Mat11& hessTwist = strand.m_strandState->m_hessTwists[vtx];
     const scalar localL = ViscousT::twistingMultiplier(strand, vtx);
 
     localJ += localL * hessTwist;
+  } else {
+    const scalar undeformedTwist = ViscousT::thetaBar(strand, vtx);
+    const scalar twist = strand.m_strandState->m_twists[vtx];
+    const Mat11& hessTwist = strand.m_strandState->m_hessTwists[vtx];
+    localJ += -kt * ilen * (twist - undeformedTwist) * hessTwist;
   }
 }
 

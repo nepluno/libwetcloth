@@ -45,11 +45,10 @@ struct StrandParameters {
                    scalar dt, scalar friction_alpha, scalar friction_beta,
                    scalar restVolumeFraction, bool accumViscous = true,
                    bool accumViscousBend = true, bool postProjectFixed = true,
+                   bool useApproxJacobian = true, bool useTournierJacobian = false,
                    scalar straightHairs = 1., const Vec3& color = Vec3(0, 0, 0))
       : m_density(density),
         m_viscosity(viscosity),
-        // m_rootRadiusMultiplier( 1. ),
-        // m_tipRadiusMultiplier( 1. ),
         m_physicalRadius(radius),
         m_baseRotation(baseRotation),
         m_bendingMatrixBase(m_physicalRadius, m_baseRotation),
@@ -67,7 +66,9 @@ struct StrandParameters {
         m_friction_alpha(friction_alpha),
         m_friction_beta(friction_beta),
         m_restVolumeFraction(restVolumeFraction),
-        m_postProjectFixed(postProjectFixed) {
+        m_postProjectFixed(postProjectFixed),
+        m_useApproxJacobian(true),
+        m_useTournierJacobian(false) {
     computeViscousForceCoefficients(dt);
   }
 
@@ -143,15 +144,17 @@ struct StrandParameters {
     std::cout << "baseRotation: " << m_baseRotation.get() << std::endl;
     std::cout << "YoungsModulus: " << m_youngsModulus.get() << std::endl;
     std::cout << "shearModulus: " << m_shearModulus.get() << std::endl;
-    std::cout << "m_viscousBendingCoefficientBase: "
+    std::cout << "viscousBendingCoefficientBase: "
               << m_viscousBendingCoefficientBase << std::endl;
-    std::cout << "m_viscousKt: " << m_viscousKt << std::endl;
-    std::cout << "m_viscousKs: " << m_viscousKs << std::endl;
-    std::cout << "m_ks: " << m_ks.get() << std::endl;
-    std::cout << "m_kt: " << m_kt.get() << std::endl;
+    std::cout << "viscousKt: " << m_viscousKt << std::endl;
+    std::cout << "viscousKs: " << m_viscousKs << std::endl;
+    std::cout << "ks: " << m_ks.get() << std::endl;
+    std::cout << "kt: " << m_kt.get() << std::endl;
     std::cout << "accumViscousBend: " << m_accumulateWithViscous << std::endl;
     std::cout << "accumulateViscousOnlyForBendingModes: "
               << m_accumulateViscousOnlyForBendingModes << std::endl;
+    std::cout << "useApproxJacobian: " << m_useApproxJacobian << std::endl;
+    std::cout << "useTournierJacobian: " << m_useTournierJacobian << std::endl;
     std::cout << "bendingMatrixBase: " << m_bendingMatrixBase.get()
               << std::endl;
     std::cout << "friction alpha" << m_friction_alpha << std::endl;
@@ -194,6 +197,8 @@ struct StrandParameters {
   bool m_postProjectFixed;
   bool m_accumulateWithViscous;
   bool m_accumulateViscousOnlyForBendingModes;
+  bool m_useApproxJacobian;
+  bool m_useTournierJacobian;
   scalar m_straightHairs;
 };
 

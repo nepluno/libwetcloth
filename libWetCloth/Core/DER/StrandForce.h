@@ -144,6 +144,7 @@ class StrandForce : public Force {
 
   void accumulateHessian(TripletXs& accumulated, TripletXs& accumulated_twist);
 
+ private:
   //// FOSSSim related //////////////////////////////////////////////////
   std::vector<int> m_verts;  // in order root to tip
   VectorXs m_packing_fraction;
@@ -161,7 +162,6 @@ class StrandForce : public Force {
   int m_globalIndex;  // Global index amongst the hairs
   std::shared_ptr<StrandParameters> m_strandParams;
   std::shared_ptr<TwoDScene> m_scene;
-  bool m_requiresExactForceJacobian;
 
   // increase memory, reduce re-computation
   scalar m_strandEnergyUpdate;

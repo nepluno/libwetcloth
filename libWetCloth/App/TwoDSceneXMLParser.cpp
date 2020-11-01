@@ -1825,7 +1825,9 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node,
         dt, params->m_friction_alpha, params->m_friction_beta,
         params->m_restVolumeFraction, params->m_accumulateWithViscous,
         params->m_accumulateViscousOnlyForBendingModes,
-        params->m_postProjectFixed, params->m_straightHairs, params->m_color));
+        params->m_postProjectFixed, params->m_useApproxJacobian,
+        params->m_useTournierJacobian, params->m_straightHairs,
+        params->m_color));
 
     for (int eidx : edge_indices) {
       twodscene->setEdgeToParameter(eidx, idx_sp);
@@ -2620,6 +2622,8 @@ void TwoDSceneXMLParser::loadStrandParameters(
     bool accumulateWithViscous = false;
     bool accumulateViscousOnlyForBendingModes = true;
     bool postProjectFixed = false;
+    bool useApproxJacobian = false;
+    bool useTournierJacobian = true;
     scalar straightHairs = 1.;
     Vec3 haircolor = Vec3(0, 0, 0);
     rapidxml::xml_node<>* subnd;
@@ -2842,6 +2846,32 @@ void TwoDSceneXMLParser::loadStrandParameters(
       }
     }
 
+    if ((subnd = nd->first_node("useApproxJacobian"))) {
+      std::string attribute(subnd->first_attribute("value")->value());
+      if (!stringutils::extractFromString(attribute, useApproxJacobian)) {
+        std::cerr
+            << outputmod::startred
+            << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
+            << " Failed to parse value of useApproxJacobian attribute for "
+               "StrandParameters "
+            << paramsCount << ". Value must be boolean. Exiting." << std::endl;
+        exit(1);
+      }
+    }
+
+    if ((subnd = nd->first_node("useTournierJacobian"))) {
+      std::string attribute(subnd->first_attribute("value")->value());
+      if (!stringutils::extractFromString(attribute, useTournierJacobian)) {
+        std::cerr
+            << outputmod::startred
+            << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
+            << " Failed to parse value of useTournierJacobian attribute for "
+               "StrandParameters "
+            << paramsCount << ". Value must be boolean. Exiting." << std::endl;
+        exit(1);
+      }
+    }
+
     if ((subnd = nd->first_node("straightHairs"))) {
       std::string attribute(subnd->first_attribute("value")->value());
       if (!stringutils::extractFromString(attribute, straightHairs)) {
@@ -2884,7 +2914,8 @@ void TwoDSceneXMLParser::loadStrandParameters(
         collisionMultiplier, attachMultiplier, density, viscosity, baseRotation,
         dt, friction_alpha, friction_beta, restVolumeFraction,
         accumulateWithViscous, accumulateViscousOnlyForBendingModes,
-        postProjectFixed, straightHairs, haircolor));
+        postProjectFixed, useApproxJacobian, useTournierJacobian, straightHairs,
+        haircolor));
     ++paramsCount;
   }
 }
