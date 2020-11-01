@@ -1,3 +1,5 @@
+[![libWetCloth](http://www.cs.columbia.edu/cg/raymond/tighten_the_towel.jpg)](http://www.cs.columbia.edu/cg/wetcloth/)
+
 libWetCloth
 ================
 libWetCloth is an open source project for the physical simulation of liquid and wet cloth or yarns. It is cross-platform (Mac OS X, Linux, Windows, and more), and licensed under the Mozilla Public License v. 2.0.
