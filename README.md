@@ -38,7 +38,7 @@ libwetcloth
 │
 └───cmake: CMake files to find packages
 │
-└───houdini: CMake files to find packages
+└───houdini: Houdini scenes to produce renderings used in the paper
 │
 └───include: thirdparty libraries (Eigen, libIGL, etc.)
 │
