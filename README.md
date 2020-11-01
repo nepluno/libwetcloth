@@ -28,7 +28,11 @@ libWetCloth depends on following libraries (some of them have been included in t
 
 On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For Intel TBB, you may download and install from the link provided above, or from Intel website (https://software.intel.com/en-us/parallel-studio-xe/choose-download). 
 
-On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For libPNG and zlib, please make sure the pnglibconf.h and zconf.h have been copied to their "include" directories (i.e., the directories containing png.h and zlib.h, correspondingly). For more details, please refer to the compilation section below.
+On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For libPNG and zlib, please make sure the pnglibconf.h and zconf.h have been copied to their "include" directories (i.e., the directories containing png.h and zlib.h, correspondingly). 
+
+You may also compile a version that directly run simulation in the console, by turning off the `USE_OPENGL` switch in the CMake settings. When this switch is turned off, dependencies such as **GLUT, libPNG, zlib, and AntTweakBar** are no longer necessary to compile libWetCloth.
+
+For more details, please refer to the compilation section below.
 
 Compilation
 -----------------
@@ -37,7 +41,7 @@ libWetCloth has been tested with Clang (under Mac OS X), GCC 4.8+ (under Linux),
 To compile libWetCloth, you'll need CMake on Mac OS X or Linux, or CMake-GUI (https://cmake.org) on Windows.
 
 On Mac OS X or Linux:
-1. make a directory, say, *build*, with *mkdir build*, enter the *build* directory, type *cmake ..*
+1. make a `<build>` directory, say, just *build*, with *mkdir build*, enter the `<build>` directory, type *cmake ..*
 2. Optionally you can adjust the options with *ccmake ..* In some cases there can be some packages that cmake cannot find. You need to manually specify their paths through ccmake then.
 3. type *make* to compile the code. For speeding up the compilation process you may use *make -j*.
 
@@ -51,17 +55,16 @@ On Windows:
 Run the Demo
 --------------------
 To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. Besides of the libWetCloth library, we also have a user interface named libWetClothApp where you may watch and tune the simulation interactively. For example, you may type
-
-./libWetClothApp -s assets/general_examples/splash_cloth_small.xml
-
-to run the simulation of the scene containing a water ball splashes on a small cloth. 
+```
+./libWetClothApp -s ../assets/general_examples/splash_cloth_small.xml
+```
+under the `<build>/libWetCloth/App` directory to run the simulation of the scene containing a water ball splashes on a small cloth. 
 
 All the parameters can be modified offline in the scene description XML files. Some can be changed online in the user interface provided by the demo program.
 
 USAGE: 
-
+```
    ./libWetClothApp -s <string> [-i <string>] [-o <integer>] [-g <integer>] [-d <boolean>] [-p <boolean>] [--] [--version] [-h]
-
 
 Where: 
    -s <string>,  --scene <string>
@@ -90,16 +93,17 @@ Where:
 
    -h,  --help
      Displays usage information and exits.
+```
 
 Surface Reconstruction and Rendering with Houdini
 --------------------------------------------------------
 The Houdini projects are also provided in the "houdini" folder, which are used for surface reconstruction and rendering purposes. Our simulator can generate data that can be read back by the Python script in our Houdini projects.
 
 You may run the demo with the "-o" option, *under the folder containing Houdini projects* (by default, [project source]/houdini/). For example, you may type
-
-../build/libWetCloth/libWetClothApp -s ../assets/parameter_tests/pore_test_mid.xml -o 20
-
-under the folder containing Houdini projects to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
+```
+../build/libWetCloth/App/libWetClothApp -s ../assets/parameter_tests/pore_test_mid.xml -o 20
+```
+under the folder *containing Houdini projects* to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
 
 After some data generated, you may open the corresponding Houdini project to watch and operate on them. We use the nodes with suffix "bake" to indicate the usage of baking. For example in the "fluids_bake" node, the fluid particles will be read and used to reconstruct a polygonal liquid surface, which will then be stored as Houdini geometry files.
 
