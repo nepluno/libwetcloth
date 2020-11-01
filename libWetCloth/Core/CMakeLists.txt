@@ -19,9 +19,9 @@ else (LIBIGL_FOUND)
   message (SEND_ERROR "Unable to locate IGL")
 endif (LIBIGL_FOUND)
 
-add_library (libWetCloth STATIC ${Headers} ${Sources})
-target_link_libraries (libWetCloth ${LIBWETCLOTH_LIBRARIES})
-set_target_properties(libWetCloth PROPERTIES
+add_library (WetCloth STATIC ${Headers} ${Sources})
+target_link_libraries (WetCloth ${LIBWETCLOTH_LIBRARIES})
+set_target_properties(WetCloth PROPERTIES
     CXX_STANDARD 14
     CXX_EXTENSIONS OFF)
 

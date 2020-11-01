@@ -68,9 +68,9 @@ else (TCLAP_FOUND)
   message (SEND_ERROR "Unable to locate TCLAP")
 endif (TCLAP_FOUND)
 
-add_executable (libWetClothApp ${Headers} ${Sources})
-target_link_libraries (libWetClothApp libWetCloth ${LIBWETCLOTH_LIBRARIES})
-set_target_properties(libWetClothApp PROPERTIES
+add_executable (WetClothApp ${Headers} ${Sources})
+target_link_libraries (WetClothApp WetCloth ${LIBWETCLOTH_LIBRARIES})
+set_target_properties(WetClothApp PROPERTIES
     CXX_STANDARD 14
     CXX_EXTENSIONS OFF)
 

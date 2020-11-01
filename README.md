@@ -14,6 +14,60 @@ It is the original implementation of paper A Multi-Scale Model for Simulating Li
  - A cloth/yarn collision handler based on anisotropic elastoplasticity, discretized with augmented, moving least sqaures material point method (AMLS-MPM). 
  - A two-way coupling method based on mixture theory, between the cloth, yarn and liquid, handling dragging, buoyancy, capturing and dripping effect.
 
+Directories
+--------------------
+The directories of this code repository are structured as following:
+```
+libwetcloth
+│
+└───assets: files to define scenarios
+│   │
+│   └───buoyancy_tests: scenarios to test buoyancy effects
+│   │
+│   └───drag_tests: scenarios to test different drag models
+│   │
+│   └───general_examples: scenarios used in the paper as demos
+│   │
+│   └───parameter_tests: scenarios to test various liquid materials 
+│   │                    and yarn settings
+│   │
+│   └───ring_tests: the ring test scenario used in the paper
+│   │
+│   └───unit_tests: simple scenarios to test dynamics and collisions 
+│                   (including dry yarn/cloth)
+│
+└───cmake: CMake files to find packages
+│
+└───houdini: CMake files to find packages
+│
+└───include: thirdparty libraries (Eigen, libIGL, etc.)
+│
+└───libWetCloth
+    │
+    └───App: user-interface to interact with simulation
+    │
+    └───Core: actual simulation code
+        │
+        └───DER: code for the discrete elastic rods (for yarns/hairs)
+        │   │
+        │   └───Dependencies: computing the geometric information
+        │   │                 used in the discrete elastic rods
+        │   │                 model, including the reference/material
+        │   │                 frames, reference/material twists, and
+        │   │                 the material curvatures.
+        │   │
+        │   └───Forces: computing the stretching, bending, and twisting
+        │               forces and their Jacobians.
+        │
+        └───ThinShell: code for the discrete elastic thin shell
+        │   │          (for triangular clothes) 
+        │   │
+        │   └───Forces: computing the stretching and bending forces, as
+        │               well as their Jacobians.
+        │
+        └───pcgsolver: PCG solver with the MIC preconditioner
+```
+
 Dependencies
 --------------------
 libWetCloth depends on following libraries (some of them have been included in the code base, marked with asterisk):
@@ -56,9 +110,9 @@ On Windows:
 
 Run the Demo
 --------------------
-To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. Besides of the libWetCloth library, we also have a user interface named libWetClothApp where you may watch and tune the simulation interactively. For example, you may type
+To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. Besides of the WetCloth library, we also have a user interface named WetClothApp where you may watch and tune the simulation interactively. For example, you may type
 ```
-./libWetClothApp -s ../assets/general_examples/splash_cloth_small.xml
+./WetClothApp -s ../assets/general_examples/splash_cloth_small.xml
 ```
 under the `<build>/libWetCloth/App` directory to run the simulation of the scene containing a water ball splashes on a small cloth. 
 
@@ -66,7 +120,7 @@ All the parameters can be modified offline in the scene description XML files. S
 
 USAGE: 
 ```
-   ./libWetClothApp -s <string> [-i <string>] [-o <integer>] [-g <integer>] [-d <boolean>] [-p <boolean>] [--] [--version] [-h]
+   ./WetClothApp -s <string> [-i <string>] [-o <integer>] [-g <integer>] [-d <boolean>] [-p <boolean>] [--] [--version] [-h]
 
 Where: 
    -s <string>,  --scene <string>
@@ -103,7 +157,7 @@ The Houdini projects are also provided in the "houdini" folder, which are used f
 
 You may run the demo with the "-o" option, *under the folder containing Houdini projects* (by default, [project source]/houdini/). For example, you may type
 ```
-../build/libWetCloth/App/libWetClothApp -s ../assets/parameter_tests/pore_test_mid.xml -o 20
+../build/libWetCloth/App/WetClothApp -s ../assets/parameter_tests/pore_test_mid.xml -o 20
 ```
 under the folder *containing Houdini projects* to generate data per 20 time steps (for this example we use 0.0002s for the simulation time step, and 0.004s for the rendering time step. Hence 20 time steps is taken for the data generation). The simulation code will create a folder with the name of the scene file under this folder ([project source]/houdini/pore_test_mid for this example), which can be read back by the Houdini project with the same name.
 
