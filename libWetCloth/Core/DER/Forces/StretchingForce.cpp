@@ -75,9 +75,7 @@ void StretchingForce<ViscousT>::computeLocal(
 
   Mat3 M;
   if (strand.m_strandParams->m_useApproxJacobian) {
-    M = ks *
-        (std::max(0.0, 1.0 / restLength - 1.0 / length) * Mat3::Identity() +
-         1.0 / restLength * (edge * edge.transpose()));  
+    M = ks * (1.0 / restLength * (edge * edge.transpose()));
   } else if (strand.m_strandParams->m_useTournierJacobian) {
     const scalar lambda = ViscousT::stretchingMultiplier(strand, vtx) / length;
     M = (1.0 / restLength) *
