@@ -19,7 +19,7 @@
 #include "DistanceFields.h"
 #include "Force.h"
 #include "Script.h"
-#include "sorter.h"
+#include "Sorter.h"
 
 class StrandForce;
 class AttachForce;

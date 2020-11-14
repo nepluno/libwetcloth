@@ -11,7 +11,7 @@
 #define ARRAY2_UTILS_H
 
 #include "MathUtilities.h"
-#include "array2.h"
+#include "Array2.h"
 
 using namespace mathutils;
 

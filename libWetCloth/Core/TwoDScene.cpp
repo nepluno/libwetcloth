@@ -21,8 +21,8 @@
 #include "DER/StrandForce.h"
 #include "MathUtilities.h"
 #include "ThreadUtils.h"
-#include "sphere_pattern.h"
-#include "volume_fractions.h"
+#include "SpherePattern.h"
+#include "VolumeFractions.h"
 
 /*!
  * Outputting parameters for debugging

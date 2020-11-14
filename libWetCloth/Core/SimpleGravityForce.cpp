@@ -12,7 +12,7 @@
 
 #include "ThreadUtils.h"
 #include "TwoDScene.h"
-#include "sorter.h"
+#include "Sorter.h"
 
 SimpleGravityForce::SimpleGravityForce(const Vector3s& gravity)
     : Force(), m_gravity(gravity) {

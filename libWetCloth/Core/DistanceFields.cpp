@@ -22,10 +22,10 @@
 #include "RoundCornerBox.h"
 #include "RoundCylinder.h"
 #include "TwoDScene.h"
-#include "array3.h"
-#include "array3_utils.h"
-#include "makelevelset3.h"
-#include "sorter.h"
+#include "Array3.h"
+#include "Array3Utils.h"
+#include "MakeLevelSet3.h"
+#include "Sorter.h"
 
 using namespace mathutils;
 

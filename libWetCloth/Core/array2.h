@@ -14,7 +14,7 @@
 #include <cassert>
 #include <vector>
 
-#include "array1.h"
+#include "Array1.h"
 
 template <class T, class ArrayT = std::vector<T> >
 struct Array2 {

@@ -20,8 +20,8 @@
 
 #include "GeometricLevelGen.h"
 #include "MathDefs.h"
-#include "pcgsolver/blas_wrapper.h"
-#include "pcgsolver/sparse_matrix.h"
+#include "PCGSolver/BLASWrapper.h"
+#include "PCGSolver/SparseMatrix.h"
 /*
 given A_L, R_L, P_L, b,compute x using
 Multigrid Cycles.

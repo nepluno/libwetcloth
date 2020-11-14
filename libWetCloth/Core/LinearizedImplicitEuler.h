@@ -16,8 +16,8 @@
 #include "MathUtilities.h"
 #include "SceneStepper.h"
 #include "StringUtilities.h"
-#include "array3.h"
-#include "pcgsolver/sparse_matrix.h"
+#include "Array3.h"
+#include "PCGSolver/SparseMatrix.h"
 
 class LinearizedImplicitEuler : public SceneStepper {
  public:

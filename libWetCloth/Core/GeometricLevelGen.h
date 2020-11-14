@@ -19,8 +19,8 @@
 #include <vector>
 
 #include "MathDefs.h"
-#include "pcgsolver/blas_wrapper.h"
-#include "pcgsolver/sparse_matrix.h"
+#include "PCGSolver/BLASWrapper.h"
+#include "PCGSolver/SparseMatrix.h"
 
 using namespace std;
 using namespace robertbridson;

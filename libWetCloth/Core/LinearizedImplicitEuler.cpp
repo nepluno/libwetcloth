@@ -17,8 +17,8 @@
 #include "Pressure.h"
 #include "ThreadUtils.h"
 #include "Viscosity.h"
-#include "array3_utils.h"
-#include "sorter.h"
+#include "Array3Utils.h"
+#include "Sorter.h"
 
 //#define OPTIMIZE_SAT
 //#define CHECK_EQU_24

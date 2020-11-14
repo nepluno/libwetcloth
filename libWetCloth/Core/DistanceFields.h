@@ -16,8 +16,8 @@
 
 #include "MathDefs.h"
 #include "SolidMesh.h"
-#include "array3.h"
-#include "array3_utils.h"
+#include "Array3.h"
+#include "Array3Utils.h"
 
 class TwoDScene;
 

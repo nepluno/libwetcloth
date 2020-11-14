@@ -18,7 +18,7 @@
 #include "MathUtilities.h"
 #include "ThreadUtils.h"
 #include "TwoDScene.h"
-#include "pcgsolver/pcg_solver.h"
+#include "PCGSolver/PCGSolver.h"
 
 using namespace robertbridson;
 

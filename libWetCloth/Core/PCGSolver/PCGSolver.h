@@ -18,8 +18,8 @@
 
 #include <cmath>
 
-#include "blas_wrapper.h"
-#include "sparse_matrix.h"
+#include "BLASWrapper.h"
+#include "SparseMatrix.h"
 
 using namespace mathutils;
 

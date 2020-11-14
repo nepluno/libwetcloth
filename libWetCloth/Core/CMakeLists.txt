@@ -1,7 +1,7 @@
 # libWetCloth Library
 
-append_files (Headers "h" . ThinShell ThinShell/Forces DER DER/Forces DER/Dependencies pcgsolver)
-append_files (Sources "cpp" . ThinShell ThinShell/Forces DER DER/Forces DER/Dependencies pcgsolver)
+append_files (Headers "h" . ThinShell ThinShell/Forces DER DER/Forces DER/Dependencies PCGSolver)
+append_files (Sources "cpp" . ThinShell ThinShell/Forces DER DER/Forces DER/Dependencies PCGSolver)
 
 find_package (TBB REQUIRED)
 if (TBB_FOUND)

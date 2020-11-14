@@ -11,7 +11,7 @@
 #define ARRAY3_UTILS_H
 
 #include "MathUtilities.h"
-#include "array3.h"
+#include "Array3.h"
 
 using namespace mathutils;
 

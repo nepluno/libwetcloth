@@ -26,7 +26,7 @@
 // SOFTWARE.
 
 #include "MathDefs.h"
-#include "array3.h"
+#include "Array3.h"
 
 // tri is a list of triangles in the mesh, and x is the positions of the
 // vertices absolute distances will be nearly correct for triangle soup, but a
