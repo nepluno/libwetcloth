@@ -19,6 +19,10 @@ add_definitions (-DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 # Add warnings to the compiler flags
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DEIGEN_DONT_ALIGN -DEIGEN_DONT_ALIGN_STATICALLY")
 
+if (WIN32)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions (-DDEBUG)
 endif (CMAKE_BUILD_TYPE MATCHES Debug)

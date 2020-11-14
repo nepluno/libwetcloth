@@ -70,7 +70,7 @@ libwetcloth
 
 Dependencies
 --------------------
-libWetCloth depends on following libraries (some of them have been included in the code base, marked with asterisk):
+libWetCloth depends on following libraries (some of them have been included in the code base for all platforms, marked with an asterisk):
 
 - Eigen* (http://eigen.tuxfamily.org/)
 - RapidXML* (http://rapidxml.sourceforge.net)
@@ -84,7 +84,7 @@ libWetCloth depends on following libraries (some of them have been included in t
 
 On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For Intel TBB, you may download and install from the link provided above, or from Intel website (https://software.intel.com/en-us/parallel-studio-xe/choose-download). 
 
-On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For libPNG and zlib, please make sure the pnglibconf.h and zconf.h have been copied to their "include" directories (i.e., the directories containing png.h and zlib.h, correspondingly). 
+On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For the ease of compilation, we provide a package containing all the headers and pre-compiled thirdparty libraries (except for those that have been included for all platforms). Please refer to the `On Windows` section below for more details.
 
 You may also compile a version that directly run simulation in the console, by turning off the `USE_OPENGL` switch in the CMake settings. When this switch is turned off, dependencies such as **GLUT, libPNG, zlib, and AntTweakBar** are no longer necessary to compile libWetCloth.
 
@@ -97,16 +97,36 @@ libWetCloth has been tested with Clang (under Mac OS X), GCC 4.8+ (under Linux),
 To compile libWetCloth, you'll need CMake on Mac OS X or Linux, or CMake-GUI (https://cmake.org) on Windows.
 
 On Mac OS X or Linux:
+
 1. make a `<build>` directory, say, just *build*, with *mkdir build*, enter the `<build>` directory, type *cmake ..*
 2. Optionally you can adjust the options with *ccmake ..* In some cases there can be some packages that cmake cannot find. You need to manually specify their paths through ccmake then.
 3. type *make* to compile the code. For speeding up the compilation process you may use *make -j*.
 
 On Windows:
+
+You may download the pre-compiled package (http://www.cs.columbia.edu/cg/raymond/libwetcloth_thirdparty_win64.zip) that contains the x64 pre-compiled binaries for AntTweakBar, Intel TBB, GLUT, libPNG and zlib, unpack it somewhere, and then specify the missing directories to the path containing the headers or the compiled libraries. If you compile it manually, please make sure you have picked the libraries corresponding to the architecture you have selected (say, 32-bit libraries for x86, and 64-bit libraries for x64).
+
+If our provided third-party libraries are used, the following CMake variables should be set before configuration (replace the `<libwetcloth_thirdparty_win64>` with the actual unpacked directory path):
+- `ANT_TWEAK_BAR_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/AntTweakBar`
+- `ANT_TWEAK_BAR_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/AntTweakBar64.lib`
+- `GLUT_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include`
+- `GLUT_glut_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/glut32.lib`
+- `GLUT_glut_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/glut32.lib`
+- `PNG_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
+- `PNG_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
+- `PNG_PNG_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/libpng`
+- `TBB_INCLUDE_DIRS`: `<libwetcloth_thirdparty_win64>/include`
+- `TBB_tbb_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/tbb_debug.lib`
+- `TBB_tbb_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/tbb.lib`
+- `ZLIB_INLCUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/zlib`
+- `ZLIB_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/zlibstatic.lib`
+- `ZLIB_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/zlibstatic.lib`
+
 1. open CMake-GUI, enter the correct directory for source code and build. Then click *Configure*, choose your installed version of the Microsoft Visual Studio.
-2. after configuration you may find several libraries not found (with notifications of errors), check the *Advanced* box and *specify those missing header path and libraries manually*. For example, if Eigen is missing, then please specify the EIGEN3_INCLUDE_DIR to the path of directory we provided. For the ones we have not provided, you need to download and compile them before compiling libWetCloth, and then specify the missing directories to the path containing your headers or compiled libraries. Please make sure you have picked the libraries corresponding to the architecture you have selected (say, 32-bit libraries for x86, and 64-bit libraries for x64).
+2. after configuration you may find several libraries not found (with notifications of errors), check the *Advanced* box and *specify those missing header path and libraries manually*. For example, if Eigen is missing, then please specify the EIGEN3_INCLUDE_DIR to the path of directory we provided. 
 3. click generate after fixing all missing variables to generate your Visual Studio solution.
 4. open the Visual Studio solution and compile the code.
-5. before running the demo, all the compiled dynamic linking libraries (DLLs) for your dependencies should be accessible from your PATH environment variable that can be changed in system settings, or you may simply copy them into your System32 (x64) or SysWOW64 (x86) directories.
+5. before running the demo, all the compiled dynamic linking libraries (DLLs) for your dependencies should be accessible from the executable. The DLLs should be either in the same directory with the executable, or your PATH environment variable that can be changed in system settings. You may copy the DLLs (we include them in `<libwetcloth_thirdparty_win64>/bin` as the pre-compiled version) to the path of the compiled executable (`<build>/libWetCloth/App/Release` or `<build>/libWetCloth/App/Debug`) or you may simply copy them into your System32 (x64) or SysWOW64 (x86) directories.
 
 Run the Demo
 --------------------
