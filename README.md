@@ -65,7 +65,7 @@ libwetcloth
         │   └───Forces: computing the stretching and bending forces, as
         │               well as their Jacobians.
         │
-        └───pcgsolver: PCG solver with the MIC preconditioner
+        └───PCGSolver: PCG solver with the MIC preconditioner
 ```
 
 Dependencies
