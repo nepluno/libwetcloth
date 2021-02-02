@@ -35,6 +35,8 @@ class ShellBendingForce : public Force {
   scalar m_thickness;
 
   bool m_apply_viscous;
+  bool m_use_approx_jacobian;
+  bool m_use_tournier_jacobian;
 
   scalar m_bending_stiffness;
   scalar m_viscous_stiffness;
@@ -57,7 +59,8 @@ class ShellBendingForce : public Force {
                     const MatrixXi& per_triangles_unique_edges,
                     const scalar& young_modulus, const scalar& viscous_modulus,
                     const scalar& poisson_ratio, const scalar& thickness,
-                    int bending_mode, bool apply_viscous);
+                    int bending_mode, bool apply_viscous,
+                    bool use_approx_jacobian, bool use_tournier_jacobian);
 
   virtual ~ShellBendingForce();
 

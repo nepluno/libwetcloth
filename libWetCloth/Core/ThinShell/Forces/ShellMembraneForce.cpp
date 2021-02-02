@@ -38,7 +38,8 @@ ShellMembraneForce::ShellMembraneForce(
     const VectorXs& rest_pos, const VectorXs& pos, const MatrixXi& F,
     const VectorXs& triangle_rest_area, const scalar& young_modulus,
     const scalar& viscous_modulus, const scalar& poisson_ratio,
-    const scalar& thickness, bool apply_viscous)
+    const scalar& thickness, bool apply_viscous, bool use_approx_jacobian,
+    bool use_tournier_jacobian)
     : m_rest_pos(rest_pos),
       m_pos(pos),
       m_F(F),
@@ -47,6 +48,8 @@ ShellMembraneForce::ShellMembraneForce(
       m_viscous_modulus(viscous_modulus),
       m_poisson_ratio(poisson_ratio),
       m_apply_viscous(apply_viscous),
+      m_use_approx_jacobian(use_approx_jacobian),
+      m_use_tournier_jacobian(use_tournier_jacobian),
       m_thickness(thickness) {
   perFaceNormals(m_rest_pos, m_F, m_triangle_normals);
   m_membrane_ru.resize(m_F.rows(), 3);
@@ -181,68 +184,118 @@ void ShellMembraneForce::addHessXToTotal(const VectorXs& x, const VectorXs& v,
       for (unsigned int j = 0; j < 3; j++) {
         Matrix3s dphidx_membrane =
             (psi_coeff * m_triangle_rest_area(f)) *
-                (m_membrane_material_tensor(0, 0) *
-                     (m_membrane_ru(f, i) * m_membrane_ru(f, j) * U *
-                      U.transpose()) +
-                 m_membrane_material_tensor(1, 1) *
-                     (m_membrane_rv(f, i) * m_membrane_rv(f, j) * V *
-                      V.transpose()) +
-                 m_membrane_material_tensor(2, 2) *
-                     ((m_membrane_rv(f, i) * m_membrane_ru(f, j) * U *
-                           V.transpose() +
-                       m_membrane_ru(f, i) * m_membrane_rv(f, j) * V *
-                           U.transpose()) +
-                      (m_membrane_rv(f, i) * m_membrane_rv(f, j) * U *
-                           U.transpose() +
-                       m_membrane_ru(f, i) * m_membrane_ru(f, j) * V *
-                           V.transpose())) +
-                 m_membrane_material_tensor(0, 1) *
-                     (m_membrane_ru(f, i) * m_membrane_rv(f, j) * U *
-                      V.transpose()) +
-                 m_membrane_material_tensor(1, 0) *
-                     (m_membrane_rv(f, i) * m_membrane_ru(f, j) * V *
-                      U.transpose())) +
-            (m_membrane_multiplier(f * 3 + 0) *
-                 (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
-             m_membrane_multiplier(f * 3 + 1) *
-                 (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
-             m_membrane_multiplier(f * 3 + 2) *
-                 (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
-                  m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
+            (m_membrane_material_tensor(0, 0) *
+                 (m_membrane_ru(f, i) * m_membrane_ru(f, j) * U *
+                  U.transpose()) +
+             m_membrane_material_tensor(1, 1) *
+                 (m_membrane_rv(f, i) * m_membrane_rv(f, j) * V *
+                  V.transpose()) +
+             m_membrane_material_tensor(2, 2) *
+                 ((m_membrane_rv(f, i) * m_membrane_ru(f, j) * U *
+                       V.transpose() +
+                   m_membrane_ru(f, i) * m_membrane_rv(f, j) * V *
+                       U.transpose()) +
+                  (m_membrane_rv(f, i) * m_membrane_rv(f, j) * U *
+                       U.transpose() +
+                   m_membrane_ru(f, i) * m_membrane_ru(f, j) * V *
+                       V.transpose())) +
+             m_membrane_material_tensor(0, 1) *
+                 (m_membrane_ru(f, i) * m_membrane_rv(f, j) * U *
+                  V.transpose()) +
+             m_membrane_material_tensor(1, 0) *
+                 (m_membrane_rv(f, i) * m_membrane_ru(f, j) * V *
+                  U.transpose()));
+
+        if (!m_use_approx_jacobian) {
+          if (m_use_tournier_jacobian) {
+            dphidx_membrane +=
+                (m_membrane_multiplier(f * 3 + 0) *
+                     (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
+                 m_membrane_multiplier(f * 3 + 1) *
+                     (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
+                 m_membrane_multiplier(f * 3 + 2) *
+                     (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
+                      m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
                 Matrix3s::Identity();
+          } else {
+            Vector3s strain =
+                Vector3s(0.5 * (U.dot(U) - 1), 0.5 * (V.dot(V) - 1), U.dot(V));
+            Vector3s stress = m_membrane_material_tensor * strain;
+            dphidx_membrane +=
+                (psi_coeff * m_triangle_rest_area(f)) *
+                (stress(0) * (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
+                 stress(1) * (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
+                 stress(2) * (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
+                              m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
+                Matrix3s::Identity();
+          }
+        }
 
         if (m_apply_viscous) {
-          dphidx_membrane +=
-              (psi_coeff * m_triangle_rest_area(f)) *
-                  (m_membrane_material_viscous_tensor(0, 0) *
-                       (m_membrane_ru(f, i) * m_membrane_ru(f, j) * U *
-                        U.transpose()) +
-                   m_membrane_material_viscous_tensor(1, 1) *
-                       (m_membrane_rv(f, i) * m_membrane_rv(f, j) * V *
-                        V.transpose()) +
-                   m_membrane_material_viscous_tensor(2, 2) *
-                       ((m_membrane_rv(f, i) * m_membrane_ru(f, j) * U *
-                             V.transpose() +
-                         m_membrane_ru(f, i) * m_membrane_rv(f, j) * V *
-                             U.transpose()) +
-                        (m_membrane_rv(f, i) * m_membrane_rv(f, j) * U *
-                             U.transpose() +
-                         m_membrane_ru(f, i) * m_membrane_ru(f, j) * V *
-                             V.transpose())) +
-                   m_membrane_material_viscous_tensor(0, 1) *
-                       (m_membrane_ru(f, i) * m_membrane_rv(f, j) * U *
-                        V.transpose()) +
-                   m_membrane_material_viscous_tensor(1, 0) *
-                       (m_membrane_rv(f, i) * m_membrane_ru(f, j) * V *
-                        U.transpose())) +
-              (m_viscous_multipler(f * 3 + 0) *
-                   (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
-               m_viscous_multipler(f * 3 + 1) *
-                   (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
-               m_viscous_multipler(f * 3 + 2) *
-                   (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
-                    m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
+          dphidx_membrane += (psi_coeff * m_triangle_rest_area(f)) *
+                             (m_membrane_material_viscous_tensor(0, 0) *
+                                  (m_membrane_ru(f, i) * m_membrane_ru(f, j) *
+                                   U * U.transpose()) +
+                              m_membrane_material_viscous_tensor(1, 1) *
+                                  (m_membrane_rv(f, i) * m_membrane_rv(f, j) *
+                                   V * V.transpose()) +
+                              m_membrane_material_viscous_tensor(2, 2) *
+                                  ((m_membrane_rv(f, i) * m_membrane_ru(f, j) *
+                                        U * V.transpose() +
+                                    m_membrane_ru(f, i) * m_membrane_rv(f, j) *
+                                        V * U.transpose()) +
+                                   (m_membrane_rv(f, i) * m_membrane_rv(f, j) *
+                                        U * U.transpose() +
+                                    m_membrane_ru(f, i) * m_membrane_ru(f, j) *
+                                        V * V.transpose())) +
+                              m_membrane_material_viscous_tensor(0, 1) *
+                                  (m_membrane_ru(f, i) * m_membrane_rv(f, j) *
+                                   U * V.transpose()) +
+                              m_membrane_material_viscous_tensor(1, 0) *
+                                  (m_membrane_rv(f, i) * m_membrane_ru(f, j) *
+                                   V * U.transpose()));
+          
+          if (!m_use_approx_jacobian) {
+            if (m_use_tournier_jacobian) {
+              dphidx_membrane +=
+                  (m_viscous_multipler(f * 3 + 0) *
+                       (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
+                   m_viscous_multipler(f * 3 + 1) *
+                       (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
+                   m_viscous_multipler(f * 3 + 2) *
+                       (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
+                        m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
                   Matrix3s::Identity();
+            } else {
+              const Vector3s& sx0 = m_start_pos.segment<3>(m_F(f, 0) * 4);
+              const Vector3s& sx1 = m_start_pos.segment<3>(m_F(f, 1) * 4);
+              const Vector3s& sx2 = m_start_pos.segment<3>(m_F(f, 2) * 4);
+
+              const Vector3s sU = sx0 * m_membrane_ru(f, 0) +
+                                  sx1 * m_membrane_ru(f, 1) +
+                                  sx2 * m_membrane_ru(f, 2);
+              const Vector3s sV = sx0 * m_membrane_rv(f, 0) +
+                                  sx1 * m_membrane_rv(f, 1) +
+                                  sx2 * m_membrane_rv(f, 2);
+
+              const Vector3s viscous_strain = Vector3s(
+                  0.5 * (U.dot(U) - sU.dot(sU)), 0.5 * (V.dot(V) - sV.dot(sV)),
+                  U.dot(V) - sU.dot(sV));
+
+              Vector3s viscous_stress =
+                  m_membrane_material_viscous_tensor * viscous_strain;
+              dphidx_membrane +=
+                  (psi_coeff * m_triangle_rest_area(f)) *
+                  (viscous_stress(0) *
+                       (m_membrane_ru(f, i) * m_membrane_ru(f, j)) +
+                   viscous_stress(1) *
+                       (m_membrane_rv(f, i) * m_membrane_rv(f, j)) +
+                   viscous_stress(2) *
+                       (m_membrane_ru(f, i) * m_membrane_rv(f, j) +
+                        m_membrane_rv(f, i) * m_membrane_ru(f, j))) *
+                  Matrix3s::Identity();
+            }
+          }
         }
 
         int base_idx = f * 81 + (i * 3 + j) * 9;
@@ -261,6 +314,8 @@ void ShellMembraneForce::addHessXToTotal(const VectorXs& x, const VectorXs& v,
 void ShellMembraneForce::updateMultipliers(
     const VectorXs& x, const VectorXs& vplus, const VectorXs& m,
     const VectorXs& psi, const scalar& lambda, const scalar& dt) {
+  if (!m_use_tournier_jacobian) return;
+
   threadutils::for_each(0, (int)m_F.rows(), [&](int f) {
     const scalar psi_base =
         (psi(m_F(f, 0)) + psi(m_F(f, 1)) + psi(m_F(f, 2))) / 3.0;

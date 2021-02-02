@@ -15,8 +15,6 @@
 #undef isnan
 #undef isinf
 
-#define USE_FULL_HESSIAN
-
 ShellBendingForce::~ShellBendingForce() {}
 
 ShellBendingForce::ShellBendingForce(
@@ -26,7 +24,8 @@ ShellBendingForce::ShellBendingForce(
     const MatrixXi& per_unique_edge_triangles_local_corners,
     const MatrixXi& per_triangles_unique_edges, const scalar& young_modulus,
     const scalar& viscous_modulus, const scalar& poisson_ratio,
-    const scalar& thickness, int bending_mode, bool apply_viscous)
+    const scalar& thickness, int bending_mode, bool apply_viscous,
+    bool use_approx_jacobian, bool use_tournier_jacobian)
     : m_pos(pos),
       m_rest_pos(rest_pos),
       m_F(F),
@@ -41,7 +40,9 @@ ShellBendingForce::ShellBendingForce(
       m_poisson_ratio(poisson_ratio),
       m_thickness(thickness),
       m_bending_mode(bending_mode),
-      m_apply_viscous(apply_viscous) {
+      m_apply_viscous(apply_viscous),
+      m_use_approx_jacobian(use_approx_jacobian),
+      m_use_tournier_jacobian(use_tournier_jacobian) {
   m_per_edge_rest_phi.resize(m_E_unique.rows());
   m_per_edge_rest_phi.setZero();
 
@@ -463,9 +464,18 @@ void ShellBendingForce::addHessXToTotal(const VectorXs& x, const VectorXs& v,
     Matrix3s N1 = M[1] / (e1_length * e1_length);
     Matrix3s N2 = M[2] / (e2_length * e2_length);
 
-    scalar c0 = m_multipliers(m_per_triangles_unique_edges(f, 0));
-    scalar c1 = m_multipliers(m_per_triangles_unique_edges(f, 1));
-    scalar c2 = m_multipliers(m_per_triangles_unique_edges(f, 2));
+    scalar c0;
+    scalar c1;
+    scalar c2;
+    if (m_use_tournier_jacobian) {
+      c0 = m_multipliers(m_per_triangles_unique_edges(f, 0));
+      c1 = m_multipliers(m_per_triangles_unique_edges(f, 1));
+      c2 = m_multipliers(m_per_triangles_unique_edges(f, 2));    
+    } else {
+      c0 = dPsi_dTheta(m_per_triangles_unique_edges(f, 0));
+      c1 = dPsi_dTheta(m_per_triangles_unique_edges(f, 1));
+      c2 = dPsi_dTheta(m_per_triangles_unique_edges(f, 2));    
+    }
 
     scalar d[3];
     d[0] = c2 * cos_alpha1 + c1 * cos_alpha2 - c0;
@@ -551,46 +561,51 @@ void ShellBendingForce::addHessXToTotal(const VectorXs& x, const VectorXs& v,
           }
   });
 
-#ifdef USE_FULL_HESSIAN
-  base_idx += m_unique_edge_usable.size() * 16 * 9;
+  if (!m_use_approx_jacobian) {
+    base_idx += m_unique_edge_usable.size() * 16 * 9;
 
-  threadutils::for_each(0, (int)m_F.rows(), [&](int f) {
-    int idx[3];
-    idx[0] = m_F(f, 0);
-    idx[1] = m_F(f, 1);
-    idx[2] = m_F(f, 2);
+    threadutils::for_each(0, (int)m_F.rows(), [&](int f) {
+      int idx[3];
+      idx[0] = m_F(f, 0);
+      idx[1] = m_F(f, 1);
+      idx[2] = m_F(f, 2);
 
-    MatrixXs dfdx_bending_hesspart;
-    l_bending_stencil_hessianPart(f, idx, dfdx_bending_hesspart, e_length,
-                                  dPsi_dTheta);
+      MatrixXs dfdx_bending_hesspart;
+      l_bending_stencil_hessianPart(f, idx, dfdx_bending_hesspart, e_length,
+                                    dPsi_dTheta);
 
-    for (int i = 0; i < 3; ++i)
-      for (int j = 0; j < 3; ++j) {
-        int hess_idx = base_idx + f * 9 * 9 + (j * 3 + i) * 9;
-        const Matrix3s& H = dfdx_bending_hesspart.block<3, 3>(i * 3, j * 3);
+      for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j) {
+          int hess_idx = base_idx + f * 9 * 9 + (j * 3 + i) * 9;
+          const Matrix3s& H = dfdx_bending_hesspart.block<3, 3>(i * 3, j * 3);
 
-        for (int s = 0; s < 3; ++s)
-          for (int r = 0; r < 3; ++r)
-            hessE[hess_idx + s * 3 + r] =
-                Triplets(idx[i] * 4 + r, idx[j] * 4 + s, H(r, s));
+          for (int s = 0; s < 3; ++s)
+            for (int r = 0; r < 3; ++r)
+              hessE[hess_idx + s * 3 + r] =
+                  Triplets(idx[i] * 4 + r, idx[j] * 4 + s, H(r, s));
 
-        assert(!std::isnan(hessE[hess_idx].value()));
-      }
-  });
-#endif
+          assert(!std::isnan(hessE[hess_idx].value()));
+        }
+    });  
+  }
 }
 
 int ShellBendingForce::numHessX() {
-  return m_unique_edge_usable.size() * 16 * 9
-#ifdef USE_FULL_HESSIAN
-         + m_F.rows() * 9 * 9
-#endif
-      ;
+  int num_hess_terms = m_unique_edge_usable.size() * 16 * 9;
+  if (!m_use_approx_jacobian) {
+    num_hess_terms += m_F.rows() * 9 * 9;
+  }
+
+  return num_hess_terms;
 }
 
 void ShellBendingForce::updateMultipliers(
     const VectorXs& x, const VectorXs& vplus, const VectorXs& m,
     const VectorXs& psi, const scalar& lambda, const scalar& dt) {
+  if (!m_use_tournier_jacobian) {
+    return;
+  }
+
   for (int e : m_unique_edge_usable) {
     assert((m_per_unique_edge_triangles(e, 0) != -1) &&
            (m_per_unique_edge_triangles(e, 1) != -1));

@@ -131,15 +131,16 @@ ThinShellForce::ThinShellForce(const std::shared_ptr<TwoDScene>& scene,
       poisson_ratio,
       params->m_physicalRadius.get()(0) + params->m_physicalRadius.get()(1),
       params->m_accumulateWithViscous &&
-          !params->m_accumulateViscousOnlyForBendingModes));
+          !params->m_accumulateViscousOnlyForBendingModes,
+      params->m_useApproxJacobian, params->m_useTournierJacobian));
   m_forces.push_back(std::make_shared<ShellBendingForce>(
       scene->getX(), rest_pos, m_F, m_triangle_rest_areas, m_E_unique,
       m_per_unique_edge_triangles, m_per_unique_edge_triangles_local_corners,
       m_per_triangles_unique_edges, params->m_youngsModulus.get(),
       params->m_viscousBendingCoefficientBase, poisson_ratio,
       params->m_physicalRadius.get()(0) + params->m_physicalRadius.get()(1),
-      m_scene->getLiquidInfo().bending_scheme,
-      params->m_accumulateWithViscous));
+      m_scene->getLiquidInfo().bending_scheme, params->m_accumulateWithViscous,
+      params->m_useApproxJacobian, params->m_useTournierJacobian));
 }
 
 void ThinShellForce::updateMultipliers(const VectorXs& x, const VectorXs& vplus,

@@ -39,6 +39,8 @@ class ShellMembraneForce : public Force {
   VectorXs m_viscous_multipler;
 
   bool m_apply_viscous;
+  bool m_use_approx_jacobian;
+  bool m_use_tournier_jacobian;
   scalar m_thickness;
 
   void perFaceNormals(const VectorXs& V, const MatrixXi& F, MatrixXs& N);
@@ -48,7 +50,8 @@ class ShellMembraneForce : public Force {
                      const MatrixXi& F, const VectorXs& triangle_rest_area,
                      const scalar& young_modulus, const scalar& viscous_modulus,
                      const scalar& poisson_ratio, const scalar& thickness,
-                     bool apply_viscous);
+                     bool apply_viscous, bool use_approx_jacobian,
+                     bool use_tournier_jacobian);
 
   virtual ~ShellMembraneForce();
 
