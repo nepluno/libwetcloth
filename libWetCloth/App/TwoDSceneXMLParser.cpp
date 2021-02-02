@@ -706,7 +706,7 @@ void TwoDSceneXMLParser::loadParticleSimulation(
   loadParticles(node, scene, mg_part);
   loadDistanceFields(node, scene, mg_df);
 
-  loadStrandParameters(node, scene, dt);
+  loadElasticParameters(node, scene, dt);
 
   int maxgroup = std::max(mg_part, mg_df);
   scene->resizeGroups(maxgroup + 1);
@@ -1393,7 +1393,7 @@ void TwoDSceneXMLParser::loadClothes(
       if (!stringutils::extractFromString(attribute, paramsIndex)) {
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
-                  << " Failed to parse value of params (StrandParameters "
+                  << " Failed to parse value of params (ElasticParameters "
                      "index) for cloth "
                   << numclothes << ". Value must be integer. Exiting."
                   << std::endl;
@@ -1402,7 +1402,7 @@ void TwoDSceneXMLParser::loadClothes(
     } else {
       std::cerr << outputmod::startred
                 << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
-                << " Failed to parse value of params (StrandParameters index) "
+                << " Failed to parse value of params (ElasticParameters index) "
                    "for cloth "
                 << numclothes << ". Exiting." << std::endl;
       exit(1);
@@ -1451,8 +1451,8 @@ void TwoDSceneXMLParser::loadClothes(
     twodscene->insertForce(std::make_shared<ThinShellForce>(
         twodscene, faces, paramsIndex, numclothes));
 
-    const std::shared_ptr<StrandParameters>& params =
-        twodscene->getStrandParameters(paramsIndex);
+    const std::shared_ptr<ElasticParameters>& params =
+        twodscene->getElasticParameters(paramsIndex);
     for (int pidx : unique_particles) {
       scalar radius_A = params->getRadiusA(0);
       scalar radius_B = params->getRadiusB(0);
@@ -1610,7 +1610,7 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node,
       if (!stringutils::extractFromString(attribute, paramsIndex)) {
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
-                  << " Failed to parse value of params (StrandParameters "
+                  << " Failed to parse value of params (ElasticParameters "
                      "index) for hair "
                   << numstrands << ". Value must be integer. Exiting."
                   << std::endl;
@@ -1619,14 +1619,14 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node,
     } else {
       std::cerr << outputmod::startred
                 << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
-                << " Failed to parse value of params (StrandParameters index) "
+                << " Failed to parse value of params (ElasticParameters index) "
                    "for hair "
                 << numstrands << ". Exiting." << std::endl;
       exit(1);
     }
 
     if (paramsIndex == -1) continue;
-    auto& params = twodscene->getStrandParameters(paramsIndex);
+    auto& params = twodscene->getElasticParameters(paramsIndex);
 
     int start = 0;
     if (nd->first_attribute("start")) {
@@ -1815,9 +1815,9 @@ void TwoDSceneXMLParser::loadHairs(rapidxml::xml_node<>* node,
       }
     }
 
-    // instance new StrandParameters
-    const int idx_sp = twodscene->getNumStrandParameters();
-    twodscene->insertStrandParameters(std::make_shared<StrandParameters>(
+    // instance new ElasticParameters
+    const int idx_sp = twodscene->getNumElasticParameters();
+    twodscene->insertElasticParameters(std::make_shared<ElasticParameters>(
         particle_radius, params->m_youngsModulus.get(),
         params->m_shearModulus.get(), params->m_stretchingMultiplier,
         params->m_collisionMultiplier, params->m_attachMultiplier,
@@ -2583,11 +2583,11 @@ void TwoDSceneXMLParser::loadLiquidInfo(
   twodscene->setLiquidInfo(info);
 }
 
-void TwoDSceneXMLParser::loadStrandParameters(
+void TwoDSceneXMLParser::loadElasticParameters(
     rapidxml::xml_node<>* node, const std::shared_ptr<TwoDScene>& twodscene,
     const scalar& dt) {
   /* Available options, if not defined take default below
-   <StrandParameters>
+   <ElasticParameters>
    <radius value="" />
    <youngsModulus value="" />
    <shearModulus value="" />
@@ -2599,14 +2599,14 @@ void TwoDSceneXMLParser::loadStrandParameters(
    <variableRadiusHair value="1" />
    <straightHairs value="0" />
    <friction_angle value="0"/>
-   </StrandParameters>
+   </ElasticParameters>
    */
 
   rapidxml::xml_node<>* nd;
 
   int paramsCount = 0;
-  for (nd = node->first_node("StrandParameters"); nd;
-       nd = nd->next_sibling("StrandParameters")) {
+  for (nd = node->first_node("ElasticParameters"); nd;
+       nd = nd->next_sibling("ElasticParameters")) {
     // default values:
     scalar radius = 0.018;
     scalar biradius = 0.018;
@@ -2634,7 +2634,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of haircolor attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2644,7 +2644,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of haircolor attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2654,7 +2654,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of haircolor attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2667,7 +2667,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of radius attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2680,7 +2680,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of biradius attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2693,7 +2693,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of poreRadius attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2706,7 +2706,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of youngsModulus attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2719,7 +2719,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of stretchingMultiplier attribute "
-                     "for StrandParameters "
+                     "for ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2732,7 +2732,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of collisionMultiplier attribute "
-                     "for StrandParameters "
+                     "for ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2745,7 +2745,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of attachMultiplier attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2759,7 +2759,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of poissonRatio attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2773,7 +2773,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of density attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2786,7 +2786,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of viscosity attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2799,7 +2799,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of baseRotation attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2812,7 +2812,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of accumulateWithViscous "
-                     "attribute for StrandParameters "
+                     "attribute for ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2827,7 +2827,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
             << outputmod::startred
             << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
             << " Failed to parse value of accumulateViscousOnlyForBendingModes "
-               "attribute for StrandParameters "
+               "attribute for ElasticParameters "
             << paramsCount << ". Value must be numeric. Exiting." << std::endl;
         exit(1);
       }
@@ -2839,7 +2839,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of postProjectFixed attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be boolean. Exiting."
                   << std::endl;
         exit(1);
@@ -2853,7 +2853,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
             << outputmod::startred
             << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
             << " Failed to parse value of useApproxJacobian attribute for "
-               "StrandParameters "
+               "ElasticParameters "
             << paramsCount << ". Value must be boolean. Exiting." << std::endl;
         exit(1);
       }
@@ -2866,7 +2866,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
             << outputmod::startred
             << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
             << " Failed to parse value of useTournierJacobian attribute for "
-               "StrandParameters "
+               "ElasticParameters "
             << paramsCount << ". Value must be boolean. Exiting." << std::endl;
         exit(1);
       }
@@ -2878,7 +2878,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of straightHairs attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2892,7 +2892,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
         std::cerr << outputmod::startred
                   << "ERROR IN XMLSCENEPARSER:" << outputmod::endred
                   << " Failed to parse value of friction alpha attribute for "
-                     "StrandParameters "
+                     "ElasticParameters "
                   << paramsCount << ". Value must be numeric. Exiting."
                   << std::endl;
         exit(1);
@@ -2909,7 +2909,7 @@ void TwoDSceneXMLParser::loadStrandParameters(
     rad_vec(0) = radius;
     rad_vec(1) = biradius;
 
-    twodscene->insertStrandParameters(std::make_shared<StrandParameters>(
+    twodscene->insertElasticParameters(std::make_shared<ElasticParameters>(
         rad_vec, YoungsModulus, shearModulus, stretchingMultiplier,
         collisionMultiplier, attachMultiplier, density, viscosity, baseRotation,
         dt, friction_alpha, friction_beta, restVolumeFraction,

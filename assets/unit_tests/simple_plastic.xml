@@ -24,7 +24,7 @@
 
   <simplegravity fx="0.0" fy="-981.0"/>
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <radius value="0.0165" /> 
     <youngsModulus value="3.1e10" /> 
     <poissonRatio value="0.4" /> 
@@ -35,7 +35,7 @@
     <baseRotation value="0.0"/>  
     <accumulateWithViscous value="0" /> 
     <accumulateViscousOnlyForBendingModes value="0" /> 
-  </StrandParameters> 
+  </ElasticParameters> 
 
   <script type="translate" x="0.0" y="5.0" z="0.0" w="0.0" start="0.0" end="1.0" group="0"/>  
   <script type="translate" x="0.0" y="-5.0" z="0.0" w="0.0" start="0.0" end="1.0" group="1"/>  

@@ -13,7 +13,7 @@
 #include "ViscousOrNotViscous.h"
 
 class StrandForce;
-struct StrandParameters;
+struct ElasticParameters;
 
 template <typename ViscousT = NonViscous>
 class BendingForce {

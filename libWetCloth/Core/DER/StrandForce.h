@@ -14,6 +14,7 @@
 #include <iostream>
 #include <unordered_set>
 
+#include "../ElasticParameters.h"
 #include "../Force.h"
 #include "../TwoDScene.h"
 #include "Definitions.h"
@@ -24,7 +25,6 @@
 #include "Dependencies/MaterialFrames.h"
 #include "Dependencies/ReferenceFrames.h"
 #include "Dependencies/Twists.h"
-#include "StrandParameters.h"
 
 struct StrandState {
   StrandState(const VecX& initDofs, BendingMatrixBase& bendingMatrixBase);
@@ -160,7 +160,7 @@ class StrandForce : public Force {
   VectorXs m_viscous_twisting_multipliers;
 
   int m_globalIndex;  // Global index amongst the hairs
-  std::shared_ptr<StrandParameters> m_strandParams;
+  std::shared_ptr<ElasticParameters> m_strandParams;
   std::shared_ptr<TwoDScene> m_scene;
 
   // increase memory, reduce re-computation

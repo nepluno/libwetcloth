@@ -32,7 +32,7 @@
 
   <distancefield usage="terminator" type="box" cx="0.0" cy="0.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" rw="0.0" ex="86.4" ey="86.4" ez="86.4" radius="0.0" group="1" sampled="0" inside="1"/>
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <youngsModulus value="1.83e7" /> 
     <poissonRatio value="0.202" /> 
     <collisionMultiplier value="0.04" />
@@ -43,7 +43,7 @@
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="0" /> 
     <frictionAngle value="10.0"/>
-  </StrandParameters> 
+  </ElasticParameters> 
   
   <particle x="0 -17.208 -9.648" v="0.0 0.0 0.0" fixed="1"/>
   <particle x="0 -17.064 -9.648" v="0.0 0.0 0.0" fixed="1"/>

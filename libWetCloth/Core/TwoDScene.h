@@ -15,7 +15,7 @@
 #include <Eigen/StdVector>
 #include <fstream>
 
-#include "DER/StrandParameters.h"
+#include "ElasticParameters.h"
 #include "DistanceFields.h"
 #include "Force.h"
 #include "Script.h"
@@ -123,7 +123,7 @@ class TwoDScene : public std::enable_shared_from_this<TwoDScene> {
   int getNumGausses() const;
   int getNumBuckets() const;
 
-  int getNumStrandParameters() const;
+  int getNumElasticParameters() const;
 
   const std::vector<int> getParticleGroup() const;
 
@@ -635,10 +635,10 @@ class TwoDScene : public std::enable_shared_from_this<TwoDScene> {
 
   const MatrixXi& getFaces() const;
 
-  void insertStrandParameters(
-      const std::shared_ptr<StrandParameters>& newparams);
+  void insertElasticParameters(
+      const std::shared_ptr<ElasticParameters>& newparams);
 
-  std::shared_ptr<StrandParameters>& getStrandParameters(const int index);
+  std::shared_ptr<ElasticParameters>& getElasticParameters(const int index);
 
   const Vector2iT getEdge(int edg) const;
 
@@ -1193,7 +1193,7 @@ class TwoDScene : public std::enable_shared_from_this<TwoDScene> {
 
   std::vector<std::shared_ptr<AttachForce> > m_attach_forces;
 
-  std::vector<std::shared_ptr<StrandParameters> > m_strandParameters;
+  std::vector<std::shared_ptr<ElasticParameters> > m_strandParameters;
 
   std::vector<Vector3s> m_group_pos;
   std::vector<Eigen::Quaternion<scalar> > m_group_rot;

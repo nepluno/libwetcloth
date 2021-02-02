@@ -5,7 +5,7 @@
   <collision type="continuous-time"/>
   <bucketinfo size="1.152" numcells="4"/>
   <simplegravity fx="0.0" fy="-981.0" fz="0.0" />
-  <StrandParameters>
+  <ElasticParameters>
     <radius value="0.048" />
     <youngsModulus value="6.6e7"/>
     <poissonRatio value="0.35" />
@@ -17,7 +17,7 @@
     <accumulateWithViscous value="1"/>
     <accumulateViscousOnlyForBendingModes value="0"/>
     <friction_angle value="30.0"/>
-  </StrandParameters>
+  </ElasticParameters>
   <liquidinfo>
     <viscosity value="8.9e-3"/>
     <surfTensionCoeff value="72.0"/>

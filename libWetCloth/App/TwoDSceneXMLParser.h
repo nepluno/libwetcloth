@@ -19,7 +19,7 @@
 #include "Camera.h"
 #include "CohesionForce.h"
 #include "DER/StrandForce.h"
-#include "DER/StrandParameters.h"
+#include "ElasticParameters.h"
 #include "DistanceFields.h"
 #include "JunctionForce.h"
 #include "LevelSetForce.h"
@@ -100,7 +100,7 @@ class TwoDSceneXMLParser {
                           const std::shared_ptr<TwoDScene>& twodscene,
                           int& maxgroup);
 
-  void loadStrandParameters(rapidxml::xml_node<>* node,
+  void loadElasticParameters(rapidxml::xml_node<>* node,
                             const std::shared_ptr<TwoDScene>& twodscene,
                             const scalar& dt);
 

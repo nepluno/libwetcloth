@@ -11,7 +11,7 @@
     <surfTensionCoeff value="72.0"/>
   </liquidinfo>
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <radius value="0.013" /> 
     <youngsModulus value="6.6e5" /> 
     <poissonRatio value="0.35" /> 
@@ -23,7 +23,7 @@
     <accumulateWithViscous value="0" /> 
     <accumulateViscousOnlyForBendingModes value="0" /> 
     <friction_angle value="0.0"/>
-  </StrandParameters> 
+  </ElasticParameters> 
 
   <distancefield usage="source" type="cylinder" cx="0.0" cy="4.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" radius="1.0" corner="0.25" halflength="1.25" rw="0.0" group="0"/>
   <distancefield usage="solid" type="file" cx="0.0" cy="0.0" cz="0.0" rx="0.0" ry="1.0" rz="0.0" rw="0.0" filename="assets/meshes/spot_triangulated.obj" group="1" sampled="0" dx="0.144" scale="2.0"/>

@@ -20,7 +20,7 @@
 
 #include <memory>
 
-#include "../DER/StrandParameters.h"
+#include "../ElasticParameters.h"
 
 bool ThinShellForce::parallelized() const { return true; }
 
@@ -119,7 +119,7 @@ ThinShellForce::ThinShellForce(const std::shared_ptr<TwoDScene>& scene,
     }
   }
 
-  auto& params = scene->getStrandParameters(parameterIndex);
+  auto& params = scene->getElasticParameters(parameterIndex);
 
   const scalar poisson_ratio =
       params->m_youngsModulus.get() / (2.0 * params->m_shearModulus.get()) -

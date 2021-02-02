@@ -39,7 +39,7 @@ StrandForce::StrandForce(const std::shared_ptr<TwoDScene>& scene,
       m_strandHessianUpdate(),
       m_strandState(NULL),
       m_startState(NULL) {
-  m_strandParams = m_scene->getStrandParameters(parameterIndex);
+  m_strandParams = m_scene->getElasticParameters(parameterIndex);
 
   VecX initDoFs(getNumVertices() * 4 - 1);
   for (int i = 0; i < getNumVertices(); ++i) {

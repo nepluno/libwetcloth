@@ -102,7 +102,7 @@ int TwoDScene::getNumFaces() const { return m_faces.rows(); }
 
 int TwoDScene::getNumGausses() const { return m_x_gauss.size() / 4; }
 
-int TwoDScene::getNumStrandParameters() const {
+int TwoDScene::getNumElasticParameters() const {
   return m_strandParameters.size();
 }
 
@@ -7327,12 +7327,12 @@ VectorXs TwoDScene::getPosition(int particle) {
 
 int TwoDScene::getDof(int particle) const { return particle * 4; }
 
-void TwoDScene::insertStrandParameters(
-    const std::shared_ptr<StrandParameters>& newparams) {
+void TwoDScene::insertElasticParameters(
+    const std::shared_ptr<ElasticParameters>& newparams) {
   m_strandParameters.push_back(newparams);
 }
 
-std::shared_ptr<StrandParameters>& TwoDScene::getStrandParameters(
+std::shared_ptr<ElasticParameters>& TwoDScene::getElasticParameters(
     const int index) {
   assert(0 <= index);
   assert(index < m_strandParameters.size());

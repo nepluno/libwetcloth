@@ -7,38 +7,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef STRAND_PARAMS_H
-#define STRAND_PARAMS_H
+#ifndef ELASTIC_PARAMETERS_H
+#define ELASTIC_PARAMETERS_H
 
 #include <math.h>  // exp
 
-#include "Definitions.h"
-#include "Dependencies/BendingProducts.h"
-#include "Dependencies/ElasticStrandUtils.h"
+#include "DER/Definitions.h"
+#include "DER/Dependencies/BendingProducts.h"
+#include "DER/Dependencies/ElasticStrandUtils.h"
 
-struct StrandEquilibriumParameters {
-  StrandEquilibriumParameters(const std::vector<Vec3>& vertices,
-                              scalar curl_radius, scalar curl_density,
-                              scalar dL, scalar root_length, scalar valid)
-      : m_vertices(vertices),
-        m_curl_radius(curl_radius),
-        m_curl_density(curl_density),
-        m_dL(dL),
-        m_root_length(root_length),
-        m_valid(valid),
-        m_dirty(false) {}
-
-  mutable std::vector<Vec3> m_vertices;
-  mutable double m_curl_radius;
-  mutable double m_curl_density;
-  mutable double m_dL;
-  mutable double m_root_length;
-  mutable bool m_valid;
-  mutable bool m_dirty;
-};
-
-struct StrandParameters {
-  StrandParameters(const VecX& radius, scalar YoungsModulus,
+struct ElasticParameters {
+  ElasticParameters(const VecX& radius, scalar YoungsModulus,
                    scalar shearModulus, scalar stretchingMultiplier,
                    scalar collisionMultiplier, scalar attachMultiplier,
                    scalar density, scalar viscosity, scalar baseRotation,

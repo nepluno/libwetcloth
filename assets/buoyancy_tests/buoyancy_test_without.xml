@@ -21,7 +21,7 @@
 
   <simplegravity fx="0.0" fy="-981.0"/>
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <radius value="0.0165" /> 
     <youngsModulus value="1e5" /> 
     <poissonRatio value="0.35" /> 
@@ -33,9 +33,9 @@
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="1" /> 
     <frictionAngle value="30.0"/>
-  </StrandParameters> 
+  </ElasticParameters> 
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <radius value="0.0165" /> 
     <youngsModulus value="1e5" /> 
     <poissonRatio value="0.35" /> 
@@ -47,9 +47,9 @@
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="1" /> 
     <frictionAngle value="30.0"/>
-  </StrandParameters> 
+  </ElasticParameters> 
 
-  <StrandParameters> 
+  <ElasticParameters> 
     <radius value="0.0165" /> 
     <youngsModulus value="1e5" /> 
     <poissonRatio value="0.35" /> 
@@ -61,7 +61,7 @@
     <accumulateWithViscous value="1" /> 
     <accumulateViscousOnlyForBendingModes value="1" /> 
     <frictionAngle value="30.0"/>
-  </StrandParameters> 
+  </ElasticParameters> 
 
   <particle x="-14.4 2.88 0" v="-20.0 0.0 0.0"/>
   <particle x="-14.4 3.024 0" v="-20.0 0.0 0.0"/>
