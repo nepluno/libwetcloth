@@ -395,6 +395,11 @@ void StrandForce::addAngularHessXToTotal(const VectorXs& x, const VectorXs& v,
 void StrandForce::updateMultipliers(const VectorXs& x, const VectorXs& vplus,
                                     const VectorXs& m, const VectorXs& psi,
                                     const scalar& lambda, const scalar& dt) {
+  if (m_strandParams->m_useApproxJacobian ||
+      !m_strandParams->m_useTournierJacobian) {
+    return;
+  }
+
   const int num_verts = getNumVertices();
   for (int i = 0; i < num_verts; ++i) {
     m_v_plus.segment<4>(i * 4) = vplus.segment<4>(m_verts[i] * 4);
