@@ -78,7 +78,7 @@ libWetCloth depends on following libraries (some of them have been included in t
 - libIGL* (https://github.com/libigl/libigl)
 - AntTweakBar (http://anttweakbar.sourceforge.net/doc/)
 - Intel TBB (https://www.threadingbuildingblocks.org)
-- GLUT (https://www.opengl.org/resources/libraries/glut/)
+- FreeGLUT (http://freeglut.sourceforge.net/)
 - libPNG (https://libpng.sourceforge.io/)
 - zlib (https://www.zlib.net/)
 
