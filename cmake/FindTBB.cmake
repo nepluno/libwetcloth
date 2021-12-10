@@ -104,7 +104,8 @@ if(NOT TBB_FOUND)
   # Define the search directories based on the current platform
   if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(TBB_DEFAULT_SEARCH_DIR "C:/Program Files/Intel/TBB"
-                               "C:/Program Files (x86)/Intel/TBB")
+                               "C:/Program Files (x86)/Intel/TBB"
+                               "${CMAKE_SOURCE_DIR}/thirdparty")
 
     # Set the target architecture
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -128,6 +129,7 @@ if(NOT TBB_FOUND)
 
     # Add the library path search suffix for the VC independent version of TBB
     list(APPEND TBB_LIB_PATH_SUFFIX "lib/${TBB_ARCHITECTURE}/vc_mt")
+    list(APPEND TBB_LIB_PATH_SUFFIX "lib")
 
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # OS X

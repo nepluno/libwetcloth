@@ -104,14 +104,12 @@ On Mac OS X or Linux:
 
 On Windows:
 
-You may download the pre-compiled package (http://www.cs.columbia.edu/cg/raymond/libwetcloth_thirdparty_win64.zip) that contains the x64 pre-compiled binaries for AntTweakBar, Intel TBB, GLUT, libPNG and zlib, unpack it somewhere, and then specify the missing directories to the path containing the headers or the compiled libraries. If you compile it manually, please make sure you have picked the libraries corresponding to the architecture you have selected (say, 32-bit libraries for x86, and 64-bit libraries for x64).
+You may download the pre-compiled package (https://www.cs.columbia.edu/cg/raymond/libwetcloth_thirdparty_win64.zip) that contains the x64 pre-compiled binaries for AntTweakBar, Intel TBB, GLUT, libPNG and zlib, unpack it somewhere (e.g., `<libwetcloth directory>/thirdparty`), and then specify the missing directories to the path containing the headers or the compiled libraries. If you compile it manually, please make sure you have picked the libraries corresponding to the architecture you have selected (say, 32-bit libraries for x86, and 64-bit libraries for x64).
 
-If our provided third-party libraries are used, the following CMake variables should be set before configuration (replace the `<libwetcloth_thirdparty_win64>` with the actual unpacked directory path):
+If our provided third-party libraries are used, the following CMake variables should be set before configuration (replace the `<libwetcloth_thirdparty_win64>` with the actual unpacked directory path. If `<libwetcloth directory>/thirdparty` is used for `<libwetcloth_thirdparty_win64>`, the dependencies should be found by CMake automatically):
 - `ANT_TWEAK_BAR_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/AntTweakBar`
 - `ANT_TWEAK_BAR_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/AntTweakBar64.lib`
-- `GLUT_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include`
-- `GLUT_glut_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/glut32.lib`
-- `GLUT_glut_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/glut32.lib`
+- `FREEGLUT_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/glut.lib`
 - `PNG_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
 - `PNG_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
 - `PNG_PNG_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/libpng`

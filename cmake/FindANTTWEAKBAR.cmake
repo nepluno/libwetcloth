@@ -29,6 +29,7 @@ IF (WIN32)
     ${PROJECT_SOURCE_DIR}/../../include/AntTweakBar/include
     ${PROJECT_SOURCE_DIR}/../include/AntTweakBar/include
     ${PROJECT_SOURCE_DIR}/include/AntTweakBar/include
+    ${PROJECT_SOURCE_DIR}/thirdparty/include/AntTweakBar
 		$ENV{ANT_TWEAK_BAR_ROOT}/include
 		DOC "The directory where AntTweakBar.h resides")
 
@@ -40,6 +41,7 @@ IF (WIN32)
 		${PROJECT_SOURCE_DIR}/include/AntTweakBar/lib
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/lib
+    ${PROJECT_SOURCE_DIR}/thirdparty/lib
                 $ENV{ANT_TWEAK_BAR_ROOT}/lib
                 DOC "The AntTweakBar library")
 ELSE (WIN32)
