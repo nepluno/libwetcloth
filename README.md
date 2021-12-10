@@ -2,7 +2,7 @@
 
 libWetCloth
 ================
-libWetCloth is an open source project for the physical simulation of liquid and wet cloth or yarns. It is cross-platform (Mac OS X, Linux, Windows, and more), and licensed under the Mozilla Public License v. 2.0.
+libWetCloth is an open source project for the physical simulation of liquid and wet cloth or yarns. It has been compiled and tested on Mac OS X (with both Intel and Apple M1 chips), Ubuntu Linux, Windows, and licensed under the Mozilla Public License v. 2.0.
 
 We would like to hear from you if you appreciate this work.
 
