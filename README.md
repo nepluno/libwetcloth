@@ -109,15 +109,15 @@ You may download the pre-compiled package (https://www.cs.columbia.edu/cg/raymon
 If our provided third-party libraries are used, the following CMake variables should be set before configuration (replace the `<libwetcloth_thirdparty_win64>` with the actual unpacked directory path. If `<libwetcloth directory>/thirdparty` is used for `<libwetcloth_thirdparty_win64>`, the dependencies should be found by CMake automatically):
 - `ANT_TWEAK_BAR_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/AntTweakBar`
 - `ANT_TWEAK_BAR_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/AntTweakBar64.lib`
-- `FREEGLUT_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/glut.lib`
-- `PNG_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
+- `FREEGLUT_LIBRARY`: `<libwetcloth_thirdparty_win64>/lib/freeglut.lib`
+- `PNG_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/libpng16_staticd.lib`
 - `PNG_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/libpng16_static.lib`
 - `PNG_PNG_INCLUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/libpng`
 - `TBB_INCLUDE_DIRS`: `<libwetcloth_thirdparty_win64>/include`
 - `TBB_tbb_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/tbb_debug.lib`
 - `TBB_tbb_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/tbb.lib`
 - `ZLIB_INLCUDE_DIR`: `<libwetcloth_thirdparty_win64>/include/zlib`
-- `ZLIB_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/zlibstatic.lib`
+- `ZLIB_LIBRARY_DEBUG`: `<libwetcloth_thirdparty_win64>/lib/zlibstaticd.lib`
 - `ZLIB_LIBRARY_RELEASE`: `<libwetcloth_thirdparty_win64>/lib/zlibstatic.lib`
 
 1. open CMake-GUI, enter the correct directory for source code and build. Then click *Configure*, choose your installed version of the Microsoft Visual Studio.
