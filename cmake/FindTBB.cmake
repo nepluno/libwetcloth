@@ -164,21 +164,6 @@ if(NOT TBB_FOUND)
       PATH_SUFFIXES include)
 
   ##################################
-  # Set version strings
-  ##################################
-
-  if(TBB_INCLUDE_DIRS)
-    file(READ "${TBB_INCLUDE_DIRS}/tbb/tbb_stddef.h" _tbb_version_file)
-    string(REGEX REPLACE ".*#define TBB_VERSION_MAJOR ([0-9]+).*" "\\1"
-        TBB_VERSION_MAJOR "${_tbb_version_file}")
-    string(REGEX REPLACE ".*#define TBB_VERSION_MINOR ([0-9]+).*" "\\1"
-        TBB_VERSION_MINOR "${_tbb_version_file}")
-    string(REGEX REPLACE ".*#define TBB_INTERFACE_VERSION ([0-9]+).*" "\\1"
-        TBB_INTERFACE_VERSION "${_tbb_version_file}")
-    set(TBB_VERSION "${TBB_VERSION_MAJOR}.${TBB_VERSION_MINOR}")
-  endif()
-
-  ##################################
   # Find TBB components
   ##################################
 
@@ -198,10 +183,17 @@ if(NOT TBB_FOUND)
           PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
           PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})
 
-      find_library(TBB_${_comp}_LIBRARY_DEBUG ${_comp}_debug
-          HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
-          PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
-          PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})
+      if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        find_library(TBB_${_comp}_LIBRARY_DEBUG ${_comp}_debug
+            HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
+            PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
+            PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})
+      else()
+         find_library(TBB_${_comp}_LIBRARY_DEBUG ${_comp}
+            HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
+            PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
+            PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})     
+      endif()
 
       if(TBB_${_comp}_LIBRARY_DEBUG)
         list(APPEND TBB_LIBRARIES_DEBUG "${TBB_${_comp}_LIBRARY_DEBUG}")

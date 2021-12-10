@@ -58,6 +58,7 @@ FIND_PATH(ANT_TWEAK_BAR_INCLUDE_DIR AntTweakBar.h
       /usr/local/include
       /usr/X11/include
       /usr/include
+      /opt/homebrew/include
       NO_DEFAULT_PATH)
 
 FIND_LIBRARY( ANT_TWEAK_BAR_LIBRARY AntTweakBar
@@ -68,6 +69,7 @@ FIND_LIBRARY( ANT_TWEAK_BAR_LIBRARY AntTweakBar
 		${PROJECT_SOURCE_DIR}/include/AntTweakBar/lib
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/lib
+    /opt/homebrew/lib
     /usr/local
     /usr/X11
     /usr

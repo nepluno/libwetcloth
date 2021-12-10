@@ -132,7 +132,7 @@ Run the Demo
 --------------------
 To run the demo of libWetCloth, you may simply use the command line argument *-s [scene_file]* to specify the scene to be loaded. Besides of the WetCloth library, we also have a user interface named WetClothApp where you may watch and tune the simulation interactively. For example, you may type
 ```
-./WetClothApp -s ../assets/general_examples/splash_cloth_small.xml
+./WetClothApp -s ../assets/unit_tests/simple_cloth.xml
 ```
 under the `<build>/libWetCloth/App` directory to run the simulation of the scene containing a water ball splashes on a small cloth. 
 
