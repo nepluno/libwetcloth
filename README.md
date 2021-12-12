@@ -82,17 +82,20 @@ libWetCloth depends on following libraries (some of them have been included in t
 - libPNG (https://libpng.sourceforge.io/)
 - zlib (https://www.zlib.net/)
 
-On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility.
+On Mac OS X or Linux-based systems, most of the dependencies are either included, or can be easily installed with Homebrew (https://brew.sh) or the APT package handling utility. For example, with Homebrew on Mac OS X, these external dependencies can be installed through
+```
+brew install anttweakbar tbb freeglut libpng zlib
+```
 
 On Windows you may need manually download and compile some of them (e.g. AntTweakBar, TBB, libPNG). For the ease of compilation, we provide a package containing all the headers and pre-compiled thirdparty libraries (except for those that have been included for all platforms). Please refer to the `On Windows` section below for more details.
 
-You may also compile a version that directly run simulation in the console, by turning off the `USE_OPENGL` switch in the CMake settings. When this switch is turned off, dependencies such as **GLUT, libPNG, zlib, and AntTweakBar** are no longer necessary to compile libWetCloth.
+You may also compile a version that directly run simulation in the console, by turning off the `USE_OPENGL` switch in the CMake settings. When this switch is turned off, dependencies such as **FreeGLUT, libPNG, zlib, and AntTweakBar** are no longer necessary to compile libWetCloth.
 
 For more details, please refer to the compilation section below.
 
 Compilation
 -----------------
-libWetCloth has been tested with Clang (under Mac OS X), GCC 4.8+ (under Linux), and Microsoft Visual Studio (under Windows 10).
+libWetCloth has been tested with AppleClang (under Mac OS X), GCC 4.8+ (under Linux), and Microsoft Visual Studio (under Windows 10).
 
 To compile libWetCloth, you'll need CMake on Mac OS X or Linux, or CMake-GUI (https://cmake.org) on Windows.
 
